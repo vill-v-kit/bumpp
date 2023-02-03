@@ -10,19 +10,19 @@
     "update:deps": "taze major -w -i -a -r"
   },
   "devDependencies": {
-    "@vill-v/bumpp": "workspace:*",
     "@rushstack/eslint-patch": "^1.2.0",
     "@types/node": "^18.11.18",
     "@types/semver": "^7.3.13",
+    "@vill-v/bumpp": "workspace:*",
     "@vill-v/eslint-config": "^0.0.10",
     "@vill-v/prettier-config": "^0.0.10",
     "@vill-v/tsconfig": "^0.0.10",
     "eslint": "^8.33.0",
+    "esno": "^0.16.3",
     "prettier": "^2.8.3",
     "taze": "^0.8.5",
-    "typescript": "^4.9.5",
-    "turbo": "^1.7.2",
     "tsup": "^6.5.0",
-    "esno": "^0.16.3"
+    "turbo": "^1.7.3",
+    "typescript": "^4.9.5"
   }
 }
