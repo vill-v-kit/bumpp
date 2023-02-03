@@ -12,13 +12,19 @@
 - 使用 [bumpp](https://github.com/antfu/bumpp) 无法生成 CHANGELOG.md
 - 使用 [changelogen](https://github.com/unjs/changelogen) 对 monorepo项目 无法进行有效的release
 
-鸣谢
-[bumpp](https://github.com/antfu/bumpp)
-[changelogen](https://github.com/unjs/changelogen)
-
-
 ## 简单使用
 
 ```shell
 vbumpp package.json packages/*/package.json
 ```
+
+## ❤️ 鸣谢
+
+[bumpp](https://github.com/antfu/bumpp)
+
+[changelogen](https://github.com/unjs/changelogen)
+
+
+## License
+
+[MIT](./LICENSE)
