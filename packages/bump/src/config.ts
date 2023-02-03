@@ -27,6 +27,8 @@ const changeLogConfigDefaults: ChangelogConfig = {
 
 export const resolveConfig = async (rawConfig: Config) => {
   const { config } = await loadConfig<ResolveConfig>({
+    name: 'vbumpp',
+    globalRc: true,
     defaults: {
       changelog: changeLogConfigDefaults,
       bumpp: {
