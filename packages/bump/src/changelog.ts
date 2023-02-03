@@ -29,7 +29,7 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
     from: `v${rawConfig.from}`,
   } as ChangelogConfig
 
-  const rawCommits = await getGitDiff(config.from, config.to)
+  const rawCommits = await getGitDiff(config.from)
 
   const commits = parseCommits(rawCommits, config).filter(
     (c) => config.types[c.type] && !(c.type === 'chore' && c.scope === 'deps' && !c.isBreaking)
