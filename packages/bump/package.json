@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "license": "MIT",
   "bin": {
     "vbumpp": "bin/index.js"
@@ -36,7 +36,8 @@
     "consola": "^2.15.3",
     "defu": "^6.1.2",
     "cac": "^6.7.14",
-    "c12": "^1.1.0"
+    "c12": "^1.1.0",
+    "execa": "^6.1.0"
   },
   "publishConfig": {
     "access": "public"
