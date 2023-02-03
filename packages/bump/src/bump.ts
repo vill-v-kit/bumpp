@@ -1,4 +1,4 @@
-import { ProgressEvent, VersionBumpProgress, versionBump } from 'bumpp'
+import { ProgressEvent, VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import { Config } from './types'
@@ -41,24 +41,14 @@ function progress({
 export const bumpVersion = async (option: Config = {}) => {
   const config = await resolveConfig(option)
   const currentTag = await getTag()
-  console.log(currentTag)
-  const options = await versionBump({ ...config.bumpp, progress })
-
-  if (!currentTag) {
-    return {
-      changelogMD: '',
-      markdown: '',
-    }
+  const { state } = await versionBumpInfo()
+  if (currentTag) {
+    await changelog({
+      ...config.changelog,
+      to: state.newVersion,
+      from: state.oldVersion,
+    })
   }
 
-  const { changelogMD, markdown } = await changelog({
-    ...config.changelog,
-    to: options.newVersion,
-    from: options.oldVersion,
-  })
-
-  return {
-    changelogMD,
-    markdown,
-  }
+  await versionBump({ ...config.bumpp, progress, release: state.newVersion })
 }
