@@ -1,0 +1,43 @@
+{
+  "name": "@vill-v/bumpp",
+  "version": "0.0.0",
+  "license": "MIT",
+  "bin": {
+    "vbumpp": "bin/index.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup-node"
+  },
+  "dependencies": {
+    "bumpp": "^8.2.1",
+    "changelogen": "^0.4.1",
+    "consola": "^2.15.3",
+    "defu": "^6.1.2",
+    "cac": "^6.7.14",
+    "c12": "^1.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

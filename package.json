@@ -1,0 +1,27 @@
+{
+  "name": "@vill-v/bumpp-monorepo",
+  "version": "0.0.0",
+  "packageManager": "pnpm@7.26.3",
+  "scripts": {
+    "build": "turbo run build",
+    "release": "vbumpp package.json packages/*/package.json && pnpm run build",
+    "changelogen": "changelogen --output CHANGELOG.md",
+    "update:deps": "taze major -w -i -a -r"
+  },
+  "devDependencies": {
+    "@vill-v/bumpp": "workspace:*",
+    "@rushstack/eslint-patch": "^1.2.0",
+    "@types/node": "^18.11.18",
+    "@types/semver": "^7.3.13",
+    "@vill-v/eslint-config": "^0.0.10",
+    "@vill-v/prettier-config": "^0.0.10",
+    "@vill-v/tsconfig": "^0.0.10",
+    "eslint": "^8.33.0",
+    "prettier": "^2.8.3",
+    "taze": "^0.8.5",
+    "typescript": "^4.9.5",
+    "turbo": "^1.7.2",
+    "tsup": "^6.5.0",
+    "esno": "^0.16.3"
+  }
+}
