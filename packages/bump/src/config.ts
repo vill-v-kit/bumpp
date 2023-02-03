@@ -26,7 +26,7 @@ const changeLogConfigDefaults: ChangelogConfig = {
 }
 
 export const resolveConfig = async (rawConfig: Config) => {
-  const config = await loadConfig<ResolveConfig>({
+  const { config } = await loadConfig<ResolveConfig>({
     defaults: {
       changelog: changeLogConfigDefaults,
       bumpp: {
@@ -35,5 +35,5 @@ export const resolveConfig = async (rawConfig: Config) => {
     },
   })
 
-  return defu(rawConfig, config) as any as ResolveConfig
+  return defu(rawConfig, config) as ResolveConfig
 }

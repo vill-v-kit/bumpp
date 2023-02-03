@@ -6,8 +6,8 @@
 import {
   ChangelogConfig,
   generateMarkDown,
-  getCurrentGitTag,
   getGitDiff,
+  getLastGitTag,
   parseCommits,
 } from 'changelogen'
 import { existsSync } from 'node:fs'
@@ -16,7 +16,7 @@ import consola from 'consola'
 
 export const getTag = async () => {
   try {
-    return await getCurrentGitTag()
+    return await getLastGitTag()
   } catch (e) {
     return ''
   }
@@ -34,7 +34,7 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   const commits = parseCommits(rawCommits, config).filter(
     (c) => config.types[c.type] && !(c.type === 'chore' && c.scope === 'deps' && !c.isBreaking)
   )
-  const markdown = generateMarkDown(commits, config)
+  const markdown = await generateMarkDown(commits, config)
 
   // Update changelog file (only when bumping or releasing or when --output is specified as a file)
   let changelogMD: string
