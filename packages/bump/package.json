@@ -12,6 +12,7 @@
     "name": "whitekite",
     "email": "1075790909@qq.com"
   },
+  "repository": "https://gitee.com/vill-v/bump",
   "files": [
     "dist",
     "bin"
