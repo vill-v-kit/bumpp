@@ -6,7 +6,7 @@
 import {
   ChangelogConfig,
   generateMarkDown,
-  getCurrentGitRef,
+  getCurrentGitTag,
   getGitDiff,
   parseCommits,
 } from 'changelogen'
@@ -16,7 +16,7 @@ import consola from 'consola'
 
 export const getTag = async () => {
   try {
-    return await getCurrentGitRef()
+    return await getCurrentGitTag()
   } catch (e) {
     return ''
   }
@@ -28,8 +28,6 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
     to: `v${rawConfig.to}`,
     from: `v${rawConfig.from}`,
   } as ChangelogConfig
-
-  console.info(await getCurrentGitRef())
 
   const rawCommits = await getGitDiff(config.from, config.to)
 

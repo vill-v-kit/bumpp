@@ -41,6 +41,7 @@ function progress({
 export const bumpVersion = async (option: Config = {}) => {
   const config = await resolveConfig(option)
   const currentTag = await getTag()
+  console.log(currentTag)
   const options = await versionBump({ ...config.bumpp, progress })
 
   if (!currentTag) {
