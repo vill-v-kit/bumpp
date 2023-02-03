@@ -1,8 +1,14 @@
 # Changelog
 
 
-[object Promise]
+## v0.0.1-beta.4
 
 
-[object Promise]
+### 🏡 框架
+
+  - Update CHANGELOG.md (cca3d67)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
 
