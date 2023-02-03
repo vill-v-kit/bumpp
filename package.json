@@ -2,6 +2,7 @@
   "name": "@vill-v/bumpp-monorepo",
   "version": "0.0.0",
   "packageManager": "pnpm@7.26.3",
+  "private": true,
   "scripts": {
     "build": "turbo run build",
     "release": "vbumpp package.json packages/*/package.json && pnpm run build",
