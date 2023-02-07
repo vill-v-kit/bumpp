@@ -5,8 +5,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "release": "vbumpp package.json -r",
-    "changelogen": "changelogen --output CHANGELOG.md",
+    "release": "vbumpp -r",
     "update:deps": "taze major -w -i -a -r"
   },
   "devDependencies": {
