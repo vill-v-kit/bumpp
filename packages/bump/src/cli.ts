@@ -7,6 +7,7 @@ export const createCli = () => {
   cac('vbumpp')
     .command('[...files]')
     .option('-o,--output [output]', 'CHANGELOG.md 生成位置', { default: 'CHANGELOG.md' })
+    .option('-r,--recursive', 'CHANGELOG.md 生成位置', { default: false })
     .action(async (files, options) => {
       await bumpVersion({
         bumpp: {
@@ -17,6 +18,7 @@ export const createCli = () => {
           ignoreScripts: false,
           noVerify: false,
           files,
+          recursive: options.recursive,
         },
         changelog: {
           output: options.output,

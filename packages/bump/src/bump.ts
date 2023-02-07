@@ -1,5 +1,4 @@
 import { ProgressEvent, VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
-import { oraPromise } from 'ora'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import { Config } from './types'
@@ -40,6 +39,7 @@ function progress({
 }
 
 export const bumpVersion = async (option: Config = {}) => {
+  const { oraPromise } = await import('ora')
   const config = await resolveConfig(option)
   const currentTag = await getTag()
   const { state } = await versionBumpInfo()
