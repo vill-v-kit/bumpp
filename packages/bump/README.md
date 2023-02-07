@@ -8,11 +8,22 @@
 [changelogen](https://github.com/unjs/changelogen)
 的组合
 
-解决 
+解决
 - 使用 [bumpp](https://github.com/antfu/bumpp) 无法生成 CHANGELOG.md
 - 使用 [changelogen](https://github.com/unjs/changelogen) 对 monorepo项目 无法进行有效的release
 
 ## 简单使用
+
+```shell
+vbumpp
+```
+## monorepo项目
+
+```shell
+vbumpp -r
+```
+
+## 自定义bump文件
 
 ```shell
 vbumpp package.json packages/*/package.json

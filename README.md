@@ -15,6 +15,17 @@
 ## 简单使用
 
 ```shell
+vbumpp
+```
+## monorepo项目
+
+```shell
+vbumpp -r
+```
+
+## 自定义bump文件
+
+```shell
 vbumpp package.json packages/*/package.json
 ```
 
