@@ -12,7 +12,6 @@ import {
 } from 'changelogen'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import consola from 'consola'
 
 export const getTag = async () => {
   try {
@@ -39,10 +38,8 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   // Update changelog file (only when bumping or releasing or when --output is specified as a file)
   let changelogMD: string
   if (existsSync(config.output as string)) {
-    consola.info(`Updating ${config.output}`)
     changelogMD = await readFile(config.output as string, 'utf8')
   } else {
-    consola.info(`Creating  ${config.output}`)
     changelogMD = '# Changelog\n\n'
   }
 
@@ -59,7 +56,6 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   const { execa } = await import('execa')
   await execa('git', ['add', config.output as string, 'package.json'])
   await execa('git', ['commit', '-m', `chore: update ${config.output}`])
-  consola.success('Update', config.output)
   return {
     markdown,
     changelogMD,

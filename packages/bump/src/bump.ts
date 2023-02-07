@@ -50,7 +50,11 @@ export const bumpVersion = async (option: Config = {}) => {
         to: state.newVersion,
         from: state.oldVersion,
       }),
-      { text: 'changelog\n' }
+      {
+        text: 'changelog',
+        successText: 'Update ' + config.changelog.output + ' success',
+        failText: 'Update ' + config.changelog.output + ' success',
+      }
     )
   }
 
