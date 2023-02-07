@@ -1,4 +1,5 @@
 import { ProgressEvent, VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
+import { oraPromise } from 'ora'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import { Config } from './types'
@@ -43,11 +44,14 @@ export const bumpVersion = async (option: Config = {}) => {
   const currentTag = await getTag()
   const { state } = await versionBumpInfo()
   if (currentTag) {
-    await changelog({
-      ...config.changelog,
-      to: state.newVersion,
-      from: state.oldVersion,
-    })
+    await oraPromise(
+      changelog({
+        ...config.changelog,
+        to: state.newVersion,
+        from: state.oldVersion,
+      }),
+      { text: 'changelog' }
+    )
   }
 
   await versionBump({ ...config.bumpp, progress, release: state.newVersion })

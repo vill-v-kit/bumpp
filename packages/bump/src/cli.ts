@@ -4,7 +4,7 @@ import { bumpVersion } from './bump'
 declare const __version__: string
 
 export const createCli = () => {
-  cac('elfego')
+  cac('vbumpp')
     .command('[...files]')
     .option('-o,--output [output]', 'CHANGELOG.md 生成位置', { default: 'CHANGELOG.md' })
     .action(async (files, options) => {
@@ -13,7 +13,7 @@ export const createCli = () => {
           commit: true,
           tag: true,
           push: true,
-          confirm: true,
+          confirm: false,
           ignoreScripts: false,
           noVerify: false,
           files,
