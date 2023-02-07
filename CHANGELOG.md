@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.0.3
+
+
+### 🚀 特性
+
+  - Changelog 加载动画换行 (5d9551a)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.0.2
 
 
