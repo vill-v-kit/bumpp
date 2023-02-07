@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.0.4
+
+
+### 🏡 框架
+
+  - Update README.md (d2bc879)
+  - 修改 changelog 加载动画 (2d8cbfc)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.0.3
 
 
