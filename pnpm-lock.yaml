@@ -13,25 +13,25 @@ importers:
       '@vill-v/tsconfig': ^0.0.10
       eslint: ^8.33.0
       esno: ^0.16.3
-      prettier: ^2.8.3
+      prettier: ^2.8.4
       taze: ^0.8.5
       tsup: ^6.6.0
-      turbo: ^1.7.3
+      turbo: ^1.7.4
       typescript: ^4.9.5
     devDependencies:
       '@rushstack/eslint-patch': 1.2.0
       '@types/node': 18.13.0
       '@types/semver': 7.3.13
       '@vill-v/bumpp': link:packages/bump
-      '@vill-v/eslint-config': 0.0.10_ixt4l6ptf47gmhhuxcve5dmsda
+      '@vill-v/eslint-config': 0.0.10_sl4yhqy766lpm4ioafo5vrxqom
       '@vill-v/prettier-config': 0.0.10
       '@vill-v/tsconfig': 0.0.10
       eslint: 8.33.0
       esno: 0.16.3
-      prettier: 2.8.3
+      prettier: 2.8.4
       taze: 0.8.5
       tsup: 6.6.0_typescript@4.9.5
-      turbo: 1.7.3
+      turbo: 1.7.4
       typescript: 4.9.5
 
   packages/bump:
@@ -631,7 +631,7 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@vill-v/eslint-config-base/0.0.10_6xprzernlpxwjedpj2snzq4bpq:
+  /@vill-v/eslint-config-base/0.0.10_kcm2pbg4372aakdkvxabn7z2ri:
     resolution: {integrity: sha512-RbZ0QCmMMUYOQI2V+OkMZ+F3PVZg3vFP6Zy54VXaGmHPosfI14ukCSRSBgO8I9e/vN+zbYeH4FKDjSgyzBPixw==}
     engines: {node: '>12'}
     peerDependencies:
@@ -641,13 +641,13 @@ packages:
       eslint-config-prettier: 8.6.0_eslint@8.33.0
       eslint-plugin-markdown: 3.0.0_eslint@8.33.0
       eslint-plugin-n: 15.6.1_eslint@8.33.0
-      eslint-plugin-prettier: 4.2.1_jqplj6qf3uqpxpu4gdyhwwasnq
+      eslint-plugin-prettier: 4.2.1_qa2thblfovmfepmgrc7z2owbo4
     transitivePeerDependencies:
       - prettier
       - supports-color
     dev: true
 
-  /@vill-v/eslint-config-ts/0.0.10_ixt4l6ptf47gmhhuxcve5dmsda:
+  /@vill-v/eslint-config-ts/0.0.10_sl4yhqy766lpm4ioafo5vrxqom:
     resolution: {integrity: sha512-2r/e9sX5fIdFuI1MZNMqGLlJiQMe6TzwKA/35ObYewXbg0i98cfAfuLw2f9zDOwvj6rKdavo+kXYn9FYPoZ4Zg==}
     engines: {node: '>12'}
     peerDependencies:
@@ -656,7 +656,7 @@ packages:
     dependencies:
       '@typescript-eslint/eslint-plugin': 5.50.0_go4drrxstycfikanvu45pi4vgq
       '@typescript-eslint/parser': 5.50.0_4vsywjlpuriuw3tl5oq6zy5a64
-      '@vill-v/eslint-config-base': 0.0.10_6xprzernlpxwjedpj2snzq4bpq
+      '@vill-v/eslint-config-base': 0.0.10_kcm2pbg4372aakdkvxabn7z2ri
       eslint: 8.33.0
       typescript: 4.9.5
     transitivePeerDependencies:
@@ -664,13 +664,13 @@ packages:
       - supports-color
     dev: true
 
-  /@vill-v/eslint-config-vue/0.0.10_ixt4l6ptf47gmhhuxcve5dmsda:
+  /@vill-v/eslint-config-vue/0.0.10_sl4yhqy766lpm4ioafo5vrxqom:
     resolution: {integrity: sha512-7C0wljCvP1r4TPoe2epGl4UhjezaJvhDx3y8bxeAs++meGBNr1N8+0SZ6/cJ7axxW0HSojZkVew95DfA92wyeA==}
     engines: {node: '>12'}
     peerDependencies:
       eslint: '>=8.0.0'
     dependencies:
-      '@vill-v/eslint-config-ts': 0.0.10_ixt4l6ptf47gmhhuxcve5dmsda
+      '@vill-v/eslint-config-ts': 0.0.10_sl4yhqy766lpm4ioafo5vrxqom
       eslint: 8.33.0
       eslint-plugin-vue: 9.9.0_eslint@8.33.0
       vue-demi: 0.13.11
@@ -682,14 +682,14 @@ packages:
       - vue
     dev: true
 
-  /@vill-v/eslint-config/0.0.10_ixt4l6ptf47gmhhuxcve5dmsda:
+  /@vill-v/eslint-config/0.0.10_sl4yhqy766lpm4ioafo5vrxqom:
     resolution: {integrity: sha512-X+Xd72bLFcmOWI1Skkr2qAlpClWo9cUhc0kulXg8HjoB4pYmk7i9lvxUKrVkU57WlgJgAKqalwDJEORxfniK7A==}
     engines: {node: '>12'}
     peerDependencies:
       eslint: '>=8.0.0'
       typescript: '>=4.0'
     dependencies:
-      '@vill-v/eslint-config-vue': 0.0.10_ixt4l6ptf47gmhhuxcve5dmsda
+      '@vill-v/eslint-config-vue': 0.0.10_sl4yhqy766lpm4ioafo5vrxqom
       eslint: 8.33.0
       typescript: 4.9.5
     transitivePeerDependencies:
@@ -1480,7 +1480,7 @@ packages:
       semver: 7.3.8
     dev: true
 
-  /eslint-plugin-prettier/4.2.1_jqplj6qf3uqpxpu4gdyhwwasnq:
+  /eslint-plugin-prettier/4.2.1_qa2thblfovmfepmgrc7z2owbo4:
     resolution: {integrity: sha512-f/0rXLXUt0oFYs8ra4w49wYZBG5GKZpAYsJSm6rnYL5uVDjd+zowwMwVZHnAjf4edNrKpCDYfXDgmRE/Ak7QyQ==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
@@ -1493,7 +1493,7 @@ packages:
     dependencies:
       eslint: 8.33.0
       eslint-config-prettier: 8.6.0_eslint@8.33.0
-      prettier: 2.8.3
+      prettier: 2.8.4
       prettier-linter-helpers: 1.0.0
     dev: true
 
@@ -2791,8 +2791,8 @@ packages:
       fast-diff: 1.2.0
     dev: true
 
-  /prettier/2.8.3:
-    resolution: {integrity: sha512-tJ/oJ4amDihPoufT5sM0Z1SKEuKay8LfVAMlbbhnnkvt6BUserZylqo2PN+p9KeljLr0OHa2rXHU1T8reeoTrw==}
+  /prettier/2.8.4:
+    resolution: {integrity: sha512-vIS4Rlc2FNh0BySk3Wkd6xmwxB0FpOndW5fisM5H8hsZSxU2VWVB5CWIkIjWvrHjIhxk2g3bfMKM87zNTrZddw==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     dev: true
@@ -3275,65 +3275,65 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /turbo-darwin-64/1.7.3:
-    resolution: {integrity: sha512-7j9+j1CVztmdevnClT3rG/GRhULf3ukwmv+l48l8uwsXNI53zLso+UYMql6RsjZDbD6sESwh0CHeKNwGmOylFA==}
+  /turbo-darwin-64/1.7.4:
+    resolution: {integrity: sha512-ZyYrQlUl8K/mYN1e6R7bEhPPYjMakz0DYMaexkyD7TAijQtWmTSd4a+I7VknOYNEssnUZ/v41GU3gPV1JAzxxQ==}
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-darwin-arm64/1.7.3:
-    resolution: {integrity: sha512-puS9+pqpiy4MrIvWRBTg3qfO2+JPXR7reQcXQ7qUreuyAJnSw9H9/TIHjeK6FFxUfQbmruylPtH6dNpfcML9CA==}
+  /turbo-darwin-arm64/1.7.4:
+    resolution: {integrity: sha512-CKIXg9uqp1a+Yeq/c4U0alPOqvwLUq5SBZf1PGYhGqJsfG0fRBtJfkUjHuBsuJIOGXg8rCmcGSWGIsIF6fqYuw==}
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-64/1.7.3:
-    resolution: {integrity: sha512-BnbpgcK8Wag6fhnff7tMaecswmFHN/T56VIDnjcwcJnK9H3jdwpjwZlmcDtkoslzjPj3VuqHyqLDMvSb3ejXSg==}
+  /turbo-linux-64/1.7.4:
+    resolution: {integrity: sha512-RIUl4RUFFyzD2T024vL7509Ygwcw+SEa8NOwPfaN6TtJHK7RZV/SBP3fLNVOptG9WRLnOWX3OvsLMbiOqDLLyA==}
     cpu: [x64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-arm64/1.7.3:
-    resolution: {integrity: sha512-+epY+0dfjmAJNZHfj7rID2hENRaeM3D0Ijqkhh/M53o46fQMwPNqI5ff9erh+f9r8sWuTpVnRlZeu7TE1P/Okw==}
+  /turbo-linux-arm64/1.7.4:
+    resolution: {integrity: sha512-Bg65F0AjYYYxqE6RPf2H5TIGuA/EyWMeGOATHVSZOWAbYcnG3Ly03GZii8AHnUi7ntWBdjwvXf/QbOS1ayNB6A==}
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-64/1.7.3:
-    resolution: {integrity: sha512-/2Z8WB4fASlq/diO6nhmHYuDCRPm3dkdUE6yhwQarXPOm936m4zj3xGQA2eSWMpvfst4xjVxxU7P7HOIOyWChA==}
+  /turbo-windows-64/1.7.4:
+    resolution: {integrity: sha512-rTaV50XZ2BRxRHOHqt1UsWfeDmYLbn8UKE6g2D2ED+uW+kmnTvR9s01nmlGWd2sAuWcRYQyQ2V+O09VfKPKcQw==}
     cpu: [x64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-arm64/1.7.3:
-    resolution: {integrity: sha512-UD9Uhop42xj1l1ba5LRdwqRq1Of+RgqQuv+QMd1xOAZ2FXn/91uhkfLv+H4Pkiw7XdUohOxpj/FcOvjCiiUxGw==}
+  /turbo-windows-arm64/1.7.4:
+    resolution: {integrity: sha512-h8sxdKPvHTnWUPtwnYszFMmSO0P/iUUwmYY9n7iYThA71zSao28UeZ0H0Gw75cY3MPjvkjn2C4EBAUGPjuZJLw==}
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo/1.7.3:
-    resolution: {integrity: sha512-mrqo72vPQO6ykmARThaNP/KXPDuBDSqDXfkUxD8hX1ET3YSFbOWJixlHU32tPtiFIhScIKbEGShEVWBrLeM0wg==}
+  /turbo/1.7.4:
+    resolution: {integrity: sha512-8RLedDoUL0kkVKWEZ/RMM70BvKLyDFen06QuKKhYC2XNOfNKqFDqzIdcY/vGick869bNIWalChoy4O07k0HLsA==}
     hasBin: true
     requiresBuild: true
     optionalDependencies:
-      turbo-darwin-64: 1.7.3
-      turbo-darwin-arm64: 1.7.3
-      turbo-linux-64: 1.7.3
-      turbo-linux-arm64: 1.7.3
-      turbo-windows-64: 1.7.3
-      turbo-windows-arm64: 1.7.3
+      turbo-darwin-64: 1.7.4
+      turbo-darwin-arm64: 1.7.4
+      turbo-linux-64: 1.7.4
+      turbo-linux-arm64: 1.7.4
+      turbo-windows-64: 1.7.4
+      turbo-windows-arm64: 1.7.4
     dev: true
 
   /type-check/0.4.0:
