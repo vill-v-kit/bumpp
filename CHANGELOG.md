@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.1.0
+
+
+### 🚀 特性
+
+  - 适配 `bumpp@9.0.0` `recursive` 特性 (4c136cd)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.0.4
 
 
