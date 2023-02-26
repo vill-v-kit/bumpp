@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.1.1
+
+
+### 🚀 特性
+
+  - 还原 `bumpp@9.0.0` `recursive` 特性的适配 (c4ce200)
+  - 增加默认的 `bumpp` 默认文件 `package-lock.json` (b6fd1c6)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.1.0
 
 
