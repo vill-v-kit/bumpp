@@ -6,9 +6,7 @@ export interface ChangelogOptions
 
 export interface Config {
   changelog?: ChangelogOptions
-  bumpp?: Omit<VersionBumpOptions, 'progress' | 'cwd'> & {
-    recursive?: boolean
-  }
+  bumpp?: Omit<VersionBumpOptions, 'progress' | 'cwd'>
 }
 
 export interface ResolveConfig {

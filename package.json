@@ -1,7 +1,7 @@
 {
   "name": "@vill-v/bumpp-monorepo",
   "version": "0.0.4",
-  "packageManager": "pnpm@7.26.3",
+  "packageManager": "pnpm@7.28.0",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -10,18 +10,18 @@
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.2.0",
-    "@types/node": "^18.13.0",
+    "@types/node": "^18.14.1",
     "@types/semver": "^7.3.13",
     "@vill-v/bumpp": "workspace:*",
-    "@vill-v/eslint-config": "^0.0.10",
-    "@vill-v/prettier-config": "^0.0.10",
-    "@vill-v/tsconfig": "^0.0.10",
-    "eslint": "^8.33.0",
+    "@vill-v/eslint-config": "^0.0.11",
+    "@vill-v/prettier-config": "^0.0.11",
+    "@vill-v/tsconfig": "^0.0.11",
+    "eslint": "^8.34.0",
     "esno": "^0.16.3",
     "prettier": "^2.8.4",
     "taze": "^0.8.5",
-    "tsup": "^6.6.0",
-    "turbo": "^1.7.4",
+    "tsup": "^6.6.3",
+    "turbo": "^1.8.2",
     "typescript": "^4.9.5"
   }
 }
