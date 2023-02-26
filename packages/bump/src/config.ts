@@ -34,7 +34,7 @@ export const resolveConfig = async (rawConfig: Config) => {
       changelog: changeLogConfigDefaults,
       bumpp: {
         cwd: process.cwd(),
-        files: ['package.json'],
+        files: ['package.json', 'package-lock.json'],
       },
     },
   })
