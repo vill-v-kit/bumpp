@@ -26,6 +26,7 @@ const changeLogConfigDefaults: ChangelogConfig = {
 }
 
 export const resolveConfig = async (rawConfig: Config) => {
+  const { globby } = await import('globby')
   const { config } = await loadConfig<ResolveConfig>({
     name: 'vbumpp',
     globalRc: true,
@@ -33,12 +34,25 @@ export const resolveConfig = async (rawConfig: Config) => {
       changelog: changeLogConfigDefaults,
       bumpp: {
         cwd: process.cwd(),
-        files: [],
+        files: ['package.json'],
       },
     },
   })
 
   const _resolveConfig = defu(rawConfig, config) as ResolveConfig
+
+  if (rawConfig.bumpp?.recursive) {
+    const files = await globby('**/package.json', {
+      ignore: ['**/node_modules/**'],
+      cwd: process.cwd(),
+      onlyFiles: true,
+    })
+    files.forEach((item) => {
+      _resolveConfig.bumpp.files!.push(item)
+    })
+  }
+
+  _resolveConfig.bumpp.recursive = false
 
   // files 去重
   _resolveConfig.bumpp.files = [...new Set(_resolveConfig.bumpp.files)]
