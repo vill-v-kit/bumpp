@@ -1,7 +1,7 @@
 {
   "name": "@vill-v/bumpp-monorepo",
   "version": "0.2.0",
-  "packageManager": "pnpm@7.28.0",
+  "packageManager": "pnpm@7.29.1",
   "private": true,
   "scripts": {
     "build": "turbo run build",
