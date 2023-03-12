@@ -20,9 +20,8 @@ const changeLogConfigDefaults: ChangelogConfig = {
   to: '',
   output: 'CHANGELOG.md',
   scopeMap: {},
-  newVersion: '',
-  github: '',
   cwd: '',
+  tokens: {},
 }
 
 export const resolveConfig = async (rawConfig: Config) => {
