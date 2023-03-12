@@ -7,6 +7,30 @@
 ### 🩹 修复
 
   - 修复 git commit changelog file失败的问题 (2bb753c)
+  - 修复 git commit changelog file失败的问题 (ac17568)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.1
+
+
+### 🩹 修复
+
+  - 修复 git commit changelog file失败的问题 (2bb753c)
+  - 修复 git commit changelog file失败的问题 (ac17568)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.1
+
+
+### 🩹 修复
+
+  - 修复 git commit changelog file失败的问题 (2bb753c)
 
 ### ❤️  Contributors
 
