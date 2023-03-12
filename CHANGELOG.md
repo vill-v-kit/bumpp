@@ -1,6 +1,19 @@
 # Changelog
 
 
+## v0.2.0
+
+
+### 🚀 特性
+
+  - 升级部分依赖 `changelogen@0.5.1` `execa@7.1.0` (8df5a97)
+  - 修改changelog生成默认配置 (9894abd)
+  - 修改内部changelog git command  使用`execa@7.1.0` `$` 特性 (932869a)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.1.1
 
 
