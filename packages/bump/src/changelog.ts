@@ -53,9 +53,9 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   }
 
   await writeFile(config.output as string, changelogMD)
-  const { execa } = await import('execa')
-  await execa('git', ['add', config.output as string, 'package.json'])
-  await execa('git', ['commit', '-m', `chore: update ${config.output}`])
+  const { $ } = await import('execa')
+  await $`git add ${config.output as string} package.json`
+  await $`git commit -m chore: update ${config.output as string}`
   return {
     markdown,
     changelogMD,
