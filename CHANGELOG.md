@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.2.1
+
+
+### 🩹 修复
+
+  - 修复 git commit changelog file失败的问题 (2bb753c)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.2.0
 
 
