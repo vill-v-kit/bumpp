@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.2.2
+
+
+### 🚀 特性
+
+  - **deps:** `execa@7.1.1` `6.2.0@ora` `c12@1.2.0` (6f3c1c4)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.2.1
 
 
