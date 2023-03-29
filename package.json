@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp-monorepo",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "packageManager": "pnpm@8.0.0",
   "private": true,
   "scripts": {
