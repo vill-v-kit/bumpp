@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.2.3
+
+
+### 🚀 特性
+
+  - **deps:** `bumpp@9.1.0` `ora@6.3.0` `changelogen@.5.2` (3b3c5d0)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.2.2
 
 
