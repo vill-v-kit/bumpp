@@ -1,16 +1,10 @@
-# @vill-v/bumpp
+# @vill-v/bumpp-gitee
 
 遵循 semver 规范进行 release 的工具包（暂时只针对个人使用，并没有开放过多的配置项）
 
-本包为
-[bumpp](https://github.com/antfu/bumpp)
-与
-[changelogen](https://github.com/unjs/changelogen)
-的组合
+为 [@vill-v/bumpp](https://www.npmjs.com/package/@vill-v/bumpp) 的拓展模块
 
-解决
-- 使用 [bumpp](https://github.com/antfu/bumpp) 无法生成 CHANGELOG.md
-- 使用 [changelogen](https://github.com/unjs/changelogen) 对 monorepo项目 无法进行有效的release
+可以在 release 后在 gitee 上 添加发型说明
 
 ## 简单使用
 
