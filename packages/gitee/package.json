@@ -1,0 +1,44 @@
+{
+  "name": "@vill-v/bumpp-gitee",
+  "version": "0.2.3",
+  "license": "MIT",
+  "bin": {
+    "vbumpp": "bin/index.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "repository": "https://gitee.com/vill-v/bump",
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup-node"
+  },
+  "dependencies": {
+    "ofetch": "^1.1.1",
+    "@vill-v/bumpp": "workspace:*",
+    "cac": "^6.7.14",
+    "rc9": "^2.1.1",
+    "consola": "^3.1.0",
+    "ora": "^6.3.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -17,9 +17,9 @@ importers:
       '@types/semver':
         specifier: ^7.5.0
         version: 7.5.0
-      '@vill-v/bumpp':
+      '@vill-v/bumpp-gitee':
         specifier: workspace:*
-        version: link:packages/bump
+        version: link:packages/gitee
       '@vill-v/eslint-config':
         specifier: ^0.0.15
         version: 0.0.15(eslint@8.43.0)(prettier@2.8.8)(typescript@5.1.3)(vue@3.2.47)
@@ -80,6 +80,27 @@ importers:
       ora:
         specifier: ^6.3.1
         version: 6.3.1
+
+  packages/gitee:
+    dependencies:
+      '@vill-v/bumpp':
+        specifier: workspace:*
+        version: link:../bump
+      cac:
+        specifier: ^6.7.14
+        version: 6.7.14
+      consola:
+        specifier: ^3.1.0
+        version: 3.1.0
+      ofetch:
+        specifier: ^1.1.1
+        version: 1.1.1
+      ora:
+        specifier: ^6.3.1
+        version: 6.3.1
+      rc9:
+        specifier: ^2.1.1
+        version: 2.1.1
 
 packages:
 
@@ -3007,6 +3028,14 @@ packages:
       destr: 1.2.2
       node-fetch-native: 1.2.0
       ufo: 1.1.1
+    dev: false
+
+  /ofetch@1.1.1:
+    resolution: {integrity: sha512-SSMoktrp9SNLi20BWfB/BnnKcL0RDigXThD/mZBeQxkIRv1xrd9183MtLdsqRYLYSqW0eTr5t8w8MqjNhvoOQQ==}
+    dependencies:
+      destr: 2.0.0
+      node-fetch-native: 1.2.0
+      ufo: 1.1.2
     dev: false
 
   /ohash@1.1.2:

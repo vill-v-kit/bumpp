@@ -3,26 +3,32 @@ import { defu } from 'defu'
 import { ChangelogConfig } from 'changelogen'
 import { loadConfig } from 'c12'
 
-const changeLogConfigDefaults: ChangelogConfig = {
-  types: {
-    feat: { title: '🚀 特性' },
-    perf: { title: '🔥 性能优化' },
-    fix: { title: '🩹 修复' },
-    refactor: { title: '💅 重构' },
-    examples: { title: '🏀 示例' },
-    docs: { title: '📖 文档' },
-    chore: { title: '🏡 框架' },
-    build: { title: '📦 打包' },
-    test: { title: '✅ 测试' },
-    BreakingChange: { title: '⚠️ 破坏性改动' },
-  },
-  from: '',
-  to: '',
-  output: 'CHANGELOG.md',
-  scopeMap: {},
-  cwd: '',
-  tokens: {},
-}
+const getDefaultsChangeLogConfig = () =>
+  ({
+    types: {
+      feat: { title: '🚀 特性' },
+      perf: { title: '🔥 性能优化' },
+      fix: { title: '🩹 修复' },
+      refactor: { title: '💅 重构' },
+      examples: { title: '🏀 示例' },
+      docs: { title: '📖 文档' },
+      chore: { title: '🏡 框架' },
+      build: { title: '📦 打包' },
+      test: { title: '✅ 测试' },
+      BreakingChange: { title: '⚠️ 破坏性改动' },
+    },
+    from: '',
+    to: '',
+    output: 'CHANGELOG.md',
+    scopeMap: {},
+    cwd: '',
+    tokens: {},
+    templates: {
+      commitMessage: 'chore(release): v{{newVersion}}',
+      tagMessage: 'v{{newVersion}}',
+      tagBody: 'v{{newVersion}}',
+    },
+  } as ChangelogConfig)
 
 export const resolveConfig = async (rawConfig: Config) => {
   const { globby } = await import('globby')
@@ -30,7 +36,7 @@ export const resolveConfig = async (rawConfig: Config) => {
     name: 'vbumpp',
     globalRc: true,
     defaults: {
-      changelog: changeLogConfigDefaults,
+      changelog: getDefaultsChangeLogConfig(),
       bumpp: {
         cwd: process.cwd(),
         files: ['package.json', 'package-lock.json'],
