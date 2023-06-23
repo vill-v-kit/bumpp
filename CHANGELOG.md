@@ -4,6 +4,27 @@
 ## v0.2.4
 
 
+### 🚀 特性
+
+  - **gitee:** 增加一个简易的模块 `@vill-v/bumpp-gitee` 提供release 后的gitee操作 (fe4a1ae)
+
+### 🏡 框架
+
+  - Update CHANGELOG.md (9c6f730)
+  - Update CHANGELOG.md (1176f67)
+  - Update CHANGELOG.md (f5b009e)
+  - Update CHANGELOG.md (d51f8aa)
+  - Update CHANGELOG.md (e94016e)
+  - Update CHANGELOG.md (449ab35)
+  - Update CHANGELOG.md (552b21c)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.4
+
+
 ### 🏡 框架
 
   - Update CHANGELOG.md (9c6f730)
