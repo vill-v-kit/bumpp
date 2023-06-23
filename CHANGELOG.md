@@ -10,6 +10,21 @@
   - Update CHANGELOG.md (1176f67)
   - Update CHANGELOG.md (f5b009e)
   - Update CHANGELOG.md (d51f8aa)
+  - Update CHANGELOG.md (e94016e)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.4
+
+
+### 🏡 框架
+
+  - Update CHANGELOG.md (9c6f730)
+  - Update CHANGELOG.md (1176f67)
+  - Update CHANGELOG.md (f5b009e)
+  - Update CHANGELOG.md (d51f8aa)
 
 ### ❤️  Contributors
 
