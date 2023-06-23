@@ -1,6 +1,21 @@
 # Changelog
 
 
+## v0.3.1
+
+
+### 🚀 特性
+
+  - **gitee:** Update console log (165071c)
+
+### 📖 文档
+
+  - Update README.md (498c530)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.3.0
 
 
