@@ -3,6 +3,17 @@
 
 ## v0.2.4
 
+
+### 🏡 框架
+
+  - Update CHANGELOG.md (9c6f730)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.4
+
 ## v0.2.3
 
 
