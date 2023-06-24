@@ -1,6 +1,21 @@
 # Changelog
 
 
+## v0.3.2
+
+
+### 🚀 特性
+
+  - **gitee:** Add gitee pages build util (dd8e44b)
+
+### 🏡 框架
+
+  - **gitee:** Update README.md (92dab92)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.3.1
 
 
