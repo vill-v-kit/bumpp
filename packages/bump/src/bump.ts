@@ -8,10 +8,17 @@ import { oraPromise } from 'ora'
 
 const require = createRequire(import.meta.url)
 
+/**
+ * to fix antfu/bumpp es module 🐛
+ * https://github.com/antfu/bumpp/issues/9
+ */
 const { versionBump, versionBumpInfo, ProgressEvent } = require('bumpp') as Awaited<
   typeof import('bumpp')
 >
 
+/**
+ * antfu/bumpp progress
+ */
 function progress({
   event,
   script,
@@ -46,12 +53,20 @@ function progress({
   }
 }
 
+/**
+ * 更新版本
+ * @param option
+ */
 export const bumpVersion = async (option: Config = {}) => {
+  // 获取配置文件
   const config = await resolveConfig(option)
+  // 获取远程仓库最新tag
   const currentTag = await getTag()
+  // prompt 选择的版本信息
   const { state } = await versionBumpInfo()
   const res = {} as BumpVersion
   res.bumpp = state
+  // 如果远程仓库存在tag，才生成 changelog
   if (currentTag) {
     res.changelog = await oraPromise(
       changelog({
@@ -67,6 +82,7 @@ export const bumpVersion = async (option: Config = {}) => {
     )
   }
 
+  // 更新包版本信息
   await versionBump({ ...config.bumpp, progress, release: state.newVersion })
 
   return res

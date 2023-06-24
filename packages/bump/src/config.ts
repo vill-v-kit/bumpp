@@ -30,6 +30,10 @@ const getDefaultsChangeLogConfig = () =>
     },
   } as ChangelogConfig)
 
+/**
+ * 合并配置项
+ * @param rawConfig
+ */
 export const resolveConfig = async (rawConfig: Config) => {
   const { config } = await loadConfig<ResolveConfig>({
     name: 'vbumpp',
