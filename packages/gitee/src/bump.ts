@@ -23,8 +23,8 @@ export const bumpVersion = async (option: Config = {}) => {
     }),
     {
       text: 'Gitee Release',
-      successText: ' [Gitee] add  release v' + bumpp.newVersion + ' success',
-      failText: '[Gitee] add  release v' + bumpp.newVersion + ' success',
+      successText: ' [Gitee] add release v' + bumpp.newVersion + ' success',
+      failText: '[Gitee] add release v' + bumpp.newVersion + ' success',
     }
   )
 }
