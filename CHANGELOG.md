@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.4.2
+
+
+### 🚀 特性
+
+  - **gitee:** 由于 open-api gitee pages build 功能 功能仅限 付费用户，遂删除该功能 (342ba37)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.4.1
 
 
