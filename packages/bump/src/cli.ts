@@ -1,4 +1,4 @@
-import cac from 'cac'
+import { cac } from 'cac'
 import { bumpVersion } from './bump'
 
 declare const __version__: string

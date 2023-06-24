@@ -2,7 +2,7 @@ import { Config, ResolveConfig } from './types'
 import { defu } from 'defu'
 import { ChangelogConfig } from 'changelogen'
 import { loadConfig } from 'c12'
-
+import { globby } from 'globby'
 const getDefaultsChangeLogConfig = () =>
   ({
     types: {
@@ -31,7 +31,6 @@ const getDefaultsChangeLogConfig = () =>
   } as ChangelogConfig)
 
 export const resolveConfig = async (rawConfig: Config) => {
-  const { globby } = await import('globby')
   const { config } = await loadConfig<ResolveConfig>({
     name: 'vbumpp',
     globalRc: true,

@@ -12,6 +12,7 @@ import {
 } from 'changelogen'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
+import { $ } from 'execa'
 
 export const getTag = async () => {
   try {
@@ -53,7 +54,6 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   }
 
   await writeFile(config.output as string, changelogMD)
-  const { $ } = await import('execa')
   await $`git add ${config.output as string} package.json`
   await $`git commit -m ${[`chore: update ${config.output as string}`]}`
   return {

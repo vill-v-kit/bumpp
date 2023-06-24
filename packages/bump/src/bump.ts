@@ -1,8 +1,16 @@
-import { ProgressEvent, VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
+import type { VersionBumpProgress } from 'bumpp'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import { BumpVersion, Config } from './types'
-import consola from 'consola'
+import { consola } from 'consola'
+import { createRequire } from 'module'
+import { oraPromise } from 'ora'
+
+const require = createRequire(import.meta.url)
+
+const { versionBump, versionBumpInfo, ProgressEvent } = require('bumpp') as Awaited<
+  typeof import('bumpp')
+>
 
 function progress({
   event,
@@ -39,7 +47,6 @@ function progress({
 }
 
 export const bumpVersion = async (option: Config = {}) => {
-  const { oraPromise } = await import('ora')
   const config = await resolveConfig(option)
   const currentTag = await getTag()
   const { state } = await versionBumpInfo()

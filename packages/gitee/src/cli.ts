@@ -1,4 +1,4 @@
-import cac from 'cac'
+import { cac } from 'cac'
 import { bumpVersion } from './bump'
 import { giteePagesBuild } from './gitee-pages'
 import { loadGiteeConfig, resolveRepoConfig } from './repo'

@@ -1,8 +1,9 @@
 import { resolveRepoConfig as _resolveRepoConfig } from '@vill-v/bumpp'
 import { consola } from 'consola'
 import { read, readUser } from 'rc9'
+import chalk from 'chalk'
+
 export const resolveRepoConfig = async () => {
-  const { default: chalk } = await import('chalk')
   const { repo: _repo } = await _resolveRepoConfig(process.cwd())
   if (_repo) {
     const [owner, repo] = _repo.split('/')
@@ -25,7 +26,6 @@ export interface GiteeConfig {
 }
 
 export const loadGiteeConfig = async () => {
-  const { default: chalk } = await import('chalk')
   const config = read<GiteeConfig>('.giteerc')
   const userConfig = readUser<GiteeConfig>('.giteerc')
   if (Object.keys(config).length) {

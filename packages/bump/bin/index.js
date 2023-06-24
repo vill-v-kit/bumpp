@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
-const { createCli } = require('../dist/cli')
+import { createCli } from '../dist/cli.js'
 
 createCli()

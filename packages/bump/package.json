@@ -2,6 +2,7 @@
   "name": "@vill-v/bumpp",
   "version": "0.3.2",
   "license": "MIT",
+  "type": "module",
   "bin": {
     "vbumpp": "bin/index.js"
   },
@@ -17,13 +18,13 @@
     "dist",
     "bin"
   ],
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
     }
   },
