@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp-gitee",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "license": "MIT",
   "bin": {
     "vbumpp": "bin/index.js"
