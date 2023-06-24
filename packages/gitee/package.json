@@ -36,7 +36,8 @@
     "consola": "^3.1.0",
     "ofetch": "^1.1.1",
     "ora": "^6.3.1",
-    "rc9": "^2.1.1"
+    "rc9": "^2.1.1",
+    "chalk": "^5.2.0"
   },
   "publishConfig": {
     "access": "public"
