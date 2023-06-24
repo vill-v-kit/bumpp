@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.4.1
+
+
+### 🚀 特性
+
+  - **gitee:** Change gitee pages build cli command (5f07084)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.4.0
 
 
