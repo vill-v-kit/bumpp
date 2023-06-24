@@ -46,7 +46,7 @@ export const createCli = () => {
       }
     })
 
-  $cac.command('pages build', '请求构建 gitee pages').action(async () => {
+  $cac.command('pages-build', '请求构建 gitee pages').action(async () => {
     const config = await loadGiteeConfig()
     const repo = await resolveRepoConfig()
     if (!repo) {
@@ -58,5 +58,7 @@ export const createCli = () => {
     })
   })
 
-  $cac.version(__version__).help().parse()
+  $cac.version(__version__)
+  $cac.help()
+  $cac.parse()
 }
