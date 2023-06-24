@@ -65,14 +65,3 @@ export const addRelease = (option: AddReleaseOption) => {
  * 请求建立Pages 传参
  */
 export interface UpdateDocPagesOption extends BaseOpenApiOption {}
-
-/**
- * 请求建立Pages
- * @link https://gitee.com/api/v5/swagger#/postV5ReposOwnerRepoPagesBuilds
- * @param option
- * @returns
- */
-export const updateDocPages = (option: UpdateDocPagesOption) => {
-  const { owner, repo, ...body } = option
-  return $fetch(`/repos/${owner}/${repo}/pages/builds`, { method: 'POST', body })
-}
