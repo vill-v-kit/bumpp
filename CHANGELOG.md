@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v0.4.0
+
+
+### 🏡 框架
+
+  - ⚠️  Change package to es module (0ec80b3)
+  - 补充部分代码注释信息 (28636de)
+
+#### ⚠️  Breaking Changes
+
+  - ⚠️  Change package to es module (0ec80b3)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.3.2
 
 
