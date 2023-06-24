@@ -6,6 +6,16 @@
 
 可以在 release 后在 gitee 上 添加发型说明
 
+## 设置 gitee access_token
+
+在node项目下，或者用户目录下 创建 `.giteerc` 文件
+
+配置文件示例
+
+```npmrc
+access_token=tokenxxxxx
+```
+
 ## 简单使用
 
 ```shell
