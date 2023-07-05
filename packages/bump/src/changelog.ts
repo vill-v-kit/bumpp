@@ -47,7 +47,12 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   )
 
   // 提交信息生成 markdown
-  const markdown = await generateMarkDown(commits, config)
+  let markdown = await generateMarkDown(commits, config)
+
+  markdown = markdown.replace(
+    '#### ⚠️  Breaking Changes',
+    '#### ' + config.types.BreakingChange.title
+  ).replace("### " + "❤️  Contributors","### " + "❤️  贡献者")
 
   // Update changelog file (only when bumping or releasing or when --output is specified as a file)
   let changelogMD: string

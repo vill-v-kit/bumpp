@@ -15,7 +15,7 @@ const getDefaultsChangeLogConfig = () =>
       chore: { title: '🏡 框架' },
       build: { title: '📦 打包' },
       test: { title: '✅ 测试' },
-      BreakingChange: { title: '⚠️ 破坏性改动' },
+      BreakingChange: { title: '🚨 破坏性改动' },
     },
     from: '',
     to: '',
