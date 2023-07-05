@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.4.4
+
+
+### 🚀 特性
+
+- 定制 break change，Contributors 生成changelog的文案 (aab98d0)
+
+### ❤️  贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.4.3
 
 
