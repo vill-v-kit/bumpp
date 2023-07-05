@@ -28,6 +28,11 @@ const getDefaultsChangeLogConfig = () =>
       tagMessage: 'v{{newVersion}}',
       tagBody: 'v{{newVersion}}',
     },
+    publish: {
+      private: false,
+      tag: "latest",
+      args: [],
+    },
   } as ChangelogConfig)
 
 /**

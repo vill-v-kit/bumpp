@@ -6,13 +6,13 @@ import { consola } from 'consola'
 import { createRequire } from 'module'
 import { oraPromise } from 'ora'
 
-const require = createRequire(import.meta.url)
+const _require = createRequire(import.meta.url)
 
 /**
  * to fix antfu/bumpp es module 🐛
  * https://github.com/antfu/bumpp/issues/9
  */
-const { versionBump, versionBumpInfo, ProgressEvent } = require('bumpp') as Awaited<
+const { versionBump, versionBumpInfo, ProgressEvent } = _require('bumpp') as Awaited<
   typeof import('bumpp')
 >
 
