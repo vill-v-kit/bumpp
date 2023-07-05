@@ -35,11 +35,11 @@
     "bumpp": "^9.1.1",
     "c12": "^1.4.2",
     "cac": "^6.7.14",
-    "changelogen": "^0.5.3",
-    "consola": "^3.1.0",
+    "changelogen": "^0.5.4",
+    "consola": "^3.2.2",
     "defu": "^6.1.2",
     "execa": "^7.1.1",
-    "globby": "^13.2.0",
+    "globby": "^13.2.1",
     "ora": "^6.3.1"
   },
   "publishConfig": {
