@@ -1,6 +1,17 @@
 # Changelog
 
 
+## v0.4.3
+
+
+### 🏡 框架
+
+- **dep:** Changelogen update to 0.5.4 (1f68bb9)
+
+### ❤️  Contributors
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.4.2
 
 
