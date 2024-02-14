@@ -1,8 +1,10 @@
-import { Config, ResolveConfig } from './types'
 import { defu } from 'defu'
-import { ChangelogConfig } from 'changelogen'
+import { ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { loadConfig } from 'c12'
 import { globby } from 'globby'
+import { loadBumpConfig } from 'bumpp'
+import { Config, ResolveConfig } from './types'
+
 const getDefaultsChangeLogConfig = () =>
   ({
     types: {
@@ -17,38 +19,27 @@ const getDefaultsChangeLogConfig = () =>
       test: { title: '✅ 测试' },
       BreakingChange: { title: '🚨 破坏性改动' },
     },
-    from: '',
-    to: '',
-    output: 'CHANGELOG.md',
-    scopeMap: {},
-    cwd: '',
-    tokens: {},
-    templates: {
-      commitMessage: 'chore(release): v{{newVersion}}',
-      tagMessage: 'v{{newVersion}}',
-      tagBody: 'v{{newVersion}}',
-    },
-    publish: {
-      private: false,
-      tag: "latest",
-      args: [],
-    },
-  } as ChangelogConfig)
+  }) as Partial<ChangelogConfig>
 
 /**
  * 合并配置项
  * @param rawConfig
  */
 export const resolveConfig = async (rawConfig: Config) => {
+  const cwd = process.cwd()
+  const changelog = await loadChangelogConfig(cwd)
+
+  const bumpp = await loadBumpConfig({
+    cwd,
+    files: ['package.json', 'package-lock.json'],
+  })
+
   const { config } = await loadConfig<ResolveConfig>({
     name: 'vbumpp',
     globalRc: true,
     defaults: {
-      changelog: getDefaultsChangeLogConfig(),
-      bumpp: {
-        cwd: process.cwd(),
-        files: ['package.json', 'package-lock.json'],
-      },
+      changelog: defu(changelog, getDefaultsChangeLogConfig()),
+      bumpp,
     },
   })
 
