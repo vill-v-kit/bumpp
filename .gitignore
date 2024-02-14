@@ -4,4 +4,4 @@ node_modules
 .idea
 
 packages/*/dist
-packages/*/.turbo
+.turbo
