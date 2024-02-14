@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.0.3
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v1.0.2...v1.0.3)
+
+### 🏡 框架
+
+- **build:** 修改项目打包目标为 node18 (15cba0a)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v1.0.2
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v1.0.1...v1.0.2)
