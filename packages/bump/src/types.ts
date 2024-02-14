@@ -1,6 +1,7 @@
-import { ChangelogConfig } from 'changelogen'
+import { ChangelogConfig, ResolvedChangelogConfig } from 'changelogen'
 import { VersionBumpOptions, versionBumpInfo } from 'bumpp'
 import { changelog } from './changelog'
+
 /**
  * changelog 生成配置信息
  */
@@ -28,7 +29,7 @@ export interface ResolveConfig {
   /**
    * changelog 生成配置信息
    */
-  changelog: ChangelogConfig
+  changelog: ResolvedChangelogConfig
   /**
    * bumpp 配置信息
    */

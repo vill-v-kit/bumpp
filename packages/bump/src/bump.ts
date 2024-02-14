@@ -1,20 +1,9 @@
-import type { VersionBumpProgress } from 'bumpp'
+import { ProgressEvent, VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
+import { consola } from 'consola'
+import { oraPromise } from 'ora'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import { BumpVersion, Config } from './types'
-import { consola } from 'consola'
-import { createRequire } from 'module'
-import { oraPromise } from 'ora'
-
-const _require = createRequire(import.meta.url)
-
-/**
- * to fix antfu/bumpp es module 🐛
- * https://github.com/antfu/bumpp/issues/9
- */
-const { versionBump, versionBumpInfo, ProgressEvent } = _require('bumpp') as Awaited<
-  typeof import('bumpp')
->
 
 /**
  * antfu/bumpp progress

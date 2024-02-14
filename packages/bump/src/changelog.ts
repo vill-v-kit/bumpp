@@ -3,15 +3,16 @@
  * @link https://github.com/unjs/changelogen
  * @licence https://github.com/unjs/changelogen/blob/main/LICENSE
  */
+
+import { existsSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
 import {
-  ChangelogConfig,
+  ResolvedChangelogConfig,
   generateMarkDown,
   getGitDiff,
   getLastGitTag,
   parseCommits,
 } from 'changelogen'
-import { existsSync } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
 import { $ } from 'execa'
 
 /**
@@ -30,13 +31,13 @@ export const getTag = async () => {
  * 生成changelog
  * @param rawConfig
  */
-export const changelog = async (rawConfig: ChangelogConfig) => {
+export const changelog = async (rawConfig: ResolvedChangelogConfig) => {
   const config = {
     ...rawConfig,
     newVersion: rawConfig.to,
     to: `v${rawConfig.to}`,
     from: `v${rawConfig.from}`,
-  } as ChangelogConfig
+  } as ResolvedChangelogConfig
 
   // 获取当前最新提交与上个版本的所有提交信息
   const rawCommits = await getGitDiff(config.from)
@@ -49,10 +50,9 @@ export const changelog = async (rawConfig: ChangelogConfig) => {
   // 提交信息生成 markdown
   let markdown = await generateMarkDown(commits, config)
 
-  markdown = markdown.replace(
-    '#### ⚠️  Breaking Changes',
-    '#### ' + config.types.BreakingChange.title
-  ).replace("### " + "❤️  Contributors","### " + "❤️  贡献者")
+  markdown = markdown
+    .replace('#### ⚠️ Breaking Changes', '#### ' + config.types.BreakingChange.title)
+    .replace('### ❤️ Contributors', '### ' + '❤️ 贡献者')
 
   // Update changelog file (only when bumping or releasing or when --output is specified as a file)
   let changelogMD: string
