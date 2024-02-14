@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp",
-  "version": "0.4.4",
+  "version": "1.0.0",
   "license": "MIT",
   "type": "module",
   "bin": {
