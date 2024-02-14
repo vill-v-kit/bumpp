@@ -1,5 +1,6 @@
 import { ofetch } from 'ofetch'
 import { consola } from 'consola'
+
 const $fetch = ofetch.create({
   baseURL: 'https://gitee.com/api/v5',
   async onResponseError({ response }) {

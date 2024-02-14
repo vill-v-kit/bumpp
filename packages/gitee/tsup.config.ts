@@ -1,14 +1,14 @@
 import { defineConfig } from 'tsup'
 import pkg from '../../package.json'
+
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
     cli: 'src/cli.ts',
   },
-  sourcemap: false,
   clean: true,
   dts: true,
-  target: 'node16',
+  target: 'node18',
   splitting: true,
   treeshake: true,
   shims: true,
