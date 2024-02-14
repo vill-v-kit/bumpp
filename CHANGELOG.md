@@ -1,6 +1,33 @@
 # Changelog
 
 
+## v1.0.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v0.4.4...v1.0.0)
+
+### 🚀 Enhancements
+
+- **bumpp:** 尊重 `changelog` `bumpp` 各自的配置文件 (d600aab)
+- **bumpp-gitee:** 使用 `consola/utils` 替换 `chalk` (22e5787)
+
+### 🩹 Fixes
+
+- **bumpp:** 修复 changelog markdown 标题替换失败 (578ac5d)
+
+### 🏡 Chore
+
+- **bumpp:** Update dep `bumpp^9.3.0` `changelogen^0.5.5` (92d8cf8)
+- **dep:** ⚠️  由于以下依赖升级  `ora^8.0.1` `globby^14.0.1` `execa^8.0.1`，修改最低 node 版本 v18 (c832993)
+- Update .gitignore (7188e99)
+
+#### 🚨 破坏性改动
+
+- **dep:** ⚠️  由于以下依赖升级  `ora^8.0.1` `globby^14.0.1` `execa^8.0.1`，修改最低 node 版本 v18 (c832993)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v0.4.4
 
 
