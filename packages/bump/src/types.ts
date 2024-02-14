@@ -6,7 +6,10 @@ import { changelog } from './changelog'
  * changelog 生成配置信息
  */
 export interface ChangelogOptions
-  extends Omit<Partial<ChangelogConfig>, 'cwd' | 'github' | 'newVersion' | 'to' | 'from'> {}
+  extends Omit<
+    Partial<ChangelogConfig>,
+    'cwd' | 'tokens' | 'newVersion' | 'to' | 'from' | 'publish'
+  > {}
 
 /**
  * 用户配置信息

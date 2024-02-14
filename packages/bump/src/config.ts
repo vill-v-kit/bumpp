@@ -48,7 +48,7 @@ export const resolveConfig = async (rawConfig: Config) => {
   if (rawConfig.bumpp?.recursive) {
     const files = await globby('**/package.json', {
       ignore: ['**/node_modules/**'],
-      cwd: process.cwd(),
+      cwd,
       onlyFiles: true,
     })
     files.forEach((item) => {
