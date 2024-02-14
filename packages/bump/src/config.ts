@@ -27,7 +27,7 @@ const getDefaultsChangeLogConfig = () =>
  */
 export const resolveConfig = async (rawConfig: Config) => {
   const cwd = process.cwd()
-  const changelog = await loadChangelogConfig(cwd)
+  const changelog = await loadChangelogConfig(cwd, getDefaultsChangeLogConfig())
 
   const bumpp = await loadBumpConfig({
     cwd,
@@ -38,7 +38,7 @@ export const resolveConfig = async (rawConfig: Config) => {
     name: 'vbumpp',
     globalRc: true,
     defaults: {
-      changelog: defu(changelog, getDefaultsChangeLogConfig()),
+      changelog,
       bumpp,
     },
   })
