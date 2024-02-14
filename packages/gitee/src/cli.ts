@@ -1,6 +1,7 @@
 import { cac } from 'cac'
 import { bumpVersion } from './bump'
 import { loadGiteeConfig, resolveRepoConfig } from './repo'
+
 declare const __version__: string
 
 export const createCli = () => {

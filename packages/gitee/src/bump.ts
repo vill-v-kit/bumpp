@@ -1,7 +1,8 @@
 import { type Config, bumpVersion as _bumpVersion, getCurrentGitBranch } from '@vill-v/bumpp'
+import { oraPromise } from 'ora'
 import { type BaseOpenApiOption, addRelease } from './open-api'
 import { isPreRelease } from './repo'
-import { oraPromise } from 'ora'
+
 export const bumpVersion = async (option: Config = {}, gitee: BaseOpenApiOption) => {
   const branch = await getCurrentGitBranch()
   const { bumpp, changelog } = await _bumpVersion(option)

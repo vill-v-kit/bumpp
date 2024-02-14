@@ -83,9 +83,6 @@ importers:
       cac:
         specifier: ^6.7.14
         version: 6.7.14
-      chalk:
-        specifier: ^5.3.0
-        version: 5.3.0
       consola:
         specifier: ^3.2.3
         version: 3.2.3
