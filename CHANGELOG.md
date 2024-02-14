@@ -1,6 +1,19 @@
 # Changelog
 
 
+## v1.0.1
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v1.0.0...v1.0.1)
+
+### 🩹 Fixes
+
+- 修复尊崇 `changelogen` 配置文件导致的模块自身默认配置被忽略 (fca754d)
+- **bumpp:** 修复配置项 `changelog` 允许的配置不准确，ps-虽然尊重 `changelogen` `bumpp` 各自的配置文件，但实际可配置内容,由于本插件使用的性质，并未完全开放，推荐使用插件自身的配置文件 `vbumpp.config.{mc}{tj}s` (746b011)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v1.0.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v0.4.4...v1.0.0)
