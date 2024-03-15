@@ -32,8 +32,8 @@
     "build": "tsup-node"
   },
   "dependencies": {
-    "bumpp": "^9.3.0",
-    "c12": "^1.8.0",
+    "bumpp": "^9.4.0",
+    "c12": "^1.10.0",
     "cac": "^6.7.14",
     "changelogen": "^0.5.5",
     "consola": "^3.2.3",
