@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.0.4
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v1.0.3...v1.0.4)
+
+### 🩹 修复
+
+- **bumpp:** 修复因为依赖 `bumpp@9.4.0` 内部 api 的破坏性改动导致的功能异常 (8705fd4)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v1.0.3
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v1.0.2...v1.0.3)
