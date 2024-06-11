@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.0.6
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v1.0.5...v1.0.6)
+
+### 🏡 框架
+
+- Update ci (c0a88e7)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v1.0.5
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v1.0.4...v1.0.5)
