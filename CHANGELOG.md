@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.0.5
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v1.0.4...v1.0.5)
+
+### 🏡 框架
+
+- Bump `bumpp@9.4.1` `execa@9.2.0` `ofetch@1.3.4` `rc9@2.1.2` (82e7555)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v1.0.4
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v1.0.3...v1.0.4)
