@@ -6,7 +6,7 @@
   "repository": "https://gitee.com/vill-v/bump",
   "scripts": {
     "build": "turbo run build",
-    "release": "vbumpp -r",
+    "release": "vbumpp -r && pnpm build",
     "update:deps": "taze major -w -i -a -r"
   },
   "devDependencies": {
