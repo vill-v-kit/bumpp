@@ -26,20 +26,30 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
+    },
+    "./changelogen": {
+      "import": "./dist/changelogen.js",
+      "require": "./dist/changelogen.cjs",
+      "types": "./dist/changelogen.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli.js",
+      "require": "./dist/cli.cjs",
+      "types": "./dist/cli.d.ts"
     }
   },
   "scripts": {
     "build": "tsup-node"
   },
   "dependencies": {
-    "bumpp": "^9.4.1",
-    "c12": "^1.10.0",
+    "bumpp": "^9.5.1",
+    "c12": "^1.11.1",
     "cac": "^6.7.14",
     "changelogen": "^0.5.5",
     "consola": "^3.2.3",
     "defu": "^6.1.4",
-    "execa": "^9.2.0",
-    "globby": "^14.0.1",
+    "execa": "^9.3.1",
+    "globby": "^14.0.2",
     "ora": "^8.0.1"
   },
   "publishConfig": {
