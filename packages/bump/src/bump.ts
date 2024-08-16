@@ -1,4 +1,4 @@
-import { ProgressEvent, VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
+import { ProgressEvent, type VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
 import { consola } from 'consola'
 import { oraPromise } from 'ora'
 import { changelog, getTag } from './changelog'
@@ -75,4 +75,24 @@ export const bumpVersion = async (option: Config = {}) => {
   await versionBump({ ...config.bumpp, progress, release: state.newVersion })
 
   return res
+}
+
+/**
+ * 更新版本伴随基础 release 基础等待动画
+ * @param option 更新版本配置
+ * @param addRelease release脚本
+ * @param provider git 远程储存提供商
+ */
+export const bumpVersionWithBaseRelease = async (
+  option: Config = {},
+  addRelease: (res: BumpVersion) => Promise<any>,
+  provider: string
+) => {
+  const { bumpp, changelog } = await bumpVersion(option)
+
+  await oraPromise(addRelease({ bumpp, changelog }), {
+    text: `${provider} Release`,
+    successText: ` [${provider}] add release v` + bumpp.newVersion + ' success',
+    failText: `[${provider}] add release v` + bumpp.newVersion + ' success',
+  })
 }

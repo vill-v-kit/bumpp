@@ -32,6 +32,12 @@ export const resolveConfig = async (rawConfig: Config) => {
   const bumpp = await loadBumpConfig({
     cwd,
     files: ['package.json', 'package-lock.json'],
+    commit: true,
+    tag: true,
+    push: true,
+    confirm: false,
+    ignoreScripts: false,
+    noVerify: false,
   })
 
   const { config } = await loadConfig<ResolveConfig>({

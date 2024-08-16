@@ -1,4 +1,4 @@
-import { resolveRepoConfig as _resolveRepoConfig } from '@vill-v/bumpp'
+import { resolveRepoConfig as _resolveRepoConfig } from '@vill-v/bumpp/changelogen'
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { read, readUser } from 'rc9'

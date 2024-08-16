@@ -5,6 +5,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     cli: 'src/cli.ts',
+    changelogen: 'src/changelogen.ts',
   },
   clean: true,
   dts: true,
