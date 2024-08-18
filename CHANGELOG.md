@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.1.1
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.1.0...v2.1.1)
+
+### 🩹 修复
+
+- **github:** 修复 repo 输出显示错误 (e38b615)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.1.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.0.5...v2.1.0)
