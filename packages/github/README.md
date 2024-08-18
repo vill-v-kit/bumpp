@@ -1,19 +1,19 @@
-# @vill-v/bumpp-gitee
+# @vill-v/bumpp-github
 
 遵循 semver 规范进行 release 的工具包（暂时只针对个人使用，并没有开放过多的配置项）
 
 为 [@vill-v/bumpp](https://www.npmjs.com/package/@vill-v/bumpp) 的拓展模块
 
-可以在 release 后在 gitee 上 添加发型说明
+可以在 release 后在 github 上 添加发行说明
 
-## 设置 gitee access_token
+## 设置 github access_token
 
 在node项目下，或者用户目录下 创建 `.vbumpprc` 文件
 
 配置文件示例
 
 ```npmrc
-accesstoken.gitee=tokenxxxxx
+accesstoken.github=tokenxxxxx
 ```
 
 ## 简单使用
