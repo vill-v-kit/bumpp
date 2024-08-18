@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.0.5
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.0.4...v2.0.5)
+
+### 🩹 修复
+
+- 修复 `2.0.4` 无法解析全局 accesstoken 的问题 (14968f9)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.0.4
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.0.3...v2.0.4)
