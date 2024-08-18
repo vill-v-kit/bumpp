@@ -1,1 +1,1 @@
-module.exports = require('@vill-v/prettier-config')
+export { default } from '@vill-v/prettier-config'

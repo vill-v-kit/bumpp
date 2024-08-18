@@ -1,3 +1,3 @@
-const villv = require('@vill-v/eslint-config')
+import villv from '@vill-v/eslint-config'
 
-module.exports = villv()
+export default villv()

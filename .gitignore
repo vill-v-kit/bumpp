@@ -3,5 +3,5 @@ node_modules
 *.local
 .idea
 
-packages/*/dist
+dist
 .turbo
