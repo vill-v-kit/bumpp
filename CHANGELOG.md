@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v2.0.1
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.0.0...v2.0.1)
+
 ## v2.0.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v1.0.6...v2.0.0)
