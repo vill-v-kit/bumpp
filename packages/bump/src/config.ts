@@ -48,8 +48,8 @@ export const resolveConfig = async (rawConfig: Config) => {
   const _resolveConfig = defu(
     rawConfig,
     config,
-    read<ResolveConfig>({ name: 'vbumpp', flat: true }),
-    readUser<ResolveConfig>({ name: 'vbumpp', flat: true }),
+    read<ResolveConfig>({ name: '.vbumpprc', flat: true }),
+    readUser<ResolveConfig>({ name: '.vbumpprc', flat: true }),
     {
       changelog,
       bumpp,
