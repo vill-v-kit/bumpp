@@ -1,8 +1,9 @@
 import { loadBumpConfig } from 'bumpp'
-import { loadConfig } from 'c12'
 import { ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { defu } from 'defu'
 import { globby } from 'globby'
+import { loadConfig, presetMini } from 'esconf'
+import { read, readUser } from 'rc9'
 import { Config, ResolveConfig } from './types'
 
 const getDefaultsChangeLogConfig = () =>
@@ -41,16 +42,20 @@ export const resolveConfig = async (rawConfig: Config) => {
   })
 
   const { config } = await loadConfig<ResolveConfig>({
-    name: 'vbumpp',
-    globalRc: true,
-    defaults: {
+    presets: [presetMini({ name: 'vbumpp' })],
+  })
+
+  const _resolveConfig = defu(
+    rawConfig,
+    config,
+    read<ResolveConfig>({ name: 'vbumpp', flat: true }),
+    readUser<ResolveConfig>({ name: 'vbumpp', flat: true }),
+    {
       changelog,
       bumpp,
       accesstoken: {},
-    },
-  })
-
-  const _resolveConfig = defu(rawConfig, config) as ResolveConfig
+    }
+  ) as ResolveConfig
 
   if (rawConfig.bumpp?.recursive) {
     const files = await globby('**/package.json', {
