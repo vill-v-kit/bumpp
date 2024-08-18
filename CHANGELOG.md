@@ -1,6 +1,31 @@
 # Changelog
 
 
+## v2.0.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v1.0.6...v2.0.0)
+
+### 🚀 特性
+
+- **bumpp:** 修改内部代码结构，提供一些帮助方法,减少 `bumpp-gitee` 重复的依赖安装与重复代码 (0efb863)
+- ⚠️  重新设计大部分 api以增加 github release 功能 (4e066f1)
+
+### 📖 文档
+
+- Update README.md (6ed9602)
+
+### 🏡 框架
+
+- Update root workspace type to module (b0c6d8f)
+
+#### 🚨 破坏性改动
+
+- ⚠️  重新设计大部分 api以增加 github release 功能 (4e066f1)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v1.0.6
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v1.0.5...v1.0.6)
