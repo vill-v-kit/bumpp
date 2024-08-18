@@ -6,8 +6,8 @@ const createGiteeRelease: ICreateGithubLikeRelease = async (options: BumpVersion
   const access_token = options.config.accesstoken?.gitee
   const createRelease = await createGithubLikeRelease({
     baseURL: 'https://gitee.com/api/v5',
-    body: {
-      access_token,
+    onRequest(context) {
+      ;(context.options.body as Record<string, any>)!.access_token = access_token
     },
     async onResponseError({ response }) {
       consola.error('gitee [open api] error :', response._data?.message || '')
