@@ -6,13 +6,15 @@ import { colors } from 'consola/utils'
  * 加载gitee远程仓库信息
  */
 export const resolveRepoConfig = async () => {
-  const { repo: _repo } = await _resolveRepoConfig(process.cwd())
+  const { repo: _repo, domain } = await _resolveRepoConfig(process.cwd())
   if (!_repo) {
     throw new Error('无法获取远程仓库信息')
   }
   const [owner, repo] = _repo.split('/')
   consola.info(
-    'gitee repo:',
+    'repo:',
+    colors.bold('domain'),
+    colors.bold(colors.green(domain || 'unknown')),
     colors.bold('owner'),
     colors.bold(colors.green(owner)),
     colors.bold('repo'),
