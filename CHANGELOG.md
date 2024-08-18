@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.1.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.0.5...v2.1.0)
+
+### 🚀 特性
+
+- **github:** 尝试从环境变量与 github cli 获取 accesstoken (fb00628)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.0.5
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.0.4...v2.0.5)
