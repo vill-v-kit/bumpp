@@ -2,8 +2,8 @@ import type { BumpVersion } from '@vill-v/bumpp'
 import { getCurrentGitBranch } from '@vill-v/bumpp/changelogen'
 import { type FetchOptions, ofetch } from 'ofetch'
 import consola from 'consola'
+import { $ } from 'execa'
 import { isPreRelease, resolveRepoConfig } from './utils'
-
 interface GitHubLikeOpenApiCreateRelease {
   /**
    * Tag 名称, 提倡以v字母为前缀做为Release名称，例如v1.0或者v2.3.4
@@ -52,8 +52,22 @@ export interface ICreateGithubLikeRelease {
   (options: BumpVersion): Promise<void>
 }
 
+const resolveGithubCliToken = async () => {
+  try {
+    const res = await $`gh auth token`
+    return res.stdout
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (e) {
+    return
+  }
+}
+
 export const createGithubRelease: ICreateGithubLikeRelease = async (options: BumpVersion) => {
-  const accesstoken = options.config.accesstoken?.github
+  let accesstoken =
+    options.config.accesstoken?.github || process.env.GH_TOKEN || process.env.GITHOB_TOKEN
+  if (!accesstoken) {
+    accesstoken = await resolveGithubCliToken()
+  }
   const createRelease = await createGithubLikeRelease({
     baseURL: 'https://api.github.com',
     headers: {
