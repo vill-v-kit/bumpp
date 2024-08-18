@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.0.2
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.0.1...v2.0.2)
+
+### 🩹 修复
+
+- 替换 `c12` 为 `esconf` , 解决 `2.0.0` 无法解析全局 accesstoken 的问题 (33db264)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.0.1
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.0.0...v2.0.1)
