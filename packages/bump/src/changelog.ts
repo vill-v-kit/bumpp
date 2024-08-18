@@ -22,6 +22,7 @@ import { $ } from 'execa'
 export const getTag = async () => {
   try {
     return await getLastGitTag()
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return ''
   }

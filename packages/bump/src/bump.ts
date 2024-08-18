@@ -53,7 +53,7 @@ export const bumpVersion = async (option: Config = {}) => {
   const currentTag = await getTag()
   // prompt 选择的版本信息
   const { state } = await versionBumpInfo()
-  const res = {} as BumpVersion
+  const res = { config } as BumpVersion
   res.bumpp = state
   // 如果远程仓库存在tag，才生成 changelog
   if (currentTag) {
@@ -88,11 +88,11 @@ export const bumpVersionWithBaseRelease = async (
   addRelease: (res: BumpVersion) => Promise<any>,
   provider: string
 ) => {
-  const { bumpp, changelog } = await bumpVersion(option)
+  const { bumpp, changelog, config } = await bumpVersion(option)
 
-  await oraPromise(addRelease({ bumpp, changelog }), {
+  await oraPromise(addRelease({ bumpp, changelog, config }), {
     text: `${provider} Release`,
     successText: ` [${provider}] add release v` + bumpp.newVersion + ' success',
-    failText: `[${provider}] add release v` + bumpp.newVersion + ' success',
+    failText: `[${provider}] add release v` + bumpp.newVersion + ' fail',
   })
 }

@@ -1,8 +1,8 @@
-import { defu } from 'defu'
-import { ChangelogConfig, loadChangelogConfig } from 'changelogen'
-import { loadConfig } from 'c12'
-import { globby } from 'globby'
 import { loadBumpConfig } from 'bumpp'
+import { loadConfig } from 'c12'
+import { ChangelogConfig, loadChangelogConfig } from 'changelogen'
+import { defu } from 'defu'
+import { globby } from 'globby'
 import { Config, ResolveConfig } from './types'
 
 const getDefaultsChangeLogConfig = () =>
@@ -46,6 +46,7 @@ export const resolveConfig = async (rawConfig: Config) => {
     defaults: {
       changelog,
       bumpp,
+      accesstoken: {},
     },
   })
 
@@ -69,3 +70,5 @@ export const resolveConfig = async (rawConfig: Config) => {
 
   return _resolveConfig
 }
+
+export const defineConfig = (config: Config) => config

@@ -11,6 +11,10 @@ export interface ChangelogOptions
     'cwd' | 'tokens' | 'newVersion' | 'to' | 'from' | 'publish'
   > {}
 
+export interface Accesstokens {
+  [key: string]: string
+}
+
 /**
  * 用户配置信息
  */
@@ -23,6 +27,7 @@ export interface Config {
    * bumpp 配置信息
    */
   bumpp?: Omit<VersionBumpOptions, 'progress' | 'cwd'>
+  accesstoken?: Accesstokens
 }
 
 /**
@@ -37,6 +42,7 @@ export interface ResolveConfig {
    * bumpp 配置信息
    */
   bumpp: Omit<VersionBumpOptions, 'progress'>
+  accesstoken: Accesstokens
 }
 
 /**
@@ -60,4 +66,5 @@ export interface BumpVersion {
    * changelog 生成结果
    */
   changelog: ChangelogResult
+  config: ResolveConfig
 }

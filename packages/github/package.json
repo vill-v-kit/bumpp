@@ -1,13 +1,13 @@
 {
-  "name": "@vill-v/bumpp-gitee",
+  "name": "@vill-v/bumpp-github",
   "version": "1.0.6",
   "license": "MIT",
   "type": "module",
-  "bin": {
-    "vbumpp": "bin/index.js"
-  },
   "engines": {
     "node": ">=18"
+  },
+  "bin": {
+    "vbumpp": "bin/index.js"
   },
   "author": {
     "name": "whitekite",
@@ -33,8 +33,8 @@
   },
   "dependencies": {
     "@vill-v/bumpp": "workspace:*",
-    "@vill-v/bumpp-github": "workspace:*",
-    "consola": "^3.2.3"
+    "consola": "^3.2.3",
+    "ofetch": "^1.3.4"
   },
   "publishConfig": {
     "access": "public"
