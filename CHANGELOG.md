@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.1.2
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.1.1...v2.1.2)
+
+### 🚀 特性
+
+- 升级 `esconf@0.3.3`,以替代 `rc9` 加载全局配置 文件 (462bba2)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.1.1
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.1.0...v2.1.1)
