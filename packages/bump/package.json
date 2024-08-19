@@ -47,11 +47,10 @@
     "changelogen": "^0.5.5",
     "consola": "^3.2.3",
     "defu": "^6.1.4",
-    "esconf": "^0.2.0",
+    "esconf": "~0.3.3",
     "execa": "^9.3.1",
     "globby": "^14.0.2",
-    "ora": "^8.0.1",
-    "rc9": "^2.1.2"
+    "ora": "^8.0.1"
   },
   "publishConfig": {
     "access": "public"

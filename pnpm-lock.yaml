@@ -63,8 +63,8 @@ importers:
         specifier: ^6.1.4
         version: 6.1.4
       esconf:
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ~0.3.3
+        version: 0.3.3
       execa:
         specifier: ^9.3.1
         version: 9.3.1
@@ -74,9 +74,6 @@ importers:
       ora:
         specifier: ^8.0.1
         version: 8.0.1
-      rc9:
-        specifier: ^2.1.2
-        version: 2.1.2
 
   packages/gitee:
     dependencies:
@@ -412,12 +409,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@esconf/core@0.2.0':
-    resolution: {integrity: sha512-f3lsaKjrkpd85pbRZeWkHHW+8DBzr+erIhZc02fDEU/SEtAWsOOLUApKODvfhn5B0TfISF20yrh6hVLhowv6Fw==}
+  '@esconf/core@0.3.3':
+    resolution: {integrity: sha512-IntbVkuEeQ4BWpfprvYdJNEFO5ruelp3H6EI5ziBN3nxjYMIp2MNbpJP3nck86lPUJFHmS/KvhEwI0Njgwi4UQ==}
     engines: {node: '>=18'}
 
-  '@esconf/preset-mini@0.2.0':
-    resolution: {integrity: sha512-5/Unc01PduDFDXuRUV9WOs4gkkyrIZjBaAvI/ikGHxm7egsOoDe1i3Vj6YOnf9Q2Vi61UAtfNEawVyYtzje8Sw==}
+  '@esconf/preset-mini@0.3.3':
+    resolution: {integrity: sha512-C6iTmIMZ7iH9n3jYvK5Hs9P/E9mrKmQhlq7UVHtxBcAtOpEiiC6z8w6k51BVgzR/vLW4iFEVzCtByiW1omVfcw==}
     engines: {node: '>=18'}
 
   '@eslint-community/eslint-utils@4.4.0':
@@ -1100,8 +1097,8 @@ packages:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
 
-  esconf@0.2.0:
-    resolution: {integrity: sha512-INZPGYFVfDpOBT1TlF1Jn50A+OrV9svdJBfHM8fPnJRJdyUd3DVIc4YP18gAnMkGITu5QMPKpqP6hE8VG3XPDA==}
+  esconf@0.3.3:
+    resolution: {integrity: sha512-JeBA111Dt1+NlIGyQ5aLIlKzh8uyeDX6O2cJhZcBrwTOfu/4MR/HfscmByGYnAt/SNWU4rc8GrAN+1U4ImcK4Q==}
     engines: {node: '>=18'}
 
   eslint-compat-utils@0.1.2:
@@ -2632,19 +2629,22 @@ snapshots:
   '@esbuild/win32-x64@0.23.0':
     optional: true
 
-  '@esconf/core@0.2.0':
+  '@esconf/core@0.3.3':
     dependencies:
       '@void-fs/kit': 0.0.1-beta.15
+      chokidar: 3.6.0
       defu: 6.1.4
       pathe: 1.1.2
+      perfect-debounce: 1.0.0
 
-  '@esconf/preset-mini@0.2.0':
+  '@esconf/preset-mini@0.3.3':
     dependencies:
-      '@esconf/core': 0.2.0
+      '@esconf/core': 0.3.3
       confbox: 0.1.7
       defu: 6.1.4
       jiti: 2.0.0-beta.3
       pkg-types: 1.1.3
+      rc9: 2.1.2
 
   '@eslint-community/eslint-utils@4.4.0(eslint@9.9.0(jiti@1.21.6))':
     dependencies:
@@ -3380,10 +3380,10 @@ snapshots:
 
   escape-string-regexp@4.0.0: {}
 
-  esconf@0.2.0:
+  esconf@0.3.3:
     dependencies:
-      '@esconf/core': 0.2.0
-      '@esconf/preset-mini': 0.2.0
+      '@esconf/core': 0.3.3
+      '@esconf/preset-mini': 0.3.3
 
   eslint-compat-utils@0.1.2(eslint@9.9.0(jiti@1.21.6)):
     dependencies:
