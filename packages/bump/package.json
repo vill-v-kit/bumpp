@@ -23,19 +23,19 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./changelogen": {
+      "types": "./dist/changelogen.d.ts",
       "import": "./dist/changelogen.js",
-      "require": "./dist/changelogen.cjs",
-      "types": "./dist/changelogen.d.ts"
+      "require": "./dist/changelogen.cjs"
     },
     "./cli": {
+      "types": "./dist/cli.d.ts",
       "import": "./dist/cli.js",
-      "require": "./dist/cli.cjs",
-      "types": "./dist/cli.d.ts"
+      "require": "./dist/cli.cjs"
     }
   },
   "scripts": {
@@ -50,7 +50,7 @@
     "esconf": "~0.3.3",
     "execa": "catalog:",
     "globby": "^14.0.2",
-    "ora": "^8.0.1"
+    "ora": "^8.1.0"
   },
   "publishConfig": {
     "access": "public"
