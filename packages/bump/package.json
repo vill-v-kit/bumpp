@@ -42,13 +42,13 @@
     "build": "tsup-node"
   },
   "dependencies": {
-    "bumpp": "^9.5.1",
+    "bumpp": "^9.5.2",
     "cac": "^6.7.14",
     "changelogen": "^0.5.5",
-    "consola": "^3.2.3",
+    "consola": "catalog:",
     "defu": "^6.1.4",
     "esconf": "~0.3.3",
-    "execa": "^9.3.1",
+    "execa": "catalog:",
     "globby": "^14.0.2",
     "ora": "^8.0.1"
   },

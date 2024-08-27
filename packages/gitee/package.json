@@ -34,7 +34,7 @@
   "dependencies": {
     "@vill-v/bumpp": "workspace:*",
     "@vill-v/bumpp-github": "workspace:*",
-    "consola": "^3.2.3"
+    "consola": "catalog:"
   },
   "publishConfig": {
     "access": "public"

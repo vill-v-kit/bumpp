@@ -33,8 +33,8 @@
   },
   "dependencies": {
     "@vill-v/bumpp": "workspace:*",
-    "consola": "^3.2.3",
-    "execa": "^9.3.1",
+    "consola": "catalog:",
+    "execa": "catalog:",
     "ofetch": "^1.3.4"
   },
   "publishConfig": {
