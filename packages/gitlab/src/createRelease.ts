@@ -18,7 +18,6 @@ interface GitlabOpenApiCreateRelease {
 }
 
 export const createGitlabRelease = async (options: BumpVersion) => {
-  const repo = await resolveRepoConfig()
   const accesstoken = options.config.accesstoken?.gitlab || ''
   const host = options.config.gitlab?.host || 'https://gitlab.com'
   const $fetch = ofetch.create({
@@ -32,9 +31,11 @@ export const createGitlabRelease = async (options: BumpVersion) => {
       consola.error('gitlab [open api] error :', `[${status}]`, data?.message || 'Unknown error')
     },
   })
+  const repo = await resolveRepoConfig($fetch)
 
   const { bumpp, changelog } = options
-  return $fetch(`/projects/${repo.owner}/${repo.repo}/releases`, {
+
+  return $fetch(`/api/v4/projects/${repo.id}/releases`, {
     method: 'POST',
     body: <GitlabOpenApiCreateRelease>{
       name: bumpp.newVersion,
