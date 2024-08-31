@@ -12,6 +12,9 @@ catalogs:
     execa:
       specifier: ^9.3.1
       version: 9.3.1
+    ofetch:
+      specifier: ^1.3.4
+      version: 1.3.4
 
 importers:
 
@@ -108,7 +111,19 @@ importers:
         specifier: 'catalog:'
         version: 9.3.1
       ofetch:
-        specifier: ^1.3.4
+        specifier: 'catalog:'
+        version: 1.3.4
+
+  packages/gitlab:
+    dependencies:
+      '@vill-v/bumpp':
+        specifier: workspace:*
+        version: link:../bump
+      consola:
+        specifier: 'catalog:'
+        version: 3.2.3
+      ofetch:
+        specifier: 'catalog:'
         version: 1.3.4
 
 packages:

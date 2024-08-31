@@ -1,5 +1,5 @@
 {
-  "name": "@vill-v/bumpp-github",
+  "name": "@vill-v/bumpp-gitlab",
   "version": "2.1.2",
   "license": "MIT",
   "type": "module",
@@ -34,7 +34,6 @@
   "dependencies": {
     "@vill-v/bumpp": "workspace:*",
     "consola": "catalog:",
-    "execa": "catalog:",
     "ofetch": "catalog:"
   },
   "publishConfig": {

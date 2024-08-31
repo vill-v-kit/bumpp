@@ -4,3 +4,4 @@ packages:
 catalog:
   consola: ^3.2.3
   execa: ^9.3.1
+  ofetch: ^1.3.4
