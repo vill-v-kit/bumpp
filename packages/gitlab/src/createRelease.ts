@@ -21,7 +21,7 @@ export const createGitlabRelease = async (options: BumpVersion) => {
   const accesstoken = options.config.accesstoken?.gitlab || ''
   const host = options.config.gitlab?.host || 'https://gitlab.com'
   const $fetch = ofetch.create({
-    baseURL: new URL('/api/v4', host).toString(),
+    baseURL: host,
     headers: {
       'PRIVATE-TOKEN': accesstoken,
     },
