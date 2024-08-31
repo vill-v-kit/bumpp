@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp-gitee",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "license": "MIT",
   "type": "module",
   "bin": {
