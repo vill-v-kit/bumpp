@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.2.1
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.2.0...v2.2.1)
+
+### 🩹 修复
+
+- **gitlab:** 修复 gitlab openapi 并未传递项目 id 导致执行失败的问题 (874d5db)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.2.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.1.2...v2.2.0)
