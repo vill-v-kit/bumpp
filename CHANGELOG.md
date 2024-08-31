@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v2.2.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.1.2...v2.2.0)
+
+### 🚀 特性
+
+- 新增 gitlab release 功能 (ffc21e7)
+
+### 🏡 框架
+
+- Use pnpm catalog (aa8855a)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.1.2
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.1.1...v2.1.2)
