@@ -11,7 +11,7 @@
     "update:deps": "taze major -w -i -a -r"
   },
   "devDependencies": {
-    "@types/node": "^22.5.0",
+    "@types/node": "^22.5.1",
     "@types/semver": "^7.5.8",
     "@vill-v/bumpp-gitee": "workspace:*",
     "@vill-v/eslint-config": "^1.5.2",
@@ -21,7 +21,7 @@
     "prettier": "^3.3.3",
     "taze": "^0.16.7",
     "tsup": "^8.2.4",
-    "turbo": "^2.1.0",
+    "turbo": "^2.1.1",
     "typescript": "^5.5.4"
   }
 }
