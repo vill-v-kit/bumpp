@@ -1,6 +1,20 @@
 # Changelog
 
 
+## v2.2.3
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.2.2...v2.2.3)
+
+### 🏡 框架
+
+- **dep:** Replace `globby`  to `tinyglobby` (419d3f8)
+- **dep:** Replace `execa`  to `tinyexec` (72ab83c)
+- Bump `bumpp@9.7.1` `changelogen@0.5.7` `esconf@0.5.0` (3787f48)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.2.2
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.2.1...v2.2.2)
