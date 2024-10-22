@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v2.2.4
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.2.3...v2.2.4)
+
+### 🩹 修复
+
+- 修复 changelog git 提交信息错误 (48bf19a)
+
+### 🏡 框架
+
+- Update CHANGELOG.md (3f2a2ad)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.2.4-beta.1
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.2.3...v2.2.4-beta.1)
