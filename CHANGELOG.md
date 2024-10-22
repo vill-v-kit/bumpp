@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v2.2.4-beta.1
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.2.3...v2.2.4-beta.1)
+
 ## v2.2.3
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.2.2...v2.2.3)
