@@ -13,7 +13,7 @@ import {
   getLastGitTag,
   parseCommits,
 } from 'changelogen'
-import { $ } from 'execa'
+import { x } from 'tinyexec'
 
 /**
  * 获取远程仓库的最新tag
@@ -75,9 +75,9 @@ export const changelog = async (rawConfig: ResolvedChangelogConfig) => {
   // 更新 changelog
   await writeFile(config.output as string, changelogMD)
   // 将changelog 文件和 package.json 提供给 git暂存
-  await $`git add ${config.output as string} package.json`
+  await x('git', ['add', config.output as string, 'package.json'])
   // 添加 changelog 提交信息
-  await $`git commit -m ${[`chore: update ${config.output as string}`]}`
+  await x('git', ['commit', '-m', `chore: update ${config.output as string}`])
   return {
     // 当前发版的markdown信息
     markdown,

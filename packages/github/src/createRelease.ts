@@ -2,7 +2,7 @@ import type { BumpVersion } from '@vill-v/bumpp'
 import { getCurrentGitBranch } from '@vill-v/bumpp/changelogen'
 import { type FetchOptions, ofetch } from 'ofetch'
 import consola from 'consola'
-import { $ } from 'execa'
+import { x } from 'tinyexec'
 import { isPreRelease, resolveRepoConfig } from './utils'
 interface GitHubLikeOpenApiCreateRelease {
   /**
@@ -54,7 +54,7 @@ export interface ICreateGithubLikeRelease {
 
 const resolveGithubCliToken = async () => {
   try {
-    const res = await $`gh auth token`
+    const res = await x('gh', ['auth', 'token'])
     return res.stdout
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {

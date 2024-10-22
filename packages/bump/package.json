@@ -48,9 +48,8 @@
     "consola": "catalog:",
     "defu": "^6.1.4",
     "esconf": "~0.3.3",
-    "execa": "catalog:",
-    "globby": "^14.0.2",
     "ora": "^8.1.0",
+    "tinyexec": "catalog:",
     "tinyglobby": "^0.2.9"
   },
   "publishConfig": {
