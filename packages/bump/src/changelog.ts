@@ -77,7 +77,7 @@ export const changelog = async (rawConfig: ResolvedChangelogConfig) => {
   // 将changelog 文件和 package.json 提供给 git暂存
   await x('git', ['add', config.output as string, 'package.json'])
   // 添加 changelog 提交信息
-  await x('git', ['commit', '-m', `chore: update ${config.output as string}`])
+  await x('git', ['commit', '-m', `"chore: update ${config.output as string}"`])
   return {
     // 当前发版的markdown信息
     markdown,
