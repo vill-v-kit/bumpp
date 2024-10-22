@@ -1,27 +1,29 @@
 {
   "name": "@vill-v/bumpp-monorepo",
   "version": "2.2.2",
-  "packageManager": "pnpm@9.9.0",
+  "packageManager": "pnpm@9.12.2",
   "private": true,
   "type": "module",
   "repository": "https://gitee.com/vill-v/bump",
   "scripts": {
     "build": "turbo run build",
     "release": "vbumpp -r && pnpm build",
-    "update:deps": "taze major -w -i -a -r"
+    "update:deps": "taze major -w -i -a -r",
+    "test": "vitest"
   },
   "devDependencies": {
-    "@types/node": "^22.5.1",
+    "@types/node": "^22.7.7",
     "@types/semver": "^7.5.8",
     "@vill-v/bumpp-gitee": "workspace:*",
-    "@vill-v/eslint-config": "^1.5.2",
+    "@vill-v/eslint-config": "^2.0.3",
     "@vill-v/prettier-config": "^1.0.0",
     "@vill-v/tsconfig": "^1.0.1",
-    "eslint": "^9.9.1",
+    "eslint": "^9.13.0",
     "prettier": "^3.3.3",
-    "taze": "^0.16.7",
-    "tsup": "^8.2.4",
-    "turbo": "^2.1.1",
-    "typescript": "^5.5.4"
+    "taze": "^0.17.2",
+    "tsup": "^8.3.0",
+    "turbo": "^2.2.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
   }
 }
