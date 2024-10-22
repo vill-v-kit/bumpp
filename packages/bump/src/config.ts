@@ -1,7 +1,7 @@
 import { loadBumpConfig } from 'bumpp'
 import { ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { defu } from 'defu'
-import { globby } from 'globby'
+import { glob } from 'tinyglobby'
 import { loadConfig, presetMini } from 'esconf'
 import { Config, ResolveConfig } from './types'
 
@@ -58,7 +58,7 @@ export const resolveConfig = async (rawConfig: Config) => {
   }) as ResolveConfig
 
   if (rawConfig.bumpp?.recursive) {
-    const files = await globby('**/package.json', {
+    const files = await glob('**/package.json', {
       ignore: ['**/node_modules/**'],
       cwd,
       onlyFiles: true,
