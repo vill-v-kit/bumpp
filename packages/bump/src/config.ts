@@ -18,6 +18,7 @@ const getDefaultsChangeLogConfig = () =>
       build: { title: '📦 打包' },
       test: { title: '✅ 测试' },
       BreakingChange: { title: '🚨 破坏性改动' },
+      style: { title: '🎨 样式' },
     },
   }) as Partial<ChangelogConfig>
 
