@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v2.2.5
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.2.4...v2.2.5)
+
+### 🚀 特性
+
+- Changelog 设置复写增加 `style` (2c7c6be)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](http://github.com/Colourlessglow))
+
 ## v2.2.4
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.2.3...v2.2.4)
