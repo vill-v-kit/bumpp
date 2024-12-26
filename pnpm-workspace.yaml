@@ -1,6 +1,6 @@
 packages:
   - packages/*
 catalog:
-  consola: ^3.2.3
+  consola: ^3.3.1
   ofetch: ^1.4.1
   tinyexec: ^0.3.1

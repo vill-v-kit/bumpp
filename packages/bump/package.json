@@ -42,15 +42,15 @@
     "build": "tsup-node"
   },
   "dependencies": {
-    "bumpp": "^9.7.1",
+    "bumpp": "^9.9.2",
     "cac": "^6.7.14",
     "changelogen": "^0.5.7",
     "consola": "catalog:",
     "defu": "^6.1.4",
-    "esconf": "~0.5.0",
-    "ora": "^8.1.0",
+    "esconf": "~0.5.1",
+    "ora": "^8.1.1",
     "tinyexec": "catalog:",
-    "tinyglobby": "^0.2.9"
+    "tinyglobby": "^0.2.10"
   },
   "publishConfig": {
     "access": "public"
