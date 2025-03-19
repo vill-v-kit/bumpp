@@ -1,6 +1,30 @@
 # Changelog
 
 
+## v3.0.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v2.2.5...v3.0.0)
+
+### 🚀 特性
+
+- **dep:** Update dep `bumpp@10.1.0` `changelogen@0.6.1` (f78817b)
+
+### 🩹 修复
+
+- 修复初次执行时创建 git 仓库发布失败的问题 (7da8e55)
+
+### 📦 打包
+
+- ⚠️  Build ESM-only (011317a)
+
+#### 🚨 破坏性改动
+
+- ⚠️  Build ESM-only (011317a)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](https://github.com/Colourlessglow))
+
 ## v2.2.5
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.2.4...v2.2.5)
