@@ -27,7 +27,7 @@ interface GitHubLikeOpenApiCreateRelease {
   target_commitish?: string
 }
 
-export const createGithubLikeRelease = async (fetchOptions: FetchOptions) => {
+export const createGithubLikeRelease = async (fetchOptions: FetchOptions): Promise<any> => {
   const repo = await resolveRepoConfig()
 
   const $fetch = ofetch.create(fetchOptions)
@@ -52,7 +52,7 @@ export interface ICreateGithubLikeRelease {
   (options: BumpVersion): Promise<void>
 }
 
-const resolveGithubCliToken = async () => {
+const resolveGithubCliToken = async (): Promise<string | undefined> => {
   try {
     const res = await x('gh', ['auth', 'token'])
     return res.stdout

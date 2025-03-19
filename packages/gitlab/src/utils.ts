@@ -6,7 +6,13 @@ import type { $Fetch } from 'ofetch'
 /**
  * 加载gitee远程仓库信息
  */
-export const resolveRepoConfig = async ($fetch: $Fetch) => {
+export const resolveRepoConfig = async (
+  $fetch: $Fetch
+): Promise<{
+  owner: string
+  repo: string
+  id: any
+}> => {
   const { repo: _repo, domain } = await _resolveRepoConfig(process.cwd())
   if (!_repo) {
     throw new Error('无法获取远程仓库信息')

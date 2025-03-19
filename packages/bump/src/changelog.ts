@@ -7,7 +7,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import {
-  ResolvedChangelogConfig,
+  type ResolvedChangelogConfig,
   generateMarkDown,
   getGitDiff,
   getLastGitTag,
@@ -19,7 +19,7 @@ import { x } from 'tinyexec'
  * 获取远程仓库的最新tag
  * @returns
  */
-export const getTag = async () => {
+export const getTag = async (): Promise<string> => {
   try {
     return await getLastGitTag()
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -32,7 +32,12 @@ export const getTag = async () => {
  * 生成changelog
  * @param rawConfig
  */
-export const changelog = async (rawConfig: ResolvedChangelogConfig) => {
+export const changelog = async (
+  rawConfig: ResolvedChangelogConfig
+): Promise<{
+  markdown: string
+  changelogMD: string
+}> => {
   const config = {
     ...rawConfig,
     newVersion: rawConfig.to,

@@ -3,7 +3,10 @@ import { bumpVersion } from './bump'
 import type { Config } from './types'
 
 declare const __version__: string
-export const createBaseCli = (bumpVersion: (config?: Config) => Promise<any>, version?: string) => {
+export const createBaseCli = (
+  bumpVersion: (config?: Config) => Promise<any>,
+  version?: string
+): void => {
   const $cac = cac('vbumpp')
   $cac
     .command('[...files]')
@@ -26,4 +29,4 @@ export const createBaseCli = (bumpVersion: (config?: Config) => Promise<any>, ve
   $cac.parse()
 }
 
-export const createCli = () => createBaseCli(bumpVersion)
+export const createCli = (): void => createBaseCli(bumpVersion)

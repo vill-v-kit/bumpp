@@ -21,10 +21,13 @@
     "@vill-v/tsconfig": "^1.0.1",
     "eslint": "^9.22.0",
     "prettier": "^3.5.3",
+    "publint": "^0.3.9",
     "taze": "^19.0.2",
+    "tsdown": "^0.6.9",
     "tsup": "^8.4.0",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2",
+    "unplugin-unused": "^0.4.3",
     "vitest": "^3.0.9"
   }
 }

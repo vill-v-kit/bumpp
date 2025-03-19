@@ -17,7 +17,7 @@ interface GitlabOpenApiCreateRelease {
   description?: string
 }
 
-export const createGitlabRelease = async (options: BumpVersion) => {
+export const createGitlabRelease = async (options: BumpVersion): Promise<any> => {
   const accesstoken = options.config.accesstoken?.gitlab || ''
   const host = options.config.gitlab?.host || 'https://gitlab.com'
   const $fetch = ofetch.create({

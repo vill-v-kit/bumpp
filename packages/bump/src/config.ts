@@ -1,11 +1,11 @@
 import { loadBumpConfig } from 'bumpp'
-import { ChangelogConfig, loadChangelogConfig } from 'changelogen'
+import { type ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { defu } from 'defu'
 import { glob } from 'tinyglobby'
 import { loadConfig, presetMini } from 'esconf'
-import { Config, ResolveConfig } from './types'
+import type { Config, ResolveConfig } from './types'
 
-const getDefaultsChangeLogConfig = () =>
+const getDefaultsChangeLogConfig = (): Partial<ChangelogConfig> =>
   ({
     types: {
       feat: { title: '🚀 特性' },
@@ -26,7 +26,7 @@ const getDefaultsChangeLogConfig = () =>
  * 合并配置项
  * @param rawConfig
  */
-export const resolveConfig = async (rawConfig: Config) => {
+export const resolveConfig = async (rawConfig: Config): Promise<ResolveConfig> => {
   const cwd = process.cwd()
   const changelog = await loadChangelogConfig(cwd, getDefaultsChangeLogConfig())
 
@@ -77,4 +77,4 @@ export const resolveConfig = async (rawConfig: Config) => {
   return _resolveConfig
 }
 
-export const defineConfig = (config: Config) => config
+export const defineConfig = (config: Config): Config => config

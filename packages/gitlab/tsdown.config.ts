@@ -1,16 +1,17 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
     cli: 'src/cli.ts',
   },
-  clean: true,
-  dts: true,
+  dts: { transformer: 'oxc' },
   target: 'node18',
-  splitting: true,
+  clean: true,
   treeshake: true,
   shims: true,
   platform: 'node',
-  format: ['esm', 'cjs'],
+  format: ['esm'],
+  publint: true,
+  skipNodeModulesBundle: true,
 })

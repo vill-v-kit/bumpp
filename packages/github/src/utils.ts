@@ -5,7 +5,10 @@ import { colors } from 'consola/utils'
 /**
  * 加载gitee远程仓库信息
  */
-export const resolveRepoConfig = async () => {
+export const resolveRepoConfig = async (): Promise<{
+  owner: string
+  repo: string
+}> => {
   const { repo: _repo, domain } = await _resolveRepoConfig(process.cwd())
   if (!_repo) {
     throw new Error('无法获取远程仓库信息')
@@ -30,6 +33,6 @@ export const resolveRepoConfig = async () => {
  * 判断当前版本号是够使 预发布版本
  * @param v
  */
-export const isPreRelease = (v: string) => {
+export const isPreRelease = (v: string): boolean => {
   return /(beta|alpha)/.test(v)
 }

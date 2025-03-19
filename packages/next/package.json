@@ -4,9 +4,6 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "bin": {
-    "vbumpp": "bin/index.js"
-  },
   "engines": {
     "node": ">=18"
   },
@@ -14,23 +11,28 @@
     "name": "whitekite",
     "email": "1075790909@qq.com"
   },
-  "repository": "https://gitee.com/vill-v/bump",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/vill-v/bump",
+    "directory": "packages/next"
+  },
   "files": [
     "dist",
     "bin"
   ],
-  "main": "dist/index.cjs",
+  "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsup-node"
+    "build": "tsdown"
   },
   "dependencies": {
     "@inquirer/select": "^4.1.0",

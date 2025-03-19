@@ -3,7 +3,7 @@ import { consola } from 'consola'
 import { oraPromise } from 'ora'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
-import { BumpVersion, Config } from './types'
+import type { BumpVersion, Config } from './types'
 
 /**
  * antfu/bumpp progress
@@ -46,7 +46,7 @@ function progress({
  * 更新版本
  * @param option
  */
-export const bumpVersion = async (option: Config = {}) => {
+export const bumpVersion = async (option: Config = {}): Promise<BumpVersion> => {
   // 获取配置文件
   const config = await resolveConfig(option)
   // 获取远程仓库最新tag
@@ -84,10 +84,10 @@ export const bumpVersion = async (option: Config = {}) => {
  * @param provider git 远程储存提供商
  */
 export const bumpVersionWithBaseRelease = async (
-  option: Config = {},
+  option: Config | undefined = {},
   addRelease: (res: BumpVersion) => Promise<any>,
   provider: string
-) => {
+): Promise<void> => {
   const { bumpp, changelog, config } = await bumpVersion(option)
 
   await oraPromise(addRelease({ bumpp, changelog, config }), {

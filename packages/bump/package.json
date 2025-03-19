@@ -13,33 +13,40 @@
     "name": "whitekite",
     "email": "1075790909@qq.com"
   },
-  "repository": "https://gitee.com/vill-v/bump",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/vill-v/bump",
+    "directory": "packages/bump"
+  },
   "files": [
     "dist",
     "bin"
   ],
-  "main": "dist/index.cjs",
+  "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     },
     "./changelogen": {
-      "types": "./dist/changelogen.d.ts",
-      "import": "./dist/changelogen.js",
-      "require": "./dist/changelogen.cjs"
+      "import": {
+        "types": "./dist/changelogens.d.ts",
+        "default": "./dist/changelogens.js"
+      }
     },
     "./cli": {
-      "types": "./dist/cli.d.ts",
-      "import": "./dist/cli.js",
-      "require": "./dist/cli.cjs"
+      "import": {
+        "types": "./dist/cli.d.ts",
+        "default": "./dist/cli.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsup-node"
+    "build": "tsdown"
   },
   "dependencies": {
     "bumpp": "^10.1.0",

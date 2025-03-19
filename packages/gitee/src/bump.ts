@@ -17,5 +17,5 @@ const createGiteeRelease: ICreateGithubLikeRelease = async (options: BumpVersion
   await createRelease(options)
 }
 
-export const bumpVersion = async (option: Config = {}) =>
+export const bumpVersion = async (option: Config = {}): Promise<void> =>
   bumpVersionWithBaseRelease(option, createGiteeRelease, 'Gitee')
