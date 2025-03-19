@@ -40,7 +40,7 @@ export const createGitlabRelease = async (options: BumpVersion) => {
     body: <GitlabOpenApiCreateRelease>{
       name: bumpp.newVersion,
       tag_name: 'v' + bumpp.newVersion,
-      description: changelog.markdown,
+      description: changelog?.markdown || '',
     },
   })
 }

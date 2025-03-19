@@ -40,7 +40,7 @@ export const createGithubLikeRelease = async (fetchOptions: FetchOptions) => {
       body: <GitHubLikeOpenApiCreateRelease>{
         name: bumpp.newVersion,
         tag_name: 'v' + bumpp.newVersion,
-        body: changelog.markdown,
+        body: changelog?.markdown || '',
         target_commitish: branch,
         prerelease: isPreRelease(bumpp.newVersion),
       },
