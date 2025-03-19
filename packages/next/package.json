@@ -33,9 +33,9 @@
     "build": "tsup-node"
   },
   "dependencies": {
-    "@inquirer/select": "^4.0.4",
+    "@inquirer/select": "^4.1.0",
     "consola": "catalog:",
-    "semver": "^7.6.3"
+    "semver": "^7.7.1"
   },
   "publishConfig": {
     "access": "public"
