@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp-github",
-  "version": "2.2.5",
+  "version": "3.0.0",
   "license": "MIT",
   "type": "module",
   "engines": {

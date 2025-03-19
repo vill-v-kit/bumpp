@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp-monorepo",
-  "version": "2.2.5",
+  "version": "3.0.0",
   "packageManager": "pnpm@10.6.4",
   "private": true,
   "type": "module",
