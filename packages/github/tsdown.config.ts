@@ -6,7 +6,7 @@ export default defineConfig({
     cli: 'src/cli.ts',
   },
   dts: true,
-  target: 'node18',
+  target: 'node20',
   clean: true,
   treeshake: true,
   shims: true,
