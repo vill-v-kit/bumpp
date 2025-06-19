@@ -1,8 +1,8 @@
 import { cac } from 'cac'
+import { version as __version__ } from '../package.json'
 import { bumpVersion } from './bump'
 import type { Config } from './types'
 
-declare const __version__: string
 export const createBaseCli = (
   bumpVersion: (config?: Config) => Promise<any>,
   version?: string

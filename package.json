@@ -1,7 +1,7 @@
 {
   "name": "@vill-v/bumpp-monorepo",
   "version": "3.0.0",
-  "packageManager": "pnpm@10.6.5",
+  "packageManager": "pnpm@10.12.1",
   "private": true,
   "type": "module",
   "repository": "https://gitee.com/vill-v/bump",
@@ -13,21 +13,20 @@
     "clean:deps": "pnpm dlx void-fs del **/node_modules node_modules"
   },
   "devDependencies": {
-    "@types/node": "^22.13.13",
-    "@types/semver": "^7.5.8",
+    "@types/node": "catalog:dev",
+    "@types/semver": "catalog:dev",
     "@vill-v/bumpp-gitee": "workspace:*",
-    "@vill-v/eslint-config": "^3.2.1",
-    "@vill-v/prettier-config": "^1.0.0",
-    "@vill-v/tsconfig": "^1.0.1",
-    "eslint": "^9.23.0",
-    "prettier": "^3.5.3",
-    "publint": "^0.3.9",
-    "taze": "^19.0.2",
-    "tsdown": "^0.6.9",
-    "tsup": "^8.4.0",
-    "turbo": "^2.4.4",
-    "typescript": "^5.8.2",
-    "unplugin-unused": "^0.4.3",
-    "vitest": "^3.0.9"
+    "@vill-v/eslint-config": "catalog:dev",
+    "@vill-v/prettier-config": "catalog:dev",
+    "@vill-v/tsconfig": "catalog:dev",
+    "eslint": "catalog:dev",
+    "prettier": "catalog:dev",
+    "publint": "catalog:dev",
+    "taze": "catalog:dev",
+    "tsdown": "catalog:dev",
+    "turbo": "catalog:dev",
+    "typescript": "catalog:dev",
+    "unplugin-unused": "catalog:dev",
+    "vitest": "catalog:dev"
   }
 }

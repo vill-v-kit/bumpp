@@ -5,7 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     cli: 'src/cli.ts',
   },
-  dts: { transformer: 'oxc' },
+  dts: true,
   target: 'node18',
   clean: true,
   treeshake: true,
@@ -13,5 +13,7 @@ export default defineConfig({
   platform: 'node',
   format: ['esm'],
   publint: true,
+  unused: true,
   skipNodeModulesBundle: true,
+  exports: true,
 })

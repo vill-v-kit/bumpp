@@ -22,42 +22,28 @@
     "dist",
     "bin"
   ],
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
-    },
-    "./changelogen": {
-      "import": {
-        "types": "./dist/changelogens.d.ts",
-        "default": "./dist/changelogens.js"
-      }
-    },
-    "./cli": {
-      "import": {
-        "types": "./dist/cli.d.ts",
-        "default": "./dist/cli.js"
-      }
-    }
+    ".": "./dist/index.js",
+    "./changelogen": "./dist/changelogen.js",
+    "./cli": "./dist/cli.js",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsdown"
   },
   "dependencies": {
-    "bumpp": "^10.1.0",
-    "cac": "^6.7.14",
-    "changelogen": "^0.6.1",
+    "bumpp": "catalog:",
+    "cac": "catalog:",
+    "changelogen": "catalog:",
     "consola": "catalog:",
-    "defu": "^6.1.4",
-    "esconf": "~0.5.1",
-    "ora": "^8.2.0",
+    "defu": "catalog:",
+    "esconf": "catalog:",
+    "ora": "catalog:",
     "tinyexec": "catalog:",
-    "tinyglobby": "^0.2.12"
+    "tinyglobby": "catalog:"
   },
   "publishConfig": {
     "access": "public"

@@ -1,13 +1,12 @@
 import { defineConfig } from 'tsdown'
-import pkg from '../../package.json'
 
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
     cli: 'src/cli.ts',
-    changelogens: 'src/changelogen.ts',
+    changelogen: 'src/changelogen.ts',
   },
-  dts: { transformer: 'oxc' },
+  dts: true,
   target: 'node18',
   clean: true,
   treeshake: true,
@@ -15,8 +14,7 @@ export default defineConfig({
   platform: 'node',
   format: ['esm'],
   publint: true,
+  unused: true,
   skipNodeModulesBundle: true,
-  define: {
-    __version__: `"${pkg.version}"`,
-  },
+  exports: true,
 })

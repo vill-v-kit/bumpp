@@ -20,24 +20,20 @@
     "dist",
     "bin"
   ],
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
-    }
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsdown"
   },
   "dependencies": {
-    "@inquirer/select": "^4.1.0",
+    "@inquirer/select": "catalog:",
     "consola": "catalog:",
-    "semver": "^7.7.1"
+    "semver": "catalog:"
   },
   "publishConfig": {
     "access": "public"
