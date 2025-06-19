@@ -1,6 +1,26 @@
 # Changelog
 
 
+## v4.0.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v3.0.0...v4.0.0)
+
+### 🚀 特性
+
+- ⚠️  Upgrade minimum node version to 20 (315079f)
+
+### 🏡 框架
+
+- Using the pnpm catalog feature (f74725a)
+
+#### 🚨 破坏性改动
+
+- ⚠️  Upgrade minimum node version to 20 (315079f)
+
+### ❤️ 贡献者
+
+- Whitekite ([@Colourlessglow](https://github.com/Colourlessglow))
+
 ## v3.0.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v2.2.5...v3.0.0)
