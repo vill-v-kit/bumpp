@@ -16,7 +16,6 @@
     "@types/semver": "catalog:dev",
     "@vill-v/bumpp-gitee": "workspace:*",
     "@vill-v/tsconfig": "catalog:dev",
-    "eslint-plugin-command": "catalog:dev",
     "oxfmt": "catalog:dev",
     "oxlint": "catalog:dev",
     "publint": "catalog:dev",
@@ -27,5 +26,5 @@
     "unplugin-unused": "catalog:dev",
     "vitest": "catalog:dev"
   },
-  "packageManager": "pnpm@10.12.1"
+  "packageManager": "pnpm@10.28.2"
 }

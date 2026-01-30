@@ -120,7 +120,6 @@
     "unicorn/prefer-keyboard-event-key": "warn",
     "unicorn/prefer-logical-operator-over-ternary": "warn",
     "unicorn/prefer-node-protocol": "warn",
-    "command/command": "error",
     "node/no-new-require": "error"
   },
   "globals": {
@@ -132,7 +131,6 @@
     "sampleRate": "readonly",
     "WorkletGlobalScope": "readonly"
   },
-  "jsPlugins": ["eslint-plugin-command"],
   "overrides": [
     {
       "files": ["**/*.?([cm])[jt]s?(x)"],

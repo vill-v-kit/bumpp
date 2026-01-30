@@ -17,4 +17,5 @@ export default defineConfig({
   unused: true,
   skipNodeModulesBundle: true,
   exports: true,
+  fixedExtension: false,
 })
