@@ -1,12 +1,8 @@
 {
   "name": "@vill-v/bumpp-next",
   "version": "4.0.0",
-  "license": "MIT",
   "private": true,
-  "type": "module",
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  },
+  "license": "MIT",
   "author": {
     "name": "whitekite",
     "email": "1075790909@qq.com"
@@ -20,12 +16,16 @@
     "dist",
     "bin"
   ],
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown"
@@ -35,7 +35,7 @@
     "consola": "catalog:",
     "semver": "catalog:"
   },
-  "publishConfig": {
-    "access": "public"
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

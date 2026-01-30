@@ -1,10 +1,9 @@
 {
   "name": "@vill-v/bumpp-monorepo",
   "version": "4.0.0",
-  "packageManager": "pnpm@10.12.1",
   "private": true,
-  "type": "module",
   "repository": "https://gitee.com/vill-v/bump",
+  "type": "module",
   "scripts": {
     "build": "turbo run build",
     "release": "vbumpp -r && pnpm build",
@@ -16,11 +15,10 @@
     "@types/node": "catalog:dev",
     "@types/semver": "catalog:dev",
     "@vill-v/bumpp-gitee": "workspace:*",
-    "@vill-v/eslint-config": "catalog:dev",
-    "@vill-v/prettier-config": "catalog:dev",
     "@vill-v/tsconfig": "catalog:dev",
-    "eslint": "catalog:dev",
-    "prettier": "catalog:dev",
+    "eslint-plugin-command": "catalog:dev",
+    "oxfmt": "catalog:dev",
+    "oxlint": "catalog:dev",
     "publint": "catalog:dev",
     "taze": "catalog:dev",
     "tsdown": "catalog:dev",
@@ -28,5 +26,6 @@
     "typescript": "catalog:dev",
     "unplugin-unused": "catalog:dev",
     "vitest": "catalog:dev"
-  }
+  },
+  "packageManager": "pnpm@10.12.1"
 }

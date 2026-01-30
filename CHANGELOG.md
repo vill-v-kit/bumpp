@@ -1,13 +1,12 @@
 # Changelog
 
-
 ## v4.0.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v3.0.0...v4.0.0)
 
 ### 🚀 特性
 
-- ⚠️  Upgrade minimum node version to 20 (315079f)
+- ⚠️ Upgrade minimum node version to 20 (315079f)
 
 ### 🏡 框架
 
@@ -15,7 +14,7 @@
 
 #### 🚨 破坏性改动
 
-- ⚠️  Upgrade minimum node version to 20 (315079f)
+- ⚠️ Upgrade minimum node version to 20 (315079f)
 
 ### ❤️ 贡献者
 
@@ -35,11 +34,11 @@
 
 ### 📦 打包
 
-- ⚠️  Build ESM-only (011317a)
+- ⚠️ Build ESM-only (011317a)
 
 #### 🚨 破坏性改动
 
-- ⚠️  Build ESM-only (011317a)
+- ⚠️ Build ESM-only (011317a)
 
 ### ❤️ 贡献者
 
@@ -83,8 +82,8 @@
 
 ### 🏡 框架
 
-- **dep:** Replace `globby`  to `tinyglobby` (419d3f8)
-- **dep:** Replace `execa`  to `tinyexec` (72ab83c)
+- **dep:** Replace `globby` to `tinyglobby` (419d3f8)
+- **dep:** Replace `execa` to `tinyexec` (72ab83c)
 - Bump `bumpp@9.7.1` `changelogen@0.5.7` `esconf@0.5.0` (3787f48)
 
 ### ❤️ 贡献者
@@ -226,7 +225,7 @@
 ### 🚀 特性
 
 - **bumpp:** 修改内部代码结构，提供一些帮助方法,减少 `bumpp-gitee` 重复的依赖安装与重复代码 (0efb863)
-- ⚠️  重新设计大部分 api以增加 github release 功能 (4e066f1)
+- ⚠️ 重新设计大部分 api以增加 github release 功能 (4e066f1)
 
 ### 📖 文档
 
@@ -238,7 +237,7 @@
 
 #### 🚨 破坏性改动
 
-- ⚠️  重新设计大部分 api以增加 github release 功能 (4e066f1)
+- ⚠️ 重新设计大部分 api以增加 github release 功能 (4e066f1)
 
 ### ❤️ 贡献者
 
@@ -325,12 +324,12 @@
 ### 🏡 Chore
 
 - **bumpp:** Update dep `bumpp^9.3.0` `changelogen^0.5.5` (92d8cf8)
-- **dep:** ⚠️  由于以下依赖升级  `ora^8.0.1` `globby^14.0.1` `execa^8.0.1`，修改最低 node 版本 v18 (c832993)
+- **dep:** ⚠️ 由于以下依赖升级 `ora^8.0.1` `globby^14.0.1` `execa^8.0.1`，修改最低 node 版本 v18 (c832993)
 - Update .gitignore (7188e99)
 
 #### 🚨 破坏性改动
 
-- **dep:** ⚠️  由于以下依赖升级  `ora^8.0.1` `globby^14.0.1` `execa^8.0.1`，修改最低 node 版本 v18 (c832993)
+- **dep:** ⚠️ 由于以下依赖升级 `ora^8.0.1` `globby^14.0.1` `execa^8.0.1`，修改最低 node 版本 v18 (c832993)
 
 ### ❤️ 贡献者
 
@@ -338,216 +337,201 @@
 
 ## v0.4.4
 
-
 ### 🚀 特性
 
 - 定制 break change，Contributors 生成changelog的文案 (aab98d0)
 
-### ❤️  贡献者
+### ❤️ 贡献者
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.4.3
 
-
 ### 🏡 框架
 
 - **dep:** Changelogen update to 0.5.4 (1f68bb9)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.4.2
 
-
 ### 🚀 特性
 
-  - **gitee:** 由于 open-api gitee pages build 功能 功能仅限 付费用户，遂删除该功能 (342ba37)
+- **gitee:** 由于 open-api gitee pages build 功能 功能仅限 付费用户，遂删除该功能 (342ba37)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.4.1
 
-
 ### 🚀 特性
 
-  - **gitee:** Change gitee pages build cli command (5f07084)
+- **gitee:** Change gitee pages build cli command (5f07084)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.4.0
 
-
 ### 🏡 框架
 
-  - ⚠️  Change package to es module (0ec80b3)
-  - 补充部分代码注释信息 (28636de)
+- ⚠️ Change package to es module (0ec80b3)
+- 补充部分代码注释信息 (28636de)
 
-#### ⚠️  Breaking Changes
+#### ⚠️ Breaking Changes
 
-  - ⚠️  Change package to es module (0ec80b3)
+- ⚠️ Change package to es module (0ec80b3)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.3.2
 
-
 ### 🚀 特性
 
-  - **gitee:** Add gitee pages build util (dd8e44b)
+- **gitee:** Add gitee pages build util (dd8e44b)
 
 ### 🏡 框架
 
-  - **gitee:** Update README.md (92dab92)
+- **gitee:** Update README.md (92dab92)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.3.1
 
-
 ### 🚀 特性
 
-  - **gitee:** Update console log (165071c)
+- **gitee:** Update console log (165071c)
 
 ### 📖 文档
 
-  - Update README.md (498c530)
+- Update README.md (498c530)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.3.0
 
+### 🚀 特性
+
+- **gitee:** 增加一个简易的模块 `@vill-v/bumpp-gitee` 提供release 后的gitee操作 (fe4a1ae)
+
+### 🏡 框架
+
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (f5b009e)
+- Update CHANGELOG.md (d51f8aa)
+- Update CHANGELOG.md (e94016e)
+- Update CHANGELOG.md (449ab35)
+- Update CHANGELOG.md (552b21c)
+- Update CHANGELOG.md (b8050b4)
+- Release v0.2.4 (132603d)
+
+### ❤️ Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.4
 
 ### 🚀 特性
 
-  - **gitee:** 增加一个简易的模块 `@vill-v/bumpp-gitee` 提供release 后的gitee操作 (fe4a1ae)
+- **gitee:** 增加一个简易的模块 `@vill-v/bumpp-gitee` 提供release 后的gitee操作 (fe4a1ae)
 
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
-  - Update CHANGELOG.md (f5b009e)
-  - Update CHANGELOG.md (d51f8aa)
-  - Update CHANGELOG.md (e94016e)
-  - Update CHANGELOG.md (449ab35)
-  - Update CHANGELOG.md (552b21c)
-  - Update CHANGELOG.md (b8050b4)
-  - Release v0.2.4 (132603d)
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (f5b009e)
+- Update CHANGELOG.md (d51f8aa)
+- Update CHANGELOG.md (e94016e)
+- Update CHANGELOG.md (449ab35)
+- Update CHANGELOG.md (552b21c)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.4
 
-
-### 🚀 特性
-
-  - **gitee:** 增加一个简易的模块 `@vill-v/bumpp-gitee` 提供release 后的gitee操作 (fe4a1ae)
-
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
-  - Update CHANGELOG.md (f5b009e)
-  - Update CHANGELOG.md (d51f8aa)
-  - Update CHANGELOG.md (e94016e)
-  - Update CHANGELOG.md (449ab35)
-  - Update CHANGELOG.md (552b21c)
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (f5b009e)
+- Update CHANGELOG.md (d51f8aa)
+- Update CHANGELOG.md (e94016e)
+- Update CHANGELOG.md (449ab35)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.4
 
-
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
-  - Update CHANGELOG.md (f5b009e)
-  - Update CHANGELOG.md (d51f8aa)
-  - Update CHANGELOG.md (e94016e)
-  - Update CHANGELOG.md (449ab35)
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (f5b009e)
+- Update CHANGELOG.md (d51f8aa)
+- Update CHANGELOG.md (e94016e)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.4
 
-
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
-  - Update CHANGELOG.md (f5b009e)
-  - Update CHANGELOG.md (d51f8aa)
-  - Update CHANGELOG.md (e94016e)
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (f5b009e)
+- Update CHANGELOG.md (d51f8aa)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.4
 
-
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
-  - Update CHANGELOG.md (f5b009e)
-  - Update CHANGELOG.md (d51f8aa)
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (f5b009e)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.4
 
-
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
-  - Update CHANGELOG.md (f5b009e)
+- Update CHANGELOG.md (9c6f730)
+- Update CHANGELOG.md (1176f67)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.4
 
-
 ### 🏡 框架
 
-  - Update CHANGELOG.md (9c6f730)
-  - Update CHANGELOG.md (1176f67)
+- Update CHANGELOG.md (9c6f730)
 
-### ❤️  Contributors
-
-- Whitekite <1075790909@qq.com>
-
-## v0.2.4
-
-
-### 🏡 框架
-
-  - Update CHANGELOG.md (9c6f730)
-
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
@@ -555,156 +539,142 @@
 
 ## v0.2.3
 
-
 ### 🚀 特性
 
-  - **deps:** `bumpp@9.1.0` `ora@6.3.0` `changelogen@.5.2` (3b3c5d0)
+- **deps:** `bumpp@9.1.0` `ora@6.3.0` `changelogen@.5.2` (3b3c5d0)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.2
 
-
 ### 🚀 特性
 
-  - **deps:** `execa@7.1.1` `6.2.0@ora` `c12@1.2.0` (6f3c1c4)
+- **deps:** `execa@7.1.1` `6.2.0@ora` `c12@1.2.0` (6f3c1c4)
 
-### ❤️  Contributors
-
-- Whitekite <1075790909@qq.com>
-
-## v0.2.1
-
-
-### 🩹 修复
-
-  - 修复 git commit changelog file失败的问题 (2bb753c)
-  - 修复 git commit changelog file失败的问题 (ac17568)
-  - 修复 git commit changelog file失败的问题 (eb889b8)
-
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.1
 
-
 ### 🩹 修复
 
-  - 修复 git commit changelog file失败的问题 (2bb753c)
-  - 修复 git commit changelog file失败的问题 (ac17568)
+- 修复 git commit changelog file失败的问题 (2bb753c)
+- 修复 git commit changelog file失败的问题 (ac17568)
+- 修复 git commit changelog file失败的问题 (eb889b8)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.1
 
-
 ### 🩹 修复
 
-  - 修复 git commit changelog file失败的问题 (2bb753c)
-  - 修复 git commit changelog file失败的问题 (ac17568)
+- 修复 git commit changelog file失败的问题 (2bb753c)
+- 修复 git commit changelog file失败的问题 (ac17568)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.1
 
+### 🩹 修复
+
+- 修复 git commit changelog file失败的问题 (2bb753c)
+- 修复 git commit changelog file失败的问题 (ac17568)
+
+### ❤️ Contributors
+
+- Whitekite <1075790909@qq.com>
+
+## v0.2.1
 
 ### 🩹 修复
 
-  - 修复 git commit changelog file失败的问题 (2bb753c)
+- 修复 git commit changelog file失败的问题 (2bb753c)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.2.0
 
-
 ### 🚀 特性
 
-  - 升级部分依赖 `changelogen@0.5.1` `execa@7.1.0` (8df5a97)
-  - 修改changelog生成默认配置 (9894abd)
-  - 修改内部changelog git command  使用`execa@7.1.0` `$` 特性 (932869a)
+- 升级部分依赖 `changelogen@0.5.1` `execa@7.1.0` (8df5a97)
+- 修改changelog生成默认配置 (9894abd)
+- 修改内部changelog git command 使用`execa@7.1.0` `$` 特性 (932869a)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.1.1
 
-
 ### 🚀 特性
 
-  - 还原 `bumpp@9.0.0` `recursive` 特性的适配 (c4ce200)
-  - 增加默认的 `bumpp` 默认文件 `package-lock.json` (b6fd1c6)
+- 还原 `bumpp@9.0.0` `recursive` 特性的适配 (c4ce200)
+- 增加默认的 `bumpp` 默认文件 `package-lock.json` (b6fd1c6)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.1.0
 
-
 ### 🚀 特性
 
-  - 适配 `bumpp@9.0.0` `recursive` 特性 (4c136cd)
+- 适配 `bumpp@9.0.0` `recursive` 特性 (4c136cd)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.0.4
 
-
 ### 🏡 框架
 
-  - Update README.md (d2bc879)
-  - 修改 changelog 加载动画 (2d8cbfc)
+- Update README.md (d2bc879)
+- 修改 changelog 加载动画 (2d8cbfc)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.0.3
 
-
 ### 🚀 特性
 
-  - Changelog 加载动画换行 (5d9551a)
+- Changelog 加载动画换行 (5d9551a)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.0.2
 
-
 ### 🚀 特性
 
-  - Changelog 增加加载动画 (e8d50c8)
-  - 增加 bumpp.recursive 属性,支持monorepo 项目 (e20fee4)
-  - 默认 `bumpp` 当前 `process.cwd()` 下 `package,json` (d5db56e)
-  - Bumpp 不再需要二次确认 (020339a)
+- Changelog 增加加载动画 (e8d50c8)
+- 增加 bumpp.recursive 属性,支持monorepo 项目 (e20fee4)
+- 默认 `bumpp` 当前 `process.cwd()` 下 `package,json` (d5db56e)
+- Bumpp 不再需要二次确认 (020339a)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
 
 ## v0.0.1
 
-
 ### 🏡 框架
 
-  - Add README.md (c4de77e)
-  - Update README.md (aaec057)
+- Add README.md (c4de77e)
+- Update README.md (aaec057)
 
-### ❤️  Contributors
+### ❤️ Contributors
 
 - Whitekite <1075790909@qq.com>
-

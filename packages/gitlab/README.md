@@ -24,6 +24,7 @@ gitlab.host=http://192.168.31.31
 ```shell
 vbumpp
 ```
+
 ## monorepo项目
 
 ```shell
@@ -41,7 +42,6 @@ vbumpp package.json packages/*/package.json
 [bumpp](https://github.com/antfu/bumpp)
 
 [changelogen](https://github.com/unjs/changelogen)
-
 
 ## License
 

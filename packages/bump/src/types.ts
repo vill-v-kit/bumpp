@@ -5,11 +5,10 @@ import { changelog } from './changelog'
 /**
  * changelog 生成配置信息
  */
-export interface ChangelogOptions
-  extends Omit<
-    Partial<ChangelogConfig>,
-    'cwd' | 'tokens' | 'newVersion' | 'to' | 'from' | 'publish'
-  > {}
+export interface ChangelogOptions extends Omit<
+  Partial<ChangelogConfig>,
+  'cwd' | 'tokens' | 'newVersion' | 'to' | 'from' | 'publish'
+> {}
 
 export interface Accesstokens {
   [key: string]: string

@@ -2,13 +2,6 @@
   "name": "@vill-v/bumpp-gitlab",
   "version": "4.0.0",
   "license": "MIT",
-  "type": "module",
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  },
-  "bin": {
-    "vbumpp": "bin/index.js"
-  },
   "author": {
     "name": "whitekite",
     "email": "1075790909@qq.com"
@@ -18,10 +11,14 @@
     "url": "git+https://gitee.com/vill-v/bump",
     "directory": "packages/gitlab"
   },
+  "bin": {
+    "vbumpp": "bin/index.js"
+  },
   "files": [
     "dist",
     "bin"
   ],
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,6 +26,9 @@
     ".": "./dist/index.js",
     "./cli": "./dist/cli.js",
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown"
@@ -38,7 +38,7 @@
     "consola": "catalog:",
     "ofetch": "catalog:"
   },
-  "publishConfig": {
-    "access": "public"
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }
