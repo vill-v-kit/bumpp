@@ -3,29 +3,29 @@ packages:
 
 catalog:
   '@inquirer/select': ^5.0.4
-  bumpp: ^10.4.0
+  bumpp: ^10.4.1
   cac: ^6.7.14
   changelogen: ^0.6.2
   consola: ^3.4.2
   defu: ^6.1.4
   esconf: ~1.0.0
   ofetch: ^1.5.1
-  ora: ^9.1.0
-  semver: ^7.7.3
+  ora: ^9.3.0
+  semver: ^7.7.4
   tinyexec: ^1.0.2
   tinyglobby: ^0.2.15
 
 catalogs:
   dev:
-    '@types/node': ^25.1.0
+    '@types/node': ^25.2.3
     '@types/semver': ^7.7.1
     '@vill-v/tsconfig': ^1.0.1
-    oxfmt: ^0.27.0
-    oxlint: ^1.42.0
+    oxfmt: ^0.32.0
+    oxlint: ^1.47.0
     publint: ^0.3.17
     taze: ^19.9.2
-    tsdown: ^0.20.1
-    turbo: ^2.8.0
+    tsdown: ^0.20.3
+    turbo: ^2.8.7
     typescript: ^5.9.3
     unplugin-unused: ^0.5.7
     vitest: ^4.0.18
