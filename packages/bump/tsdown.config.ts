@@ -15,7 +15,9 @@ export default defineConfig({
   format: ['esm'],
   publint: true,
   unused: true,
-  skipNodeModulesBundle: true,
+  deps: {
+    skipNodeModulesBundle: true,
+  },
   exports: true,
   fixedExtension: false,
 })
