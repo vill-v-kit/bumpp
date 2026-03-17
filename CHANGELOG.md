@@ -1,5 +1,26 @@
 # Changelog
 
+## v4.1.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v4.0.0...v4.1.0)
+
+### 🚀 特性
+
+- Upgrade `bumpp` v10 to v11, `cac` v6 to v7 (9636685)
+
+### 🏡 框架
+
+- Replace use `oxc` to lint code (0c0cb3f)
+- **dep:** 不影响实际功能的常规依赖版本升级 (7ca8dd2)
+- 使用 `mise`  管理项目 node 版本 (22f818a)
+- **dep:** 不影响实际功能的常规依赖版本升级 (ce629b0)
+- **dep:** 替换 `ora`  为`picospinner` 缩写依赖体积 (395c11c)
+- Replace tsdown deprecated config (36ec6f1)
+
+### ❤️ 贡献者
+
+- Whitekite <1075790909@qq.com>
+
 ## v4.0.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v3.0.0...v4.0.0)
