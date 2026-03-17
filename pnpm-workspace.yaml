@@ -5,6 +5,7 @@ catalog:
   '@inquirer/select': ^5.0.4
   bumpp: ^10.4.1
   cac: ^6.7.14
+  bumpp: ^11.0.1
   changelogen: ^0.6.2
   consola: ^3.4.2
   defu: ^6.1.4
