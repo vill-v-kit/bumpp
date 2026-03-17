@@ -1,6 +1,6 @@
 import { ProgressEvent, type VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
 import { consola } from 'consola'
-import { oraPromise } from 'ora'
+import { Spinner } from 'picospinner'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import type { BumpVersion, Config } from './types'
@@ -57,18 +57,19 @@ export const bumpVersion = async (option: Config = {}): Promise<BumpVersion> => 
   res.bumpp = state
   // 如果远程仓库存在tag，才生成 changelog
   if (currentTag) {
-    res.changelog = await oraPromise(
-      changelog({
+    const spinner = new Spinner('changelog')
+    spinner.start()
+    try {
+      res.changelog = await changelog({
         ...config.changelog,
         to: state.newVersion,
         from: state.currentVersion,
-      }),
-      {
-        text: 'changelog',
-        successText: 'Update ' + config.changelog.output + ' success',
-        failText: 'Update ' + config.changelog.output + ' success',
-      }
-    )
+      })
+      spinner.succeed('Update ' + config.changelog.output + ' success')
+    } catch (error) {
+      spinner.fail('Update ' + config.changelog.output + ' fail')
+      throw error
+    }
   }
 
   // 更新包版本信息
@@ -90,9 +91,13 @@ export const bumpVersionWithBaseRelease = async (
 ): Promise<void> => {
   const { bumpp, changelog, config } = await bumpVersion(option)
 
-  await oraPromise(addRelease({ bumpp, changelog, config }), {
-    text: `${provider} Release`,
-    successText: ` [${provider}] add release v` + bumpp.newVersion + ' success',
-    failText: `[${provider}] add release v` + bumpp.newVersion + ' fail',
-  })
+  const spinner = new Spinner(`${provider} Release`)
+  spinner.start()
+  try {
+    await addRelease({ bumpp, changelog, config })
+    spinner.succeed(`[${provider}] add release v` + bumpp.newVersion + ' success')
+  } catch (error) {
+    spinner.fail(`[${provider}] add release v` + bumpp.newVersion + ' fail')
+    throw error
+  }
 }

@@ -10,7 +10,7 @@ catalog:
   defu: ^6.1.4
   esconf: ~1.0.0
   ofetch: ^1.5.1
-  ora: ^9.3.0
+  picospinner: ^3.0.0
   semver: ^7.7.4
   tinyexec: ^1.0.2
   tinyglobby: ^0.2.15
