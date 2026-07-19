@@ -1,6 +1,6 @@
 {
   "name": "@vill-v/bumpp-monorepo",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "private": true,
   "repository": "https://gitee.com/vill-v/bump",
   "type": "module",
