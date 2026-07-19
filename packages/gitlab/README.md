@@ -8,14 +8,15 @@
 
 ## 设置 gitlab access_token
 
-在node项目下，或者用户目录下 创建 `.vbumpprc` 文件
+```shell
+vbumpp token set gitlab
+```
 
-配置文件示例
+token 加密后以二进制形式安全存储
+
+如果使用的是私有部署的 gitlab，可在 `.vbumpprc` 中设置访问的基础路径（默认：https://gitlab.com）
 
 ```npmrc
-accesstoken.gitlab=tokenxxxxx
-# 如果使用的是私有部署的 gitlab 这这边设置 gitlab 访问的基础路径
-# 默认：https://gitlab.com
 gitlab.host=http://192.168.31.31
 ```
 

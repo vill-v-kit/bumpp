@@ -4,6 +4,9 @@ import consola from 'consola'
 
 const createGiteeRelease: ICreateGithubLikeRelease = async (options: BumpVersion) => {
   const access_token = options.config.accesstoken?.gitee
+  if (!access_token) {
+    throw new Error('未检测到 Gitee token，请执行 vbumpp token set gitee 录入')
+  }
   const createRelease = await createGithubLikeRelease({
     baseURL: 'https://gitee.com/api/v5',
     onRequest(context) {

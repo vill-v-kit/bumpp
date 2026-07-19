@@ -4,6 +4,9 @@ import consola from 'consola'
 
 const createGitcodeRelease: ICreateGithubLikeRelease = async (options: BumpVersion) => {
   const access_token = options.config.accesstoken?.gitcode
+  if (!access_token) {
+    throw new Error('未检测到 GitCode token，请执行 vbumpp token set gitcode 录入')
+  }
   const createRelease = await createGithubLikeRelease({
     baseURL: 'https://api.gitcode.com/api/v5',
     onRequest(context) {

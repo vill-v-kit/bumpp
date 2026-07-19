@@ -33,6 +33,7 @@
     "build": "tsdown"
   },
   "dependencies": {
+    "@inquirer/password": "catalog:",
     "bumpp": "catalog:",
     "cac": "catalog:",
     "changelogen": "catalog:",

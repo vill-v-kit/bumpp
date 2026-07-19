@@ -26,7 +26,6 @@ export interface Config {
    * bumpp 配置信息
    */
   bumpp?: Omit<VersionBumpOptions, 'progress' | 'cwd'>
-  accesstoken?: Accesstokens
 }
 
 /**

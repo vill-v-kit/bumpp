@@ -3,7 +3,9 @@ import { type ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { defu } from 'defu'
 import { glob } from 'tinyglobby'
 import { loadConfig, presetMini } from 'esconf'
+import { consola } from 'consola'
 import type { Config, ResolveConfig } from './types'
+import { readTokenStore } from './accesstoken'
 
 const getDefaultsChangeLogConfig = (): Partial<ChangelogConfig> =>
   ({
@@ -46,8 +48,6 @@ export const resolveConfig = async (rawConfig: Config): Promise<ResolveConfig> =
       presetMini({
         name: 'vbumpp',
         configName: 'config',
-        rcFile: true,
-        globalRc: true,
       }),
     ],
   })
@@ -57,6 +57,14 @@ export const resolveConfig = async (rawConfig: Config): Promise<ResolveConfig> =
     bumpp,
     accesstoken: {},
   }) as ResolveConfig
+
+  // 获取独立二进制存储中的 token
+  _resolveConfig.accesstoken = {}
+  try {
+    _resolveConfig.accesstoken = await readTokenStore()
+  } catch {
+    consola.warn('token 存储文件读取失败（设备或用户已变更），请重新执行 vbumpp token set <name>')
+  }
 
   if (rawConfig.bumpp?.recursive) {
     const files = await glob('**/package.json', {

@@ -68,6 +68,9 @@ export const createGithubRelease: ICreateGithubLikeRelease = async (options: Bum
   if (!accesstoken) {
     accesstoken = await resolveGithubCliToken()
   }
+  if (!accesstoken) {
+    throw new Error('未检测到 Github token，请执行 vbumpp token set github 录入')
+  }
   const createRelease = await createGithubLikeRelease({
     baseURL: 'https://api.github.com',
     headers: {

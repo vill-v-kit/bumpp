@@ -8,13 +8,11 @@
 
 ## 设置 gitee access_token
 
-在node项目下，或者用户目录下 创建 `.vbumpprc` 文件
-
-配置文件示例
-
-```npmrc
-accesstoken.gitee=tokenxxxxx
+```shell
+vbumpp token set gitee
 ```
+
+token 加密后以二进制形式安全存储
 
 ## 简单使用
 

@@ -18,7 +18,10 @@ interface GitlabOpenApiCreateRelease {
 }
 
 export const createGitlabRelease = async (options: BumpVersion): Promise<any> => {
-  const accesstoken = options.config.accesstoken?.gitlab || ''
+  const accesstoken = options.config.accesstoken?.gitlab
+  if (!accesstoken) {
+    throw new Error('未检测到 Gitlab token，请执行 vbumpp token set gitlab 录入')
+  }
   const host = options.config.gitlab?.host || 'https://gitlab.com'
   const $fetch = ofetch.create({
     baseURL: host,
