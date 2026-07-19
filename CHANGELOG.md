@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.0.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v4.2.0...v5.0.0)
+
+### 💅 重构
+
+- **bump:** ⚠️  AccessToken 修改为非明文储存，并增加对应 cli `vbumpp token set <provider>` 进行 accessToken 设置 (99ecab9)
+
+### 🏡 框架
+
+- Update CHANGELOG.md (b88686d)
+
+#### 🚨 破坏性改动
+
+- **bump:** ⚠️  AccessToken 修改为非明文储存，并增加对应 cli `vbumpp token set <provider>` 进行 accessToken 设置 (99ecab9)
+
+### ❤️ 贡献者
+
+- Whitekite <xuxjigsaw@qq.com>
+
 ## v4.2.1
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v4.2.0...v4.2.1)
