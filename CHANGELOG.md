@@ -1,5 +1,26 @@
 # Changelog
 
+## v4.2.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v4.1.0...v4.2.0)
+
+### 🚀 特性
+
+- **skills:** Add pnpm, tsdown, and turborepo agent skills (e9adeb4)
+- **gitcode:** Add GitCode release support (31b3ee2)
+
+### 🩹 修复
+
+- **bump:** Handle string type for breaking change title (53117e0)
+
+### 📖 文档
+
+- Replace npm link to `npmx.dev` (2bd9a6b)
+
+### ❤️ 贡献者
+
+- Whitekite <xuxjigsaw@qq.com>
+
 ## v4.1.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v4.0.0...v4.1.0)
