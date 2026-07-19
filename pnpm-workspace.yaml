@@ -2,36 +2,31 @@ packages:
   - packages/*
 
 catalog:
-  '@inquirer/select': ^5.1.2
-  bumpp: ^11.0.1
+  '@inquirer/select': ^5.2.1
+  bumpp: ^11.1.0
   cac: ^7.0.0
   changelogen: ^0.6.2
   consola: ^3.4.2
-  defu: ^6.1.4
+  defu: ^6.1.7
   esconf: ~1.0.0
   ofetch: ^1.5.1
   picospinner: ^3.0.0
-  semver: ^7.7.4
-  tinyexec: ^1.0.4
-  tinyglobby: ^0.2.15
+  semver: ^7.8.5
+  tinyexec: ^1.2.4
+  tinyglobby: ^0.2.17
 
 catalogs:
   dev:
-    '@types/node': ^25.5.0
+    '@types/node': ^26.1.1
     '@types/semver': ^7.7.1
     '@vill-v/tsconfig': ^1.0.1
-    oxfmt: ^0.41.0
-    oxlint: ^1.56.0
-    publint: ^0.3.18
-    taze: ^19.10.0
-    tsdown: ^0.21.4
-    turbo: ^2.8.17
-    typescript: ^5.9.3
+    oxfmt: ^0.59.0
+    oxlint: ^1.74.0
+    publint: ^0.3.21
+    tsdown: ^0.22.9
+    turbo: ^2.10.5
+    typescript: ^6.0.3
     unplugin-unused: ^0.5.7
-    vitest: ^4.1.0
+    vitest: ^4.1.10
 
 cleanupUnusedCatalogs: true
-
-onlyBuiltDependencies:
-  - esbuild
-  - unrs-resolver

@@ -7,9 +7,7 @@
   "scripts": {
     "build": "turbo run build",
     "release": "vbumpp -r && pnpm build",
-    "update:deps": "taze major -w -i -a -r",
-    "test": "vitest",
-    "clean:deps": "pnpm dlx void-fs del **/node_modules node_modules"
+    "test": "vitest"
   },
   "devDependencies": {
     "@types/node": "catalog:dev",
@@ -19,12 +17,11 @@
     "oxfmt": "catalog:dev",
     "oxlint": "catalog:dev",
     "publint": "catalog:dev",
-    "taze": "catalog:dev",
     "tsdown": "catalog:dev",
     "turbo": "catalog:dev",
     "typescript": "catalog:dev",
     "unplugin-unused": "catalog:dev",
     "vitest": "catalog:dev"
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@11.15.0"
 }
