@@ -1,0 +1,42 @@
+{
+  "name": "@vill-v/bumpp-gitcode",
+  "version": "4.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/vill-v/bump",
+    "directory": "packages/gitcode"
+  },
+  "bin": {
+    "vbumpp": "bin/index.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./cli": "./dist/cli.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "dependencies": {
+    "@vill-v/bumpp": "workspace:*",
+    "@vill-v/bumpp-github": "workspace:*",
+    "consola": "catalog:"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}
