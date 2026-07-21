@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.1.0
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v5.0.1...v5.1.0)
+
 ## v5.0.1
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v5.0.0...v5.0.1)
