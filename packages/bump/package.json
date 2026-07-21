@@ -33,13 +33,14 @@
     "build": "tsdown"
   },
   "dependencies": {
+    "@esconf/core": "catalog:",
+    "@esconf/preset-mini": "catalog:",
     "@inquirer/password": "catalog:",
     "bumpp": "catalog:",
     "cac": "catalog:",
     "changelogen": "catalog:",
     "consola": "catalog:",
     "defu": "catalog:",
-    "esconf": "catalog:",
     "picospinner": "catalog:",
     "tinyexec": "catalog:",
     "tinyglobby": "catalog:"
