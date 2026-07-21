@@ -20,13 +20,13 @@ catalogs:
   dev:
     '@types/node': ^26.1.1
     '@types/semver': ^7.7.1
-    '@vill-v/tsconfig': ^1.0.1
+    '@vill-v/tsconfig': ^2.0.0
     oxfmt: ^0.59.0
     oxlint: ^1.74.0
     publint: ^0.3.21
-    tsdown: ^0.22.9
+    tsdown: ^0.22.12
     turbo: ^2.10.5
-    typescript: ^6.0.3
+    typescript: ^7.0.2
     unplugin-unused: ^0.5.7
     vitest: ^4.1.10
 
