@@ -7,41 +7,18 @@
   "env": {
     "builtin": true,
     "es2026": true,
-    "browser": true,
     "node": true
   },
   "ignorePatterns": [
     "**/node_modules",
     "**/.DS_Store",
-    "**/*.local",
     "**/.idea",
     "**/dist",
     "**/.turbo",
-    "**/package-lock.json",
-    "**/yarn.lock",
     "**/pnpm-lock.yaml",
-    "**/bun.lockb",
-    "**/output",
     "**/coverage",
-    "**/temp",
-    "**/.temp",
-    "**/tmp",
-    "**/.tmp",
-    "**/.history",
-    "**/.vitepress/cache",
-    "**/.nuxt",
-    "**/.next",
-    "**/.vercel",
-    "**/.changeset",
-    "**/.cache",
-    "**/.output",
-    "**/.vite-inspect",
     "**/CHANGELOG*.md",
-    "**/*.min.*",
-    "**/LICENSE*",
-    "**/__snapshots__",
-    "**/auto-import?(s).d.ts",
-    "**/components.d.ts"
+    "**/LICENSE*"
   ],
   "rules": {
     "constructor-super": "error",
@@ -116,20 +93,9 @@
     "unicorn/no-typeof-undefined": "error",
     "unicorn/no-useless-undefined": "error",
     "unicorn/prefer-date-now": "error",
-    "unicorn/prefer-dom-node-text-content": "error",
-    "unicorn/prefer-keyboard-event-key": "warn",
     "unicorn/prefer-logical-operator-over-ternary": "warn",
     "unicorn/prefer-node-protocol": "warn",
     "node/no-new-require": "error"
-  },
-  "globals": {
-    "AudioWorkletGlobalScope": "readonly",
-    "AudioWorkletProcessor": "readonly",
-    "currentFrame": "readonly",
-    "currentTime": "readonly",
-    "registerProcessor": "readonly",
-    "sampleRate": "readonly",
-    "WorkletGlobalScope": "readonly"
   },
   "overrides": [
     {
@@ -151,37 +117,13 @@
         "no-with": "off",
         "prefer-rest-params": "error",
         "prefer-spread": "error",
-        "@typescript-eslint/explicit-module-boundary-types": "off",
-        "@typescript-eslint/no-explicit-any": "off",
         "no-unused-vars": [
           "error",
           {
             "argsIgnorePattern": "^_"
           }
         ]
-      },
-      "plugins": ["typescript"]
-    },
-    {
-      "files": ["**/*.?([cm])js?(x)"],
-      "rules": {
-        "@typescript-eslint/no-require-imports": "off"
-      },
-      "plugins": ["typescript"]
-    },
-    {
-      "files": ["**/*.md/**"],
-      "rules": {
-        "no-unused-expressions": "off",
-        "no-unused-vars": "off",
-        "unicode-bom": "off",
-        "no-alert": "off",
-        "no-console": "off",
-        "no-restricted-imports": "off",
-        "@typescript-eslint/no-require-imports": "off",
-        "no-redeclare": "off"
-      },
-      "plugins": ["typescript"]
+      }
     }
   ]
 }
