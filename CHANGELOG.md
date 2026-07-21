@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.0.1
+
+[compare changes](https://gitee.com/vill-v/bump/compare/v5.0.0...v5.0.1)
+
+### 💅 重构
+
+- **bump:** ⚠️  Token 存储密钥改为随机生成并落盘保存，不再由机器信息派生 (e8dfc11)
+
+### 🏡 框架
+
+- **lint:** 移除 oxlint 配置中未使用的规则与配置项 (fc19509)
+
+#### 🚨 破坏性改动
+
+- **bump:** ⚠️  Token 存储密钥改为随机生成并落盘保存，不再由机器信息派生 (e8dfc11)
+
+### ❤️ 贡献者
+
+- Whitekite <xuxjigsaw@qq.com>
+
 ## v5.0.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v4.2.0...v5.0.0)
