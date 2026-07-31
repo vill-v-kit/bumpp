@@ -3,6 +3,7 @@ name = "bumpp-core"
 version = "5.1.0"
 edition = "2021"
 license = "MIT"
+publish = false
 description = "Pure Rust implementation of the bumpp version engine, exposed to Node.js via napi-rs"
 homepage = "https://gitee.com/vill-v/bump"
 repository = "https://gitee.com/vill-v/bump"
@@ -16,7 +17,3 @@ napi-derive = "3.6.1"
 
 [build-dependencies]
 napi-build = "2.4.0"
-
-[profile.release]
-lto = true
-strip = "symbols"

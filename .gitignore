@@ -9,5 +9,5 @@ dist
 # rust / napi build artifacts
 target
 *.node
-packages/core/index.js
-packages/core/index.d.ts
+npm/bumpp-core/index.js
+npm/bumpp-core/index.d.ts

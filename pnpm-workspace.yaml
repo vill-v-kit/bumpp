@@ -1,5 +1,7 @@
 packages:
   - packages/*
+  - napi/*
+  - npm/*
 
 catalog:
   '@esconf/core': ^2.0.0
