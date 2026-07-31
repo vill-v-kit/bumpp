@@ -165,6 +165,9 @@ importers:
       '@napi-rs/cli':
         specifier: catalog:dev
         version: 3.8.2(@emnapi/runtime@1.11.2)(@types/node@26.1.1)
+      bumpp:
+        specifier: 'catalog:'
+        version: 11.1.0
 
   npm/gitcode:
     dependencies:

@@ -37,6 +37,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "devDependencies": {
-    "@napi-rs/cli": "catalog:dev"
+    "@napi-rs/cli": "catalog:dev",
+    "bumpp": "catalog:"
   }
 }
