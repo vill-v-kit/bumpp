@@ -7,6 +7,7 @@
   "scripts": {
     "build": "turbo run build",
     "release": "vbumpp -r && pnpm build",
+    "pretest": "turbo run build",
     "test": "vitest"
   },
   "devDependencies": {

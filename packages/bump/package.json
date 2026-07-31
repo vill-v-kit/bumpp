@@ -36,6 +36,7 @@
     "@esconf/core": "catalog:",
     "@esconf/preset-mini": "catalog:",
     "@inquirer/password": "catalog:",
+    "@vill-v/bumpp-core": "workspace:*",
     "bumpp": "catalog:",
     "cac": "catalog:",
     "changelogen": "catalog:",

@@ -1,0 +1,42 @@
+{
+  "name": "@vill-v/bumpp-core",
+  "version": "5.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/vill-v/bump",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "napi build --platform --esm --release",
+    "build:debug": "napi build --platform --esm"
+  },
+  "napi": {
+    "binaryName": "bumpp-core"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "catalog:dev"
+  }
+}

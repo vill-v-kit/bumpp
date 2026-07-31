@@ -5,3 +5,9 @@ node_modules
 
 dist
 .turbo
+
+# rust / napi build artifacts
+target
+*.node
+packages/core/index.js
+packages/core/index.d.ts

@@ -19,6 +19,7 @@ catalog:
 
 catalogs:
   dev:
+    '@napi-rs/cli': ^3.8.2
     '@types/node': ^26.1.1
     '@types/semver': ^7.7.1
     '@vill-v/tsconfig': ^2.0.0
@@ -36,3 +37,4 @@ cleanupUnusedCatalogs: true
 minimumReleaseAgeExclude:
   - '@esconf/core@2.0.0'
   - '@esconf/preset-mini@2.0.0'
+  - '@napi-rs/cli@3.8.2'

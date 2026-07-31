@@ -1,0 +1,22 @@
+[package]
+name = "bumpp-core"
+version = "5.1.0"
+edition = "2021"
+license = "MIT"
+description = "Pure Rust implementation of the bumpp version engine, exposed to Node.js via napi-rs"
+homepage = "https://gitee.com/vill-v/bump"
+repository = "https://gitee.com/vill-v/bump"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "3.12.0", features = ["serde-json", "async"] }
+napi-derive = "3.6.1"
+
+[build-dependencies]
+napi-build = "2.4.0"
+
+[profile.release]
+lto = true
+strip = "symbols"

@@ -3,6 +3,9 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
+    },
+    "@vill-v/bumpp-core#build": {
+      "outputs": ["index.js", "index.d.ts", "*.node"]
     }
   }
 }
