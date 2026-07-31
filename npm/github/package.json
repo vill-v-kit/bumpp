@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://gitee.com/vill-v/bump",
-    "directory": "packages/github"
+    "directory": "npm/github"
   },
   "bin": {
     "vbumpp": "bin/index.js"

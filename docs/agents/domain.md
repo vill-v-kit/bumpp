@@ -17,7 +17,9 @@ This repo uses a single-context layout:
 /
 |-- CONTEXT.md
 |-- docs/adr/
-`-- packages/
+|-- crates/
+|-- napi/
+`-- npm/
 ```
 
 ## Use the glossary's vocabulary

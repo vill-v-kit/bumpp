@@ -1,5 +1,5 @@
 {
-  "name": "@vill-v/bumpp-gitlab",
+  "name": "@vill-v/bumpp-gitcode",
   "version": "5.1.0",
   "license": "MIT",
   "author": {
@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://gitee.com/vill-v/bump",
-    "directory": "packages/gitlab"
+    "directory": "npm/gitcode"
   },
   "bin": {
     "vbumpp": "bin/index.js"
@@ -33,8 +33,8 @@
   },
   "dependencies": {
     "@vill-v/bumpp": "workspace:*",
-    "consola": "catalog:",
-    "ofetch": "catalog:"
+    "@vill-v/bumpp-github": "workspace:*",
+    "consola": "catalog:"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

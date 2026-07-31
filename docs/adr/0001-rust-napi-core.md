@@ -28,4 +28,4 @@
 
 - 破坏性变更：TS 配置与 `customVersion` 不再支持。本任务完成不发版；CHANGELOG 迁移说明与 major 版本动作留待未来实际发版时处理。
 - 本地发布流程新增交叉编译步骤（linux 走 zig/docker，windows 走 cargo-xwin，ohos 需 OpenHarmony NDK）；仓库无 CI，全部在本机完成。
-- `packages/bump` 的 `bumpp` 依赖替换为 `@vill-v/bumpp-core`，API 形状兼容，调用点（`bump.ts` / `config.ts` / `types.ts`）几乎不改。
+- `npm/bump` 的 `bumpp` 依赖替换为 `@vill-v/bumpp-core`，API 形状兼容，调用点（`bump.ts` / `config.ts` / `types.ts`）几乎不改。

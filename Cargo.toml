@@ -1,6 +1,14 @@
 [workspace]
 resolver = "2"
 members = ["npm/*"]
+# 纯 JS 的 npm 包没有 Cargo.toml，会被 npm/* glob 匹配到而报错，必须显式排除
+exclude = [
+  "npm/bump",
+  "npm/gitcode",
+  "npm/gitee",
+  "npm/github",
+  "npm/gitlab",
+]
 
 [profile.release]
 lto = true

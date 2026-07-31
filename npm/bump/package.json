@@ -1,5 +1,5 @@
 {
-  "name": "@vill-v/bumpp-gitcode",
+  "name": "@vill-v/bumpp",
   "version": "5.1.0",
   "license": "MIT",
   "author": {
@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://gitee.com/vill-v/bump",
-    "directory": "packages/gitcode"
+    "directory": "npm/bump"
   },
   "bin": {
     "vbumpp": "bin/index.js"
@@ -22,6 +22,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./changelogen": "./dist/changelogen.js",
     "./cli": "./dist/cli.js",
     "./package.json": "./package.json"
   },
@@ -32,9 +33,18 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@vill-v/bumpp": "workspace:*",
-    "@vill-v/bumpp-github": "workspace:*",
-    "consola": "catalog:"
+    "@esconf/core": "catalog:",
+    "@esconf/preset-mini": "catalog:",
+    "@inquirer/password": "catalog:",
+    "@vill-v/bumpp-core": "workspace:*",
+    "bumpp": "catalog:",
+    "cac": "catalog:",
+    "changelogen": "catalog:",
+    "consola": "catalog:",
+    "defu": "catalog:",
+    "picospinner": "catalog:",
+    "tinyexec": "catalog:",
+    "tinyglobby": "catalog:"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
