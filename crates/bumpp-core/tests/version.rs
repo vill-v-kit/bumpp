@@ -6,8 +6,8 @@
 
 use bumpp_core::version::{next_version, next_versions, ReleaseType, VersionError};
 
-fn check(current: &str, preid: Option<&str>, expected: [&str; 8]) {
-  let next = next_versions(current, preid).unwrap();
+fn check(current: &str, preid: Option<&str>, expected: [&str; 9]) {
+  let next = next_versions(current, preid, &[]).unwrap();
   let actual: Vec<String> = ReleaseType::ALL
     .iter()
     .map(|t| next.get(*t).to_owned())
@@ -24,20 +24,20 @@ fn next_version_does_not_inherit_preid() {
   // 分层语义：next_version 对齐上游 getNextVersion，直接使用入参 preid，
   // 沿用规则只存在于 next_versions（上游 getNextVersions）一层
   assert_eq!(
-    next_version("1.0.0-beta.0", ReleaseType::Premajor, None).unwrap(),
+    next_version("1.0.0-beta.0", ReleaseType::Premajor, None, &[]).unwrap(),
     "2.0.0-0"
   );
   assert_eq!(
-    next_version("1.0.0-beta.0", ReleaseType::Premajor, Some("beta")).unwrap(),
+    next_version("1.0.0-beta.0", ReleaseType::Premajor, Some("beta"), &[]).unwrap(),
     "2.0.0-beta.1"
   );
   // next 的解析与 0→1 修正按请求类型生效
   assert_eq!(
-    next_version("1.0.0-0", ReleaseType::Next, Some("preid")).unwrap(),
+    next_version("1.0.0-0", ReleaseType::Next, Some("preid"), &[]).unwrap(),
     "1.0.0-preid.0"
   );
   assert_eq!(
-    next_version("1.0.0-0", ReleaseType::Prerelease, Some("preid")).unwrap(),
+    next_version("1.0.0-0", ReleaseType::Prerelease, Some("preid"), &[]).unwrap(),
     "1.0.0-preid.1"
   );
 }
@@ -49,21 +49,21 @@ fn formal_versions_without_preid() {
     "1.2.3",
     None,
     [
-      "2.0.0-0", "1.3.0-0", "1.2.4-0", "1.2.4-0", "2.0.0", "1.3.0", "1.2.4", "1.2.4",
+      "2.0.0-0", "1.3.0-0", "1.2.4-0", "1.2.4-0", "2.0.0", "1.3.0", "1.2.4", "1.2.4", "1.2.4",
     ],
   );
   check(
     "0.0.0",
     None,
     [
-      "1.0.0-0", "0.1.0-0", "0.0.1-0", "0.0.1-0", "1.0.0", "0.1.0", "0.0.1", "0.0.1",
+      "1.0.0-0", "0.1.0-0", "0.0.1-0", "0.0.1-0", "1.0.0", "0.1.0", "0.0.1", "0.0.1", "0.0.1",
     ],
   );
   check(
     "0.1.0",
     None,
     [
-      "1.0.0-0", "0.2.0-0", "0.1.1-0", "0.1.1-0", "1.0.0", "0.2.0", "0.1.1", "0.1.1",
+      "1.0.0-0", "0.2.0-0", "0.1.1-0", "0.1.1-0", "1.0.0", "0.2.0", "0.1.1", "0.1.1", "0.1.1",
     ],
   );
 }
@@ -83,6 +83,7 @@ fn formal_versions_with_preid() {
       "1.3.0",
       "1.2.4",
       "1.2.4",
+      "1.2.4",
     ],
   );
   check(
@@ -95,6 +96,7 @@ fn formal_versions_with_preid() {
       "0.0.1-preid.1",
       "1.0.0",
       "0.1.0",
+      "0.0.1",
       "0.0.1",
       "0.0.1",
     ],
@@ -111,6 +113,7 @@ fn formal_versions_with_preid() {
       "0.2.0",
       "0.1.1",
       "0.1.1",
+      "0.1.1",
     ],
   );
   // 自定义 preid
@@ -124,6 +127,7 @@ fn formal_versions_with_preid() {
       "1.2.4-alpha.1",
       "2.0.0",
       "1.3.0",
+      "1.2.4",
       "1.2.4",
       "1.2.4",
     ],
@@ -142,6 +146,7 @@ fn prerelease_versions_inherit_string_preid() {
     "1.0.0",
     "1.0.0",
     "1.0.0-beta.1",
+    "1.0.0-beta.1",
   ];
   check("1.0.0-beta.0", None, expected);
   check("1.0.0-beta.0", Some("preid"), expected);
@@ -154,6 +159,7 @@ fn prerelease_versions_inherit_string_preid() {
     "2.0.0",
     "1.3.0",
     "1.2.3",
+    "1.2.3-beta.2",
     "1.2.3-beta.2",
   ];
   check("1.2.3-beta.1", None, expected);
@@ -172,6 +178,7 @@ fn prerelease_with_zero_patch_bumps_in_place() {
     "2.0.0",
     "2.0.0",
     "2.0.0-alpha.6",
+    "2.0.0-alpha.6",
   ];
   check("2.0.0-alpha.5+deadbeef", None, expected);
   check("2.0.0-alpha.5+deadbeef", Some("preid"), expected);
@@ -184,7 +191,7 @@ fn numeric_prerelease_does_not_inherit_preid() {
     "1.0.0-0",
     None,
     [
-      "2.0.0-0", "1.1.0-0", "1.0.1-0", "1.0.0-1", "1.0.0", "1.0.0", "1.0.0", "1.0.0-1",
+      "2.0.0-0", "1.1.0-0", "1.0.1-0", "1.0.0-1", "1.0.0", "1.0.0", "1.0.0", "1.0.0-1", "1.0.0-1",
     ],
   );
   check(
@@ -200,6 +207,7 @@ fn numeric_prerelease_does_not_inherit_preid() {
       "1.0.0",
       // next 解析为 prerelease 计算，但 0→1 修正只看请求的 release type，故保持 .0
       "1.0.0-preid.0",
+      "1.0.0-preid.0",
     ],
   );
 }
@@ -210,7 +218,7 @@ fn build_metadata_is_dropped() {
     "1.2.3+build.5",
     None,
     [
-      "2.0.0-0", "1.3.0-0", "1.2.4-0", "1.2.4-0", "2.0.0", "1.3.0", "1.2.4", "1.2.4",
+      "2.0.0-0", "1.3.0-0", "1.2.4-0", "1.2.4-0", "2.0.0", "1.3.0", "1.2.4", "1.2.4", "1.2.4",
     ],
   );
   check(
@@ -225,6 +233,7 @@ fn build_metadata_is_dropped() {
       "1.3.0",
       "1.2.3",
       "1.2.3-beta.2",
+      "1.2.3-beta.2",
     ],
   );
 }
@@ -234,7 +243,7 @@ fn invalid_version_errors() {
   for bad in ["", "1.2", "v1.2.3", "1.2.3-", "not-a-version"] {
     assert!(
       matches!(
-        next_versions(bad, None),
+        next_versions(bad, None, &[]),
         Err(VersionError::InvalidVersion(_))
       ),
       "{bad:?} 应报 InvalidVersion"
@@ -248,25 +257,25 @@ fn invalid_preid_errors() {
   for bad in ["beta.x", "beta_1", "01"] {
     assert!(
       matches!(
-        next_version("1.2.3", ReleaseType::Prepatch, Some(bad)),
+        next_version("1.2.3", ReleaseType::Prepatch, Some(bad), &[]),
         Err(VersionError::InvalidPreid(_))
       ),
       "{bad:?} 应报 InvalidPreid"
     );
   }
   // 非 pre 类型不使用 preid，不校验
-  assert!(next_version("1.2.3", ReleaseType::Patch, Some("beta.x")).is_ok());
+  assert!(next_version("1.2.3", ReleaseType::Patch, Some("beta.x"), &[]).is_ok());
 }
 
 #[test]
 fn empty_preid_behaves_like_none() {
   // node-semver 中空字符串 identifier 是 falsy，按未传入处理
   assert_eq!(
-    next_version("1.2.3", ReleaseType::Prepatch, Some("")).unwrap(),
+    next_version("1.2.3", ReleaseType::Prepatch, Some(""), &[]).unwrap(),
     "1.2.4-0"
   );
   assert_eq!(
-    next_version("1.0.0-beta.1", ReleaseType::Prerelease, Some("")).unwrap(),
+    next_version("1.0.0-beta.1", ReleaseType::Prerelease, Some(""), &[]).unwrap(),
     "1.0.0-beta.2"
   );
 }
@@ -275,7 +284,13 @@ fn empty_preid_behaves_like_none() {
 fn huge_numeric_segments_stay_strings() {
   // node-semver：数字段 < MAX_SAFE_INTEGER 才转 number，否则保持 string
   assert_eq!(
-    next_version("1.0.0-99999999999999999999999", ReleaseType::Patch, None).unwrap(),
+    next_version(
+      "1.0.0-99999999999999999999999",
+      ReleaseType::Patch,
+      None,
+      &[]
+    )
+    .unwrap(),
     "1.0.0"
   );
   // MAX_SAFE_INTEGER 本身即为 string，无数字段可增则补 .0
@@ -283,7 +298,8 @@ fn huge_numeric_segments_stay_strings() {
     next_version(
       "1.0.0-alpha.9007199254740991",
       ReleaseType::Prerelease,
-      None
+      None,
+      &[]
     )
     .unwrap(),
     "1.0.0-alpha.9007199254740991.0"
@@ -293,7 +309,8 @@ fn huge_numeric_segments_stay_strings() {
     next_version(
       "1.0.0-alpha.9007199254740990",
       ReleaseType::Prerelease,
-      None
+      None,
+      &[]
     )
     .unwrap(),
     "1.0.0-alpha.9007199254740991"
@@ -304,12 +321,12 @@ fn huge_numeric_segments_stay_strings() {
 fn numeric_preid_compares_numerically() {
   // node-semver compareIdentifiers：两侧皆数字按数值比较
   assert_eq!(
-    next_version("1.0.0-0.5", ReleaseType::Prerelease, Some("0")).unwrap(),
+    next_version("1.0.0-0.5", ReleaseType::Prerelease, Some("0"), &[]).unwrap(),
     "1.0.0-0.6"
   );
   // 数字 preid 无既有预发行段时归位为 [preid, 0]，再经 0→1 修正
   assert_eq!(
-    next_version("1.2.3", ReleaseType::Prerelease, Some("0")).unwrap(),
+    next_version("1.2.3", ReleaseType::Prerelease, Some("0"), &[]).unwrap(),
     "1.2.4-0.1"
   );
 }

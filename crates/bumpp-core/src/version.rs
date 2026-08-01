@@ -8,10 +8,12 @@ use std::fmt;
 
 use semver::Version;
 
+use crate::commits::{determine_semver_change, CommitInfo};
+
 /// node-semver 数字段转 number 的阈值（Number.MAX_SAFE_INTEGER - 1）
 const MAX_SAFE_INTEGER_EXCLUSIVE: u64 = 9007199254740991;
 
-/// 发布类型。`conventional` 需要 git 提交历史，由 COL-13 引入。
+/// 发布类型。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReleaseType {
   Premajor,
@@ -22,11 +24,13 @@ pub enum ReleaseType {
   Minor,
   Patch,
   Next,
+  /// 依据约定式提交推断（需要 git 提交历史）
+  Conventional,
 }
 
 impl ReleaseType {
-  /// 上游 `releaseTypes` 顺序（去掉 conventional）
-  pub const ALL: [ReleaseType; 8] = [
+  /// 上游 `releaseTypes` 顺序
+  pub const ALL: [ReleaseType; 9] = [
     Self::Premajor,
     Self::Preminor,
     Self::Prepatch,
@@ -35,6 +39,7 @@ impl ReleaseType {
     Self::Minor,
     Self::Patch,
     Self::Next,
+    Self::Conventional,
   ];
 
   fn is_pre(self) -> bool {
@@ -65,7 +70,7 @@ impl fmt::Display for VersionError {
 
 impl Error for VersionError {}
 
-/// 全部 release type 的候选版本（上游 `getNextVersions` 的返回形状，去掉 conventional）
+/// 全部 release type 的候选版本（上游 `getNextVersions` 的返回形状）
 #[derive(Debug, PartialEq, Eq)]
 pub struct NextVersions {
   pub premajor: String,
@@ -76,6 +81,7 @@ pub struct NextVersions {
   pub minor: String,
   pub patch: String,
   pub next: String,
+  pub conventional: String,
 }
 
 impl NextVersions {
@@ -89,6 +95,7 @@ impl NextVersions {
       ReleaseType::Minor => &self.minor,
       ReleaseType::Patch => &self.patch,
       ReleaseType::Next => &self.next,
+      ReleaseType::Conventional => &self.conventional,
     }
   }
 }
@@ -228,7 +235,9 @@ fn inc(
       }
       inc_pre(&mut pre, preid);
     }
-    ReleaseType::Next => unreachable!("next 在调用处解析为 prerelease/patch"),
+    ReleaseType::Next | ReleaseType::Conventional => {
+      unreachable!("next/conventional 在调用处解析为具体类型")
+    }
   }
 
   (major, minor, patch, pre)
@@ -269,6 +278,7 @@ pub fn next_version(
   current: &str,
   release: ReleaseType,
   preid: Option<&str>,
+  commits: &[CommitInfo],
 ) -> Result<String, VersionError> {
   let version =
     Version::parse(current).map_err(|_| VersionError::InvalidVersion(current.to_owned()))?;
@@ -276,10 +286,13 @@ pub fn next_version(
   // node-semver 中空字符串 identifier 按未传入处理（falsy）
   let preid = preid.filter(|p| !p.is_empty());
 
-  // 上游：next = 预发行中→prerelease，否则 patch（0→1 修正只看请求的 type）
+  // 上游：next = 预发行中→prerelease、否则 patch；
+  // conventional = 预发行中→prerelease、否则按提交推断（0→1 修正只看请求的 type）
   let resolved = match release {
     ReleaseType::Next if version.pre.is_empty() => ReleaseType::Patch,
     ReleaseType::Next => ReleaseType::Prerelease,
+    ReleaseType::Conventional if version.pre.is_empty() => determine_semver_change(commits),
+    ReleaseType::Conventional => ReleaseType::Prerelease,
     other => other,
   };
 
@@ -305,7 +318,11 @@ pub fn next_version(
 
 /// 上游 `getNextVersions`：全部 release type 的候选版本。
 /// preid 沿用规则：当前版本预发行首段为字符串时沿用之，否则用入参。
-pub fn next_versions(current: &str, preid: Option<&str>) -> Result<NextVersions, VersionError> {
+pub fn next_versions(
+  current: &str,
+  preid: Option<&str>,
+  commits: &[CommitInfo],
+) -> Result<NextVersions, VersionError> {
   let version =
     Version::parse(current).map_err(|_| VersionError::InvalidVersion(current.to_owned()))?;
 
@@ -320,13 +337,14 @@ pub fn next_versions(current: &str, preid: Option<&str>) -> Result<NextVersions,
   };
 
   Ok(NextVersions {
-    premajor: next_version(current, ReleaseType::Premajor, preid)?,
-    preminor: next_version(current, ReleaseType::Preminor, preid)?,
-    prepatch: next_version(current, ReleaseType::Prepatch, preid)?,
-    prerelease: next_version(current, ReleaseType::Prerelease, preid)?,
-    major: next_version(current, ReleaseType::Major, preid)?,
-    minor: next_version(current, ReleaseType::Minor, preid)?,
-    patch: next_version(current, ReleaseType::Patch, preid)?,
-    next: next_version(current, ReleaseType::Next, preid)?,
+    premajor: next_version(current, ReleaseType::Premajor, preid, commits)?,
+    preminor: next_version(current, ReleaseType::Preminor, preid, commits)?,
+    prepatch: next_version(current, ReleaseType::Prepatch, preid, commits)?,
+    prerelease: next_version(current, ReleaseType::Prerelease, preid, commits)?,
+    major: next_version(current, ReleaseType::Major, preid, commits)?,
+    minor: next_version(current, ReleaseType::Minor, preid, commits)?,
+    patch: next_version(current, ReleaseType::Patch, preid, commits)?,
+    next: next_version(current, ReleaseType::Next, preid, commits)?,
+    conventional: next_version(current, ReleaseType::Conventional, preid, commits)?,
   })
 }
