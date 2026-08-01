@@ -2,6 +2,10 @@
 //! 不依赖 napi——Node 绑定层在 `npm/bumpp-core`。
 
 pub mod config;
+pub mod exec;
 pub mod files;
+pub mod git;
+mod jsonc;
 pub mod progress;
+pub mod scripts;
 pub mod version;

@@ -9,10 +9,11 @@ use std::fmt;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use jsonc_parser::ast::{Object, ObjectProp, Value};
+use jsonc_parser::ast::{Object, Value};
 use jsonc_parser::common::{Range, Ranged};
 use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
 
+use crate::jsonc::{get_prop, is_manifest};
 use crate::progress::ProgressEvent;
 
 /// 按 manifest 处理的 basename（上游 switch 列表，小写比较）
@@ -203,20 +204,6 @@ fn write_text(path: &Path, rel_path: &str, content: &str) -> Result<(), FilesErr
   fs::write(path, content).map_err(|e| FilesError::Io {
     message: format!("写入 {rel_path} 失败：{e}"),
   })
-}
-
-/// 上游 `isManifest`：name / version / description 均为可选字符串（缺省、null、字符串）
-fn is_manifest(root: &Object) -> bool {
-  ["name", "version", "description"]
-    .iter()
-    .all(|key| match get_prop(root, key) {
-      None => true,
-      Some(prop) => matches!(&prop.value, Value::NullKeyword(_) | Value::StringLit(_)),
-    })
-}
-
-fn get_prop<'a>(obj: &'a Object, name: &str) -> Option<&'a ObjectProp<'a>> {
-  obj.properties.iter().find(|p| p.name.as_str() == name)
 }
 
 fn quote(value: &str) -> String {
