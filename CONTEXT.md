@@ -13,7 +13,7 @@ _Avoid_: release（指平台 release 创建）、publish
 _Avoid_: bump type、version type
 
 **Preid**:
-预发行标识符（如 `1.0.0-beta.1` 中的 `beta`）。计算候选版本时默认沿用当前版本的预发行标识，否则为 `'preid'`；预发行号从 1 开始（上游的 `0→1` 修正）。
+预发行标识符（如 `1.0.0-beta.1` 中的 `beta`）。计算候选版本时沿用当前版本的预发行标识，否则用入参（上游 normalizeOptions 缺省为 `'beta'`）；预发行号从 1 开始（上游的 `0→1` 修正）。
 
 **Core**:
 纯 Rust + napi-rs 实现的版本引擎包 `@vill-v/bumpp-core`（`npm/bumpp-core`），对外提供与上游 bumpp v11 兼容的四个 API：`versionBump` / `versionBumpInfo` / `loadBumpConfig` / `ProgressEvent`。

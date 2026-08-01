@@ -7,7 +7,7 @@
 - **范围**：四个 API 全部进 Rust——`versionBump`（文件版本更新 + git commit/tag/push + npm scripts）、`versionBumpInfo`（候选版本计算 + 交互 prompt）、`loadBumpConfig`、`ProgressEvent`。
 - **配置仅支持 JSON**：`loadBumpConfig` 只加载 JSON 配置文件，不再执行 `bumpp.config.ts`；上游的 `customVersion` 函数选项随之砍掉（JSON 无法承载函数），prompt 中不出现 "from config" 选项。
 - **prompt 由 Rust 渲染**（dialoguer/inquire 类 crate），JS 只是薄壳转发；上游的 autocomplete + custom 二次输入行为保留。
-- **语义全量对齐上游 bumpp v11**：含 preid 规则（沿用当前预发行标识，默认 `'preid'`）、`0→1` 修正、`next`/`conventional`（含 git log + 约定式提交解析）、`custom`/`none`。
+- **语义全量对齐上游 bumpp v11**：含 preid 规则（沿用当前预发行标识，否则用入参，上游 normalizeOptions 缺省为 `'beta'`）、`0→1` 修正、`next`/`conventional`（含 git log + 约定式提交解析）、`custom`/`none`。
 - **git/npm 操作 shell out** 到 `git`/`npm` 二进制，继承用户的 git config / SSH / GPG / credential helper。
 - **progress 事件**经 napi 异步任务 + ThreadsafeFunction 实时回传 JS，不阻塞事件循环。
 - **删除 `packages/next`**：本重写即其替代品。
