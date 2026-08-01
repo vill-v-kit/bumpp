@@ -48,6 +48,37 @@ impl ReleaseType {
       Self::Premajor | Self::Preminor | Self::Prepatch | Self::Prerelease
     )
   }
+
+  /// 上游 `isReleaseType(value) || value === "next"` 的字符串解析
+  pub fn from_str(s: &str) -> Option<ReleaseType> {
+    match s {
+      "major" => Some(Self::Major),
+      "minor" => Some(Self::Minor),
+      "patch" => Some(Self::Patch),
+      "premajor" => Some(Self::Premajor),
+      "preminor" => Some(Self::Preminor),
+      "prepatch" => Some(Self::Prepatch),
+      "prerelease" => Some(Self::Prerelease),
+      "next" => Some(Self::Next),
+      "conventional" => Some(Self::Conventional),
+      _ => None,
+    }
+  }
+
+  /// 上游 release type 的字符串值
+  pub fn as_str(self) -> &'static str {
+    match self {
+      Self::Premajor => "premajor",
+      Self::Preminor => "preminor",
+      Self::Prepatch => "prepatch",
+      Self::Prerelease => "prerelease",
+      Self::Major => "major",
+      Self::Minor => "minor",
+      Self::Patch => "patch",
+      Self::Next => "next",
+      Self::Conventional => "conventional",
+    }
+  }
 }
 
 #[derive(Debug)]

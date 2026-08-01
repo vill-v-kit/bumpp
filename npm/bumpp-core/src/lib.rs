@@ -168,3 +168,101 @@ pub fn run_npm_script(
     })
     .map_err(to_napi_err)
 }
+
+#[napi(object)]
+#[derive(Default)]
+pub struct BumpInfoArg {
+  pub release: Option<String>,
+  pub files: Option<Vec<String>>,
+  pub cwd: Option<String>,
+  pub preid: Option<String>,
+  #[napi(js_name = "currentVersion")]
+  pub current_version: Option<String>,
+}
+
+/// 上游 operation.state 的形状
+#[napi(object)]
+pub struct BumpState {
+  pub release: Option<String>,
+  #[napi(js_name = "currentVersion")]
+  pub current_version: String,
+  #[napi(js_name = "currentVersionSource")]
+  pub current_version_source: String,
+  #[napi(js_name = "newVersion")]
+  pub new_version: String,
+  #[napi(js_name = "commitMessage")]
+  pub commit_message: String,
+  #[napi(js_name = "tagName")]
+  pub tag_name: String,
+  #[napi(js_name = "updatedFiles")]
+  pub updated_files: Vec<String>,
+  #[napi(js_name = "skippedFiles")]
+  pub skipped_files: Vec<String>,
+}
+
+impl From<bumpp_core::info::BumpState> for BumpState {
+  fn from(s: bumpp_core::info::BumpState) -> Self {
+    Self {
+      release: s.release,
+      current_version: s.current_version,
+      current_version_source: s.current_version_source,
+      new_version: s.new_version,
+      commit_message: s.commit_message,
+      tag_name: s.tag_name,
+      updated_files: s.updated_files,
+      skipped_files: s.skipped_files,
+    }
+  }
+}
+
+/// 上游 versionBumpInfo 的返回形状：{ state }
+#[napi(object)]
+pub struct VersionBumpInfo {
+  pub state: BumpState,
+}
+
+pub struct VersionBumpInfoTask {
+  arg: Option<napi::Either<String, BumpInfoArg>>,
+}
+
+#[napi]
+impl napi::Task for VersionBumpInfoTask {
+  type Output = VersionBumpInfo;
+  type JsValue = VersionBumpInfo;
+
+  fn compute(&mut self) -> napi::Result<Self::Output> {
+    let arg = match self.arg.take() {
+      // 上游：字符串入参等价于 { release: arg }
+      Some(napi::Either::A(release)) => BumpInfoArg {
+        release: Some(release),
+        ..Default::default()
+      },
+      Some(napi::Either::B(a)) => a,
+      None => BumpInfoArg::default(),
+    };
+    let cwd = resolve_cwd(arg.cwd)?;
+    let files = arg.files.unwrap_or_default();
+    let options = bumpp_core::info::BumpInfoOptions {
+      release: arg.release.as_deref(),
+      files: &files,
+      current_version: arg.current_version.as_deref(),
+      preid: arg.preid.as_deref(),
+    };
+    bumpp_core::info::version_bump_info(&options, &cwd)
+      .map(|s| VersionBumpInfo { state: s.into() })
+      .map_err(to_napi_err)
+  }
+
+  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+    Ok(output)
+  }
+}
+
+/// 计算 bump 信息（当前版本 + 新版本），必要时在 Rust 侧渲染交互 prompt。
+/// 对齐上游 bumpp v11 的 `versionBumpInfo`。
+#[napi]
+pub fn version_bump_info(
+  arg: Option<napi::Either<String, BumpInfoArg>>,
+) -> napi::bindgen_prelude::AsyncTask<VersionBumpInfoTask> {
+  napi::bindgen_prelude::AsyncTask::new(VersionBumpInfoTask { arg })
+}

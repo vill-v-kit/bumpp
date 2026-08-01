@@ -81,6 +81,23 @@ function requireNative() {
 
 const nativeBinding = requireNative()
 
-const { gitCommit, gitPush, gitTag, loadBumpConfig, plus100, runNpmScript, updateFiles } =
-  nativeBinding
-export { gitCommit, gitPush, gitTag, loadBumpConfig, plus100, runNpmScript, updateFiles }
+const {
+  gitCommit,
+  gitPush,
+  gitTag,
+  loadBumpConfig,
+  plus100,
+  runNpmScript,
+  updateFiles,
+  versionBumpInfo,
+} = nativeBinding
+export {
+  gitCommit,
+  gitPush,
+  gitTag,
+  loadBumpConfig,
+  plus100,
+  runNpmScript,
+  updateFiles,
+  versionBumpInfo,
+}

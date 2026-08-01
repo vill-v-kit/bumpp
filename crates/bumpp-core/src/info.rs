@@ -1,0 +1,173 @@
+//! versionBumpInfo 全链路：读取当前版本 → 计算候选版本 →（必要时）prompt。
+//! 对齐上游 bumpp v11 `versionBumpInfo` / `getNewVersion`。
+
+use std::error::Error;
+use std::fmt;
+use std::path::Path;
+
+use jsonc_parser::ast::Value;
+use semver::Version;
+
+use crate::commits::get_recent_commits;
+use crate::jsonc::{is_manifest, parse};
+use crate::prompt::prompt_new_version;
+use crate::version::{next_version, next_versions, ReleaseType};
+
+/// versionBumpInfo 的输入（上游 VersionBumpOptions 的相关子集）
+pub struct BumpInfoOptions<'a> {
+  /// release type 或版本号；None / "prompt" 走交互 prompt
+  pub release: Option<&'a str>,
+  /// 扫描当前版本的候选文件（.json 后缀者在前，package.json/deno.json/deno.jsonc 恒追加）
+  pub files: &'a [String],
+  /// 显式指定当前版本（跳过文件扫描）
+  pub current_version: Option<&'a str>,
+  pub preid: Option<&'a str>,
+}
+
+/// 上游 operation.state 的形状
+#[derive(Debug, PartialEq, Eq)]
+pub struct BumpState {
+  pub release: Option<String>,
+  pub current_version: String,
+  pub current_version_source: String,
+  pub new_version: String,
+  pub commit_message: String,
+  pub tag_name: String,
+  pub updated_files: Vec<String>,
+  pub skipped_files: Vec<String>,
+}
+
+impl BumpState {
+  fn new(current_version: String, current_version_source: String) -> Self {
+    Self {
+      release: None,
+      current_version,
+      current_version_source,
+      new_version: String::new(),
+      commit_message: String::new(),
+      tag_name: String::new(),
+      updated_files: Vec::new(),
+      skipped_files: Vec::new(),
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum InfoError {
+  UnableToDetermineVersion { message: String },
+  InvalidVersion { message: String },
+  Prompt { message: String },
+}
+
+impl fmt::Display for InfoError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::UnableToDetermineVersion { message }
+      | Self::InvalidVersion { message }
+      | Self::Prompt { message } => f.write_str(message),
+    }
+  }
+}
+
+impl Error for InfoError {}
+
+/// 上游 `versionBumpInfo`：start → getRecentCommits → getCurrentVersion → getNewVersion
+pub fn version_bump_info(options: &BumpInfoOptions, cwd: &Path) -> Result<BumpState, InfoError> {
+  let commits = get_recent_commits(cwd, None, None);
+  let (current_version, source) = get_current_version(options, cwd)?;
+  let mut state = BumpState::new(current_version, source);
+
+  // 上游 normalizeOptions：preid 缺省为 "beta"
+  let preid = options.preid.or(Some("beta"));
+
+  match options.release {
+    None | Some("prompt") => {
+      // 上游：getNextVersions(currentVersion, release.preid, commits) 后 prompt
+      let next = next_versions(&state.current_version, preid, &commits).map_err(|e| {
+        InfoError::InvalidVersion {
+          message: e.to_string(),
+        }
+      })?;
+      let (release, new_version) = prompt_new_version(&state.current_version, &next)?;
+      state.release = release;
+      state.new_version = new_version;
+    }
+    Some(raw) => match ReleaseType::from_str(raw) {
+      Some(release) => {
+        state.new_version = next_version(&state.current_version, release, preid, &commits)
+          .map_err(|e| InfoError::InvalidVersion {
+            message: e.to_string(),
+          })?;
+        state.release = Some(raw.to_string());
+      }
+      None => {
+        // 上游 case "version"：new SemVer(release.version, true)（loose 解析）
+        state.new_version = parse_loose(raw)?;
+      }
+    },
+  }
+  Ok(state)
+}
+
+/// node-semver 的 loose 解析子集：去 v/=/空白前缀，补齐缺失的 minor/patch
+fn parse_loose(raw: &str) -> Result<String, InfoError> {
+  let cleaned = raw.trim().trim_start_matches(['=', 'v', 'V', ' ']);
+  let mut parts: Vec<&str> = cleaned.split('.').collect();
+  while parts.len() < 3 {
+    parts.push("0");
+  }
+  Version::parse(&parts.join("."))
+    .map(|v| v.to_string())
+    .map_err(|_| InfoError::InvalidVersion {
+      message: format!("无效的版本号：{raw}"),
+    })
+}
+
+/// 上游 `getCurrentVersion`：options.currentVersion 优先，否则按候选文件顺序扫描
+fn get_current_version(
+  options: &BumpInfoOptions,
+  cwd: &Path,
+) -> Result<(String, String), InfoError> {
+  if let Some(v) = options.current_version {
+    // 上游 Operation 构造器：显式 currentVersion 时 currentVersionSource 为 "user"
+    return Ok((v.to_string(), "user".to_string()));
+  }
+  let mut files_to_check: Vec<String> = options
+    .files
+    .iter()
+    .filter(|f| f.ends_with(".json"))
+    .cloned()
+    .collect();
+  for default in ["package.json", "deno.json", "deno.jsonc"] {
+    if !files_to_check.iter().any(|f| f == default) {
+      files_to_check.push(default.to_string());
+    }
+  }
+  for file in &files_to_check {
+    if let Some(version) = read_version(cwd, file) {
+      return Ok((version, file.clone()));
+    }
+  }
+  Err(InfoError::UnableToDetermineVersion {
+    message: format!(
+      "Unable to determine the current version number. Checked {}.",
+      files_to_check.join(", ")
+    ),
+  })
+}
+
+/// 上游 `readVersion`：JSONC 容错解析 + isManifest + semver.valid（严格）
+fn read_version(cwd: &Path, file: &str) -> Option<String> {
+  let text = std::fs::read_to_string(cwd.join(file)).ok()?;
+  let Value::Object(root) = parse(&text)? else {
+    return None;
+  };
+  if !is_manifest(&root) {
+    return None;
+  }
+  let version = crate::jsonc::get_prop(&root, "version")?
+    .value
+    .as_string_lit()?;
+  Version::parse(&version.value).ok()?;
+  Some(version.value.to_string())
+}
