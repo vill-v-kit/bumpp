@@ -27,5 +27,5 @@
 ## Consequences
 
 - 破坏性变更：TS 配置与 `customVersion` 不再支持。本任务完成不发版；CHANGELOG 迁移说明与 major 版本动作留待未来实际发版时处理。
-- 本地发布流程新增交叉编译步骤（linux 走 zig/docker，windows 走 cargo-xwin，ohos 需 OpenHarmony NDK）；仓库无 CI，全部在本机完成。
+- 发版构建经 **GitHub Actions 官方 napi-rs CI 模板**（仓库已迁移至 GitHub）：每个 target 在对应平台家族原生 runner 构建（macos 编 darwin-arm64、ubuntu 编 linux-x64-gnu + napi-cross 编 linux-arm64-gnu、windows 编两个 msvc），test-bindings 矩阵在各平台真实跑 vitest；开发内循环保持本机架构单编。OpenHarmony（ohos 三元组）best-effort 待 NDK 就绪后补入矩阵。
 - `npm/bump` 的 `bumpp` 依赖替换为 `@vill-v/bumpp-core`，API 形状兼容，调用点（`bump.ts` / `config.ts` / `types.ts`）几乎不改。

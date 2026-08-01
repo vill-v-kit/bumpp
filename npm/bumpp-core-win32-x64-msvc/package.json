@@ -1,0 +1,26 @@
+{
+  "name": "@vill-v/bumpp-core-win32-x64-msvc",
+  "version": "5.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vill-v-kit/bumpp",
+    "directory": "npm/bumpp-core-win32-x64-msvc"
+  },
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "main": "bumpp-core.win32-x64-msvc.node",
+  "files": [
+    "bumpp-core.win32-x64-msvc.node"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

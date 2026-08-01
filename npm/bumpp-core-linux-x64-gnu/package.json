@@ -1,0 +1,26 @@
+{
+  "name": "@vill-v/bumpp-core-linux-x64-gnu",
+  "version": "5.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vill-v-kit/bumpp",
+    "directory": "npm/bumpp-core-linux-x64-gnu"
+  },
+  "os": ["linux"],
+  "cpu": ["x64"], "libc": ["glibc"],
+  "main": "bumpp-core.linux-x64-gnu.node",
+  "files": [
+    "bumpp-core.linux-x64-gnu.node"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@vill-v/bumpp-core-darwin-arm64",
+  "version": "5.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "whitekite",
+    "email": "1075790909@qq.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vill-v-kit/bumpp",
+    "directory": "npm/bumpp-core-darwin-arm64"
+  },
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "main": "bumpp-core.darwin-arm64.node",
+  "files": [
+    "bumpp-core.darwin-arm64.node"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

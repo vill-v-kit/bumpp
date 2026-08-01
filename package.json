@@ -2,7 +2,7 @@
   "name": "@vill-v/bumpp-monorepo",
   "version": "5.1.0",
   "private": true,
-  "repository": "https://gitee.com/vill-v/bump",
+  "repository": "https://github.com/vill-v-kit/bumpp",
   "type": "module",
   "scripts": {
     "build": "turbo run build",

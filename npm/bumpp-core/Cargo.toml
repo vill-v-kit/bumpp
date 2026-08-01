@@ -5,8 +5,8 @@ edition = "2021"
 license = "MIT"
 publish = false
 description = "napi-rs Node bindings for bumpp-core (the pure Rust bumpp version engine)"
-homepage = "https://gitee.com/vill-v/bump"
-repository = "https://gitee.com/vill-v/bump"
+homepage = "https://github.com/vill-v-kit/bumpp"
+repository = "https://github.com/vill-v-kit/bumpp"
 
 [lib]
 crate-type = ["cdylib"]

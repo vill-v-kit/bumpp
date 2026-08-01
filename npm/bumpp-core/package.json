@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitee.com/vill-v/bump",
+    "url": "git+https://github.com/vill-v-kit/bumpp",
     "directory": "npm/bumpp-core"
   },
   "type": "module",
@@ -27,8 +27,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "napi build --platform --esm --release",
-    "build:debug": "napi build --platform --esm"
+    "build": "napi build --platform --no-js --release",
+    "build:debug": "napi build --platform --no-js"
   },
   "napi": {
     "binaryName": "bumpp-core"
@@ -36,8 +36,16 @@
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
+  "optionalDependencies": {
+    "@vill-v/bumpp-core-darwin-arm64": "workspace:*",
+    "@vill-v/bumpp-core-linux-arm64-gnu": "workspace:*",
+    "@vill-v/bumpp-core-linux-x64-gnu": "workspace:*",
+    "@vill-v/bumpp-core-win32-arm64-msvc": "workspace:*",
+    "@vill-v/bumpp-core-win32-x64-msvc": "workspace:*"
+  },
   "devDependencies": {
     "@napi-rs/cli": "catalog:dev",
-    "bumpp": "catalog:"
+    "bumpp": "catalog:",
+    "vitest": "catalog:dev"
   }
 }

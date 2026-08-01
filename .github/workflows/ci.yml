@@ -1,0 +1,125 @@
+name: CI
+
+env:
+  DEBUG: napi:*
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: cargo test + vitest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup toolchain (node + rust via mise.toml)
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets
+
+      - name: cargo test
+        run: cargo test --workspace
+
+      - name: vitest
+        run: pnpm test run
+
+  build:
+    name: build - ${{ matrix.settings.triple }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            triple: darwin-arm64
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            triple: linux-x64-gnu
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            triple: linux-arm64-gnu
+            cross: --use-napi-cross
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            triple: win32-x64-msvc
+          - host: windows-latest
+            target: aarch64-pc-windows-msvc
+            triple: win32-arm64-msvc
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup toolchain (node + rust via mise.toml)
+        uses: jdx/mise-action@v2
+
+      - name: Add rust target
+        run: rustup target add ${{ matrix.settings.target }}
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }} ${{ matrix.settings.cross }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.triple }}
+          path: npm/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node
+          if-no-files-found: error
+
+  test-bindings:
+    name: test bindings - ${{ matrix.settings.triple }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            triple: darwin-arm64
+          - host: ubuntu-latest
+            triple: linux-x64-gnu
+          - host: windows-latest
+            triple: win32-x64-msvc
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup toolchain (node via mise.toml)
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.triple }}
+          path: npm/bumpp-core
+
+      - name: Copy artifact into platform package
+        run: cp npm/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node npm/bumpp-core-${{ matrix.settings.triple }}/
+
+      - name: Test bindings
+        run: pnpm --filter @vill-v/bumpp-core exec vitest run

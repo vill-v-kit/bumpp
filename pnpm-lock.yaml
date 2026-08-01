@@ -168,6 +168,35 @@ importers:
       bumpp:
         specifier: 'catalog:'
         version: 11.1.0
+      vitest:
+        specifier: catalog:dev
+        version: 4.1.10(@types/node@26.1.1)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))
+    optionalDependencies:
+      '@vill-v/bumpp-core-darwin-arm64':
+        specifier: workspace:*
+        version: link:../bumpp-core-darwin-arm64
+      '@vill-v/bumpp-core-linux-arm64-gnu':
+        specifier: workspace:*
+        version: link:../bumpp-core-linux-arm64-gnu
+      '@vill-v/bumpp-core-linux-x64-gnu':
+        specifier: workspace:*
+        version: link:../bumpp-core-linux-x64-gnu
+      '@vill-v/bumpp-core-win32-arm64-msvc':
+        specifier: workspace:*
+        version: link:../bumpp-core-win32-arm64-msvc
+      '@vill-v/bumpp-core-win32-x64-msvc':
+        specifier: workspace:*
+        version: link:../bumpp-core-win32-x64-msvc
+
+  npm/bumpp-core-darwin-arm64: {}
+
+  npm/bumpp-core-linux-arm64-gnu: {}
+
+  npm/bumpp-core-linux-x64-gnu: {}
+
+  npm/bumpp-core-win32-arm64-msvc: {}
+
+  npm/bumpp-core-win32-x64-msvc: {}
 
   npm/gitcode:
     dependencies:

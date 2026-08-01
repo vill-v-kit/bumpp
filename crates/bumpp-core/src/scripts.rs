@@ -41,7 +41,7 @@ pub fn run_npm_script(
     return Ok(None);
   }
   run_unchecked(
-    "npm",
+    NPM_BIN,
     &[
       "run".to_string(),
       script.to_string(),
@@ -51,6 +51,12 @@ pub fn run_npm_script(
   )?;
   Ok(Some((ProgressEvent::NpmScript, script.to_string())))
 }
+
+/// npm 可执行名：Windows 下 Rust 的 Command 不做 PATHEXT 解析，必须显式 `npm.cmd`
+#[cfg(windows)]
+const NPM_BIN: &str = "npm.cmd";
+#[cfg(not(windows))]
+const NPM_BIN: &str = "npm";
 
 /// 上游 `Boolean(scripts[script])` 的 JS 真值语义
 fn json_truthy(value: &Value) -> bool {

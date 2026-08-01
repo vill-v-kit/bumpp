@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitee.com/vill-v/bump",
+    "url": "git+https://github.com/vill-v-kit/bumpp",
     "directory": "npm/gitlab"
   },
   "bin": {
