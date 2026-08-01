@@ -95,7 +95,7 @@ pub fn prompt_new_version(
     "conventional" => Ok((None, next.conventional.clone())),
     other => {
       // major / minor / patch / pre*：上游 state.release 记录选择值
-      let release = ReleaseType::from_str(other).expect("选项值集合固定");
+      let release = ReleaseType::parse(other).expect("选项值集合固定");
       Ok((Some(other.to_string()), next.get(release).to_string()))
     }
   }

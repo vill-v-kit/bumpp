@@ -38,7 +38,7 @@ pub struct BumpState {
 }
 
 impl BumpState {
-  fn new(current_version: String, current_version_source: String) -> Self {
+  pub(crate) fn new(current_version: String, current_version_source: String) -> Self {
     Self {
       release: None,
       current_version,
@@ -74,39 +74,55 @@ impl Error for InfoError {}
 /// 上游 `versionBumpInfo`：start → getRecentCommits → getCurrentVersion → getNewVersion
 pub fn version_bump_info(options: &BumpInfoOptions, cwd: &Path) -> Result<BumpState, InfoError> {
   let commits = get_recent_commits(cwd, None, None);
-  let (current_version, source) = get_current_version(options, cwd)?;
+  let (current_version, source) = get_current_version(options.files, options.current_version, cwd)?;
   let mut state = BumpState::new(current_version, source);
 
   // 上游 normalizeOptions：preid 缺省为 "beta"
-  let preid = options.preid.or(Some("beta"));
+  let (release, new_version) = resolve_new_version(
+    options.release,
+    options.preid,
+    &state.current_version,
+    &commits,
+  )?;
+  state.release = release;
+  state.new_version = new_version;
+  Ok(state)
+}
 
-  match options.release {
+/// 上游 `getNewVersion`：prompt / release type / loose 版本号三路解析。
+/// 返回 (state.release, newVersion)。
+pub(crate) fn resolve_new_version(
+  release: Option<&str>,
+  preid: Option<&str>,
+  current_version: &str,
+  commits: &[crate::commits::CommitInfo],
+) -> Result<(Option<String>, String), InfoError> {
+  // 上游 normalizeOptions：preid 缺省为 "beta"
+  let preid = preid.or(Some("beta"));
+  match release {
     None | Some("prompt") => {
       // 上游：getNextVersions(currentVersion, release.preid, commits) 后 prompt
-      let next = next_versions(&state.current_version, preid, &commits).map_err(|e| {
-        InfoError::InvalidVersion {
+      let next =
+        next_versions(current_version, preid, commits).map_err(|e| InfoError::InvalidVersion {
           message: e.to_string(),
-        }
-      })?;
-      let (release, new_version) = prompt_new_version(&state.current_version, &next)?;
-      state.release = release;
-      state.new_version = new_version;
+        })?;
+      prompt_new_version(current_version, &next)
     }
-    Some(raw) => match ReleaseType::from_str(raw) {
+    Some(raw) => match ReleaseType::parse(raw) {
       Some(release) => {
-        state.new_version = next_version(&state.current_version, release, preid, &commits)
-          .map_err(|e| InfoError::InvalidVersion {
+        let new_version = next_version(current_version, release, preid, commits).map_err(|e| {
+          InfoError::InvalidVersion {
             message: e.to_string(),
-          })?;
-        state.release = Some(raw.to_string());
+          }
+        })?;
+        Ok((Some(raw.to_string()), new_version))
       }
       None => {
         // 上游 case "version"：new SemVer(release.version, true)（loose 解析）
-        state.new_version = parse_loose(raw)?;
+        Ok((None, parse_loose(raw)?))
       }
     },
   }
-  Ok(state)
 }
 
 /// node-semver 的 loose 解析子集：去 v/=/空白前缀，补齐缺失的 minor/patch
@@ -124,16 +140,16 @@ fn parse_loose(raw: &str) -> Result<String, InfoError> {
 }
 
 /// 上游 `getCurrentVersion`：options.currentVersion 优先，否则按候选文件顺序扫描
-fn get_current_version(
-  options: &BumpInfoOptions,
+pub(crate) fn get_current_version(
+  files: &[String],
+  current_version: Option<&str>,
   cwd: &Path,
 ) -> Result<(String, String), InfoError> {
-  if let Some(v) = options.current_version {
+  if let Some(v) = current_version {
     // 上游 Operation 构造器：显式 currentVersion 时 currentVersionSource 为 "user"
     return Ok((v.to_string(), "user".to_string()));
   }
-  let mut files_to_check: Vec<String> = options
-    .files
+  let mut files_to_check: Vec<String> = files
     .iter()
     .filter(|f| f.ends_with(".json"))
     .cloned()

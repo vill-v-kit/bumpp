@@ -89,6 +89,7 @@ const {
   plus100,
   runNpmScript,
   updateFiles,
+  versionBump,
   versionBumpInfo,
 } = nativeBinding
 export {
@@ -99,5 +100,6 @@ export {
   plus100,
   runNpmScript,
   updateFiles,
+  versionBump,
   versionBumpInfo,
 }

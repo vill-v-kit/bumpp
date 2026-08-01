@@ -266,3 +266,234 @@ pub fn version_bump_info(
 ) -> napi::bindgen_prelude::AsyncTask<VersionBumpInfoTask> {
   napi::bindgen_prelude::AsyncTask::new(VersionBumpInfoTask { arg })
 }
+
+#[napi(object)]
+#[derive(Default)]
+pub struct VersionBumpOptions {
+  pub release: Option<String>,
+  pub files: Option<Vec<String>>,
+  pub cwd: Option<String>,
+  pub commit: Option<napi::Either<bool, String>>,
+  pub tag: Option<napi::Either<bool, String>>,
+  pub push: Option<bool>,
+  pub sign: Option<bool>,
+  pub all: Option<bool>,
+  #[napi(js_name = "noVerify")]
+  pub no_verify: Option<bool>,
+  pub confirm: Option<bool>,
+  #[napi(js_name = "ignoreScripts")]
+  pub ignore_scripts: Option<bool>,
+  pub install: Option<bool>,
+  pub execute: Option<String>,
+  pub preid: Option<String>,
+  #[napi(js_name = "currentVersion")]
+  pub current_version: Option<String>,
+  pub recursive: Option<bool>,
+  pub progress: Option<napi::bindgen_prelude::Function<'static, VersionBumpProgress, ()>>,
+}
+
+/// 上游 `VersionBumpProgress` 负载形状
+#[napi(object)]
+pub struct VersionBumpProgress {
+  pub event: String,
+  pub script: Option<String>,
+  pub release: Option<String>,
+  #[napi(js_name = "currentVersion")]
+  pub current_version: String,
+  #[napi(js_name = "newVersion")]
+  pub new_version: String,
+  /// 上游 commit: string | false
+  pub commit: napi::Either<String, bool>,
+  /// 上游 tag: string | false
+  pub tag: napi::Either<String, bool>,
+  #[napi(js_name = "updatedFiles")]
+  pub updated_files: Vec<String>,
+  #[napi(js_name = "skippedFiles")]
+  pub skipped_files: Vec<String>,
+}
+
+/// 上游 `operation.results`
+#[napi(object)]
+pub struct VersionBumpResults {
+  pub release: Option<String>,
+  #[napi(js_name = "currentVersion")]
+  pub current_version: String,
+  #[napi(js_name = "newVersion")]
+  pub new_version: String,
+  pub commit: napi::Either<String, bool>,
+  pub tag: napi::Either<String, bool>,
+  #[napi(js_name = "updatedFiles")]
+  pub updated_files: Vec<String>,
+  #[napi(js_name = "skippedFiles")]
+  pub skipped_files: Vec<String>,
+}
+
+// CalleeHandled=false：JS 回调单参（上游 progress(payload) 签名）
+type ProgressTsfn = napi::threadsafe_function::ThreadsafeFunction<
+  VersionBumpProgress,
+  (),
+  VersionBumpProgress,
+  napi::Status,
+  false,
+>;
+
+/// versionBump 的纯数据输入（Function 抽取后，跨线程安全）
+pub struct BumpTaskData {
+  release: Option<String>,
+  files: Vec<String>,
+  cwd: Option<String>,
+  commit: Option<napi::Either<bool, String>>,
+  tag: Option<napi::Either<bool, String>>,
+  push: bool,
+  sign: bool,
+  all: bool,
+  no_verify: bool,
+  confirm: bool,
+  ignore_scripts: bool,
+  install: bool,
+  execute: Option<String>,
+  preid: Option<String>,
+  current_version: Option<String>,
+  recursive: bool,
+}
+
+pub struct VersionBumpTask {
+  data: BumpTaskData,
+  progress: Option<ProgressTsfn>,
+}
+
+impl From<VersionBumpOptions> for BumpTaskData {
+  fn from(o: VersionBumpOptions) -> Self {
+    Self {
+      release: o.release,
+      files: o.files.unwrap_or_default(),
+      cwd: o.cwd,
+      commit: o.commit,
+      tag: o.tag,
+      push: o.push.unwrap_or(false),
+      sign: o.sign.unwrap_or(false),
+      all: o.all.unwrap_or(false),
+      no_verify: o.no_verify.unwrap_or(false),
+      confirm: o.confirm.unwrap_or(false),
+      ignore_scripts: o.ignore_scripts.unwrap_or(false),
+      install: o.install.unwrap_or(false),
+      execute: o.execute,
+      preid: o.preid,
+      current_version: o.current_version,
+      recursive: o.recursive.unwrap_or(false),
+    }
+  }
+}
+
+fn to_napi_progress(p: &bumpp_core::bump::Progress) -> VersionBumpProgress {
+  VersionBumpProgress {
+    event: p.event.as_str().to_string(),
+    script: p.script.map(str::to_owned),
+    release: p.release.map(str::to_owned),
+    current_version: p.current_version.to_string(),
+    new_version: p.new_version.to_string(),
+    commit: match p.commit {
+      Some(m) => napi::Either::A(m.to_string()),
+      None => napi::Either::B(false),
+    },
+    tag: match p.tag {
+      Some(t) => napi::Either::A(t.to_string()),
+      None => napi::Either::B(false),
+    },
+    updated_files: p.updated_files.to_vec(),
+    skipped_files: p.skipped_files.to_vec(),
+  }
+}
+
+#[napi]
+impl napi::Task for VersionBumpTask {
+  type Output = VersionBumpResults;
+  type JsValue = VersionBumpResults;
+
+  fn compute(&mut self) -> napi::Result<Self::Output> {
+    let options = &self.data;
+    let cwd = resolve_cwd(options.cwd.clone())?;
+    let core_options = bumpp_core::bump::BumpOptions {
+      release: options.release.as_deref(),
+      files: options.files.clone(),
+      recursive: options.recursive,
+      commit: options.commit.as_ref().map(|c| match c {
+        napi::Either::A(b) => bumpp_core::bump::CommitInput::Bool(*b),
+        napi::Either::B(s) => bumpp_core::bump::CommitInput::Message(s.as_str()),
+      }),
+      tag: options.tag.as_ref().map(|t| match t {
+        napi::Either::A(b) => bumpp_core::bump::TagInput::Bool(*b),
+        napi::Either::B(s) => bumpp_core::bump::TagInput::Name(s.as_str()),
+      }),
+      push: options.push,
+      sign: options.sign,
+      all: options.all,
+      no_verify: options.no_verify,
+      confirm: options.confirm,
+      ignore_scripts: options.ignore_scripts,
+      install: options.install,
+      execute: options.execute.as_deref(),
+      preid: options.preid.as_deref(),
+      current_version: options.current_version.as_deref(),
+    };
+    let tsfn = &self.progress;
+    let mut emit = |p: &bumpp_core::bump::Progress| {
+      if let Some(tsfn) = tsfn {
+        // 会合通道：阻塞至 JS 回调在主线程执行完毕，
+        // 保证事件严格按序送达（Promise resolve 之前尾部事件不丢失）
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
+        tsfn.call_with_return_value(
+          to_napi_progress(p),
+          napi::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
+          move |_, _| {
+            let _ = tx.send(());
+            Ok(())
+          },
+        );
+        let _ = rx.recv();
+      }
+    };
+    let results =
+      bumpp_core::bump::version_bump(&core_options, &cwd, &mut emit).map_err(to_napi_err)?;
+    Ok(VersionBumpResults {
+      release: results.release,
+      current_version: results.current_version,
+      new_version: results.new_version,
+      commit: match results.commit {
+        Some(m) => napi::Either::A(m),
+        None => napi::Either::B(false),
+      },
+      tag: match results.tag {
+        Some(t) => napi::Either::A(t),
+        None => napi::Either::B(false),
+      },
+      updated_files: results.updated_files,
+      skipped_files: results.skipped_files,
+    })
+  }
+
+  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+    Ok(output)
+  }
+}
+
+/// 完整 bump 流程：文件更新 + npm scripts + git commit/tag/push，
+/// 进度事件经 ThreadsafeFunction 实时回传（不阻塞事件循环）。对齐上游 `versionBump`。
+#[napi]
+pub fn version_bump(
+  mut options: VersionBumpOptions,
+) -> napi::Result<napi::bindgen_prelude::AsyncTask<VersionBumpTask>> {
+  let progress = match options.progress.take() {
+    Some(f) => Some(
+      f.build_threadsafe_function::<VersionBumpProgress>()
+        .callee_handled::<false>()
+        .build_callback(|ctx| Ok(ctx.value))?,
+    ),
+    None => None,
+  };
+  // Function 留在本函数栈帧销毁；跨线程的只有纯数据与 TSFN
+  Ok(napi::bindgen_prelude::AsyncTask::new(VersionBumpTask {
+    data: options.into(),
+    progress,
+  }))
+}

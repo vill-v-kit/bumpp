@@ -50,7 +50,7 @@ impl ReleaseType {
   }
 
   /// 上游 `isReleaseType(value) || value === "next"` 的字符串解析
-  pub fn from_str(s: &str) -> Option<ReleaseType> {
+  pub fn parse(s: &str) -> Option<ReleaseType> {
     match s {
       "major" => Some(Self::Major),
       "minor" => Some(Self::Minor),

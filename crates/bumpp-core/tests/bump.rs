@@ -1,0 +1,334 @@
+//! versionBump 全链路编排——真实临时 git 仓库，对齐上游时序与事件序列。
+
+use std::fs;
+use std::path::Path;
+use std::process::Command;
+use std::sync::{Arc, Mutex};
+
+use bumpp_core::bump::{version_bump, BumpOptions, CommitInput, Progress, TagInput};
+use bumpp_core::progress::ProgressEvent;
+use tempfile::TempDir;
+
+fn git(dir: &Path, args: &[&str]) -> String {
+  let output = Command::new("git")
+    .args(args)
+    .current_dir(dir)
+    .output()
+    .unwrap();
+  assert!(
+    output.status.success(),
+    "git {args:?} 失败：{}",
+    String::from_utf8_lossy(&output.stderr)
+  );
+  String::from_utf8(output.stdout).unwrap().trim().to_owned()
+}
+
+fn init_repo(dir: &TempDir) -> std::path::PathBuf {
+  let path = dir.path().to_path_buf();
+  git(&path, &["init", "-b", "main"]);
+  git(&path, &["config", "user.email", "test@example.com"]);
+  git(&path, &["config", "user.name", "Test"]);
+  git(&path, &["config", "commit.gpgsign", "false"]);
+  git(&path, &["config", "tag.gpgsign", "false"]);
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "chore: init"]);
+  path
+}
+
+fn base_options<'a>() -> BumpOptions<'a> {
+  BumpOptions {
+    release: Some("2.0.0"),
+    files: vec![],
+    recursive: false,
+    commit: Some(CommitInput::Bool(true)),
+    tag: Some(TagInput::Bool(true)),
+    push: false,
+    sign: false,
+    all: false,
+    no_verify: false,
+    confirm: false,
+    ignore_scripts: false,
+    install: false,
+    execute: None,
+    preid: None,
+    current_version: None,
+  }
+}
+
+type EventLog = Arc<Mutex<Vec<(ProgressEvent, Option<String>)>>>;
+
+fn collect_events() -> (EventLog, impl FnMut(&Progress)) {
+  let events = Arc::new(Mutex::new(Vec::new()));
+  let events2 = Arc::clone(&events);
+  let cb = move |p: &Progress| {
+    events2
+      .lock()
+      .unwrap()
+      .push((p.event, p.script.map(str::to_owned)));
+  };
+  (events, cb)
+}
+
+#[test]
+fn full_pipeline_files_commit_tag_and_events() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  // 两个 npm script 位 + 一个文本文件
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\",\n  \"scripts\": {\n    \"preversion\": \"node -e \\\"require('fs').writeFileSync('pre.txt','')\\\"\",\n    \"postversion\": \"node -e \\\"require('fs').writeFileSync('post.txt','')\\\"\"\n  }\n}\n",
+  )
+  .unwrap();
+  fs::write(path.join("VERSION.txt"), "version 1.0.0\n").unwrap();
+  git(&path, &["add", "."]); // 提交内文件须已跟踪（上游 pathspec 行为一致）
+  git(&path, &["commit", "-m", "add files"]);
+  let (events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    files: vec!["package.json".to_string(), "VERSION.txt".to_string()],
+    ..base_options()
+  };
+  let results = version_bump(&opts, &path, &mut cb).unwrap();
+
+  // 文件已更新
+  assert!(fs::read_to_string(path.join("package.json"))
+    .unwrap()
+    .contains("\"version\": \"2.0.0\""));
+  assert_eq!(
+    fs::read_to_string(path.join("VERSION.txt")).unwrap(),
+    "version 2.0.0\n"
+  );
+  // commit 与 tag（上游默认信息模板）
+  assert_eq!(
+    git(&path, &["log", "-1", "--pretty=%s"]),
+    "chore: release v2.0.0"
+  );
+  assert_eq!(git(&path, &["tag", "-l"]), "v2.0.0");
+  // scripts 按序执行
+  assert!(path.join("pre.txt").exists());
+  assert!(path.join("post.txt").exists());
+  // results 形状（上游 operation.results）
+  assert_eq!(results.current_version, "1.0.0");
+  assert_eq!(results.new_version, "2.0.0");
+  assert_eq!(results.commit.as_deref(), Some("chore: release v2.0.0"));
+  assert_eq!(results.tag.as_deref(), Some("v2.0.0"));
+  assert_eq!(results.updated_files.len(), 2);
+  assert!(results.skipped_files.is_empty());
+  // 事件序列对齐上游时序
+  let events = events.lock().unwrap();
+  let kinds: Vec<ProgressEvent> = events.iter().map(|(e, _)| *e).collect();
+  assert_eq!(
+    kinds,
+    vec![
+      ProgressEvent::NpmScript, // preversion
+      ProgressEvent::FileUpdated,
+      ProgressEvent::FileUpdated,
+      ProgressEvent::GitCommit,
+      ProgressEvent::GitTag,
+      ProgressEvent::NpmScript, // postversion
+    ]
+  );
+  assert_eq!(events[0].1.as_deref(), Some("preversion"));
+  assert_eq!(events[5].1.as_deref(), Some("postversion"));
+}
+
+#[test]
+fn push_pipeline_pushes_to_remote() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  let bare = TempDir::new().unwrap();
+  git(&path, &["init", "--bare", bare.path().to_str().unwrap()]);
+  git(
+    &path,
+    &["remote", "add", "origin", bare.path().to_str().unwrap()],
+  );
+  git(&path, &["push", "-u", "origin", "main"]);
+  let (events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    files: vec!["package.json".to_string()],
+    push: true,
+    ..base_options()
+  };
+  version_bump(&opts, &path, &mut cb).unwrap();
+  assert_eq!(
+    git(bare.path(), &["log", "-1", "--pretty=%s", "main"]),
+    "chore: release v2.0.0"
+  );
+  assert_eq!(git(bare.path(), &["tag", "-l"]), "v2.0.0");
+  let kinds: Vec<ProgressEvent> = events.lock().unwrap().iter().map(|(e, _)| *e).collect();
+  assert_eq!(kinds.last(), Some(&ProgressEvent::GitPush));
+}
+
+#[test]
+fn empty_files_uses_default_manifest_list() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  fs::write(
+    path.join("package-lock.json"),
+    "{\n  \"version\": \"1.0.0\",\n  \"packages\": {}\n}\n",
+  )
+  .unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "add lock"]);
+  let (_events, mut cb) = collect_events();
+  let opts = base_options(); // files 为空 → 默认清单
+  version_bump(&opts, &path, &mut cb).unwrap();
+  assert!(fs::read_to_string(path.join("package.json"))
+    .unwrap()
+    .contains("2.0.0"));
+  assert!(fs::read_to_string(path.join("package-lock.json"))
+    .unwrap()
+    .contains("2.0.0"));
+}
+
+#[test]
+fn glob_patterns_expand_and_sort() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  fs::create_dir_all(path.join("packages/a")).unwrap();
+  fs::write(
+    path.join("packages/a/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "add sub package"]);
+  let (_events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    files: vec![
+      "package.json".to_string(),
+      "packages/**/package.json".to_string(),
+    ],
+    ..base_options()
+  };
+  version_bump(&opts, &path, &mut cb).unwrap();
+  assert!(fs::read_to_string(path.join("packages/a/package.json"))
+    .unwrap()
+    .contains("2.0.0"));
+}
+
+#[test]
+fn commit_false_skips_commit_but_tag_implies_commit() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  let (events, mut cb) = collect_events();
+  // 上游 normalizeOptions：tag 开启时 commit 对象强制存在（tag 需要承载提交）
+  let opts = BumpOptions {
+    commit: None,
+    tag: Some(TagInput::Bool(true)),
+    files: vec!["package.json".to_string()],
+    ..base_options()
+  };
+  version_bump(&opts, &path, &mut cb).unwrap();
+  assert_eq!(git(&path, &["tag", "-l"]), "v2.0.0");
+  let kinds: Vec<ProgressEvent> = events.lock().unwrap().iter().map(|(e, _)| *e).collect();
+  assert!(kinds.contains(&ProgressEvent::GitCommit), "tag 隐含 commit");
+}
+
+#[test]
+fn ignore_scripts_skips_all_script_steps() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\",\n  \"scripts\": { \"preversion\": \"exit 1\" }\n}\n",
+  )
+  .unwrap();
+  let (events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    ignore_scripts: true,
+    files: vec!["package.json".to_string()],
+    ..base_options()
+  };
+  version_bump(&opts, &path, &mut cb).unwrap();
+  assert!(events
+    .lock()
+    .unwrap()
+    .iter()
+    .all(|(e, _)| *e != ProgressEvent::NpmScript));
+}
+
+#[test]
+fn execute_runs_command_after_files() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  let (_events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    execute: Some("node -e \"require('fs').writeFileSync('executed.txt','')\""),
+    files: vec!["package.json".to_string()],
+    ..base_options()
+  };
+  version_bump(&opts, &path, &mut cb).unwrap();
+  assert!(path.join("executed.txt").exists());
+}
+
+#[test]
+fn failing_step_rejects_with_readable_error() {
+  let dir = TempDir::new().unwrap();
+  // 非 git 仓库：git commit 失败 → 错误可读且包含 git 输出
+  fs::write(
+    dir.path().join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  let (_events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    files: vec!["package.json".to_string()],
+    ..base_options()
+  };
+  let err = version_bump(&opts, dir.path(), &mut cb).unwrap_err();
+  assert!(
+    err.to_string().contains("not a git repository"),
+    "错误应含 stderr：{err}"
+  );
+}
+
+#[test]
+fn progress_snapshot_matches_upstream_shape() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  let snapshots = Arc::new(Mutex::new(Vec::new()));
+  let snapshots2 = Arc::clone(&snapshots);
+  let mut cb = move |p: &Progress| {
+    snapshots2.lock().unwrap().push((
+      p.event,
+      p.new_version.to_owned(),
+      p.updated_files.len(),
+      p.skipped_files.len(),
+      p.commit.map(str::to_owned),
+      p.tag.map(str::to_owned),
+    ));
+  };
+  let opts = BumpOptions {
+    files: vec!["package.json".to_string()],
+    ..base_options()
+  };
+  version_bump(&opts, &path, &mut cb).unwrap();
+  let snaps = snapshots.lock().unwrap();
+  // FileUpdated 事件时 updatedFiles 已含该文件（上游发送累计数组，消费端 pop 最后一个）
+  let file_event = snaps
+    .iter()
+    .find(|(e, ..)| *e == ProgressEvent::FileUpdated)
+    .unwrap();
+  assert_eq!(
+    (file_event.1.as_str(), file_event.2, file_event.3),
+    ("2.0.0", 1, 0)
+  );
+  // GitCommit 事件负载含 commitMessage，tag 字段在 GitTag 前为 None（上游 false）
+  let commit_event = snaps
+    .iter()
+    .find(|(e, ..)| *e == ProgressEvent::GitCommit)
+    .unwrap();
+  assert_eq!(commit_event.4.as_deref(), Some("chore: release v2.0.0"));
+  // 上游：tag 启用时 GitTag 前的事件负载为 ""（state.tagName 初值）
+  assert_eq!(commit_event.5.as_deref(), Some(""));
+  let tag_event = snaps
+    .iter()
+    .find(|(e, ..)| *e == ProgressEvent::GitTag)
+    .unwrap();
+  assert_eq!(tag_event.5.as_deref(), Some("v2.0.0"));
+}
