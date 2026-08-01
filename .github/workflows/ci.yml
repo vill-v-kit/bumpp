@@ -4,10 +4,10 @@ env:
   DEBUG: napi:*
 
 on:
+  # 仅在版本 tag（v*）推送时触发：发版构建与全平台测试（未来发版时在此挂 publish job）
   push:
-    branches:
-      - main
-  pull_request:
+    tags:
+      - 'v*'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
