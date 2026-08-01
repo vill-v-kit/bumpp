@@ -23,10 +23,11 @@ jobs:
       - name: Setup toolchain (node + rust via mise.toml)
         uses: jdx/mise-action@v2
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install dependencies
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: cargo fmt
         run: cargo fmt --all -- --check
@@ -72,10 +73,11 @@ jobs:
       - name: Add rust target
         run: rustup target add ${{ matrix.settings.target }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install dependencies
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }} ${{ matrix.settings.cross }}
@@ -107,10 +109,11 @@ jobs:
       - name: Setup toolchain (node via mise.toml)
         uses: jdx/mise-action@v2
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install dependencies
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Download artifact
         uses: actions/download-artifact@v4
