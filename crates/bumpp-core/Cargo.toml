@@ -9,6 +9,8 @@ homepage = "https://gitee.com/vill-v/bump"
 repository = "https://gitee.com/vill-v/bump"
 
 [dependencies]
+jsonc-parser = "0.33.1"
+regex = "1.13.1"
 semver = "1.0.28"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
