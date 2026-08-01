@@ -1,5 +1,5 @@
 import type { ChangelogConfig, ResolvedChangelogConfig } from 'changelogen'
-import type { VersionBumpOptions, versionBumpInfo } from 'bumpp'
+import type { VersionBumpOptions, versionBumpInfo } from '@vill-v/bumpp-core'
 import { changelog } from './changelog'
 
 /**

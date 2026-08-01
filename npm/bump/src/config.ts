@@ -1,4 +1,4 @@
-import { loadBumpConfig } from 'bumpp'
+import { loadBumpConfig } from '@vill-v/bumpp-core'
 import { type ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { defu } from 'defu'
 import { glob } from 'tinyglobby'

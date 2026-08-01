@@ -82,26 +82,26 @@ pub struct TagSpec {
 
 #[napi(object)]
 pub struct GitCommitOutcome {
-  pub event: String,
+  pub event: ProgressEvent,
   #[napi(js_name = "commitMessage")]
   pub commit_message: String,
 }
 
 #[napi(object)]
 pub struct GitTagOutcome {
-  pub event: String,
+  pub event: ProgressEvent,
   #[napi(js_name = "tagName")]
   pub tag_name: String,
 }
 
 #[napi(object)]
 pub struct GitPushOutcome {
-  pub event: String,
+  pub event: ProgressEvent,
 }
 
 #[napi(object)]
 pub struct NpmScriptOutcome {
-  pub event: String,
+  pub event: ProgressEvent,
   pub script: String,
 }
 
@@ -118,7 +118,7 @@ pub fn git_commit(cwd: Option<String>, spec: CommitSpec) -> napi::Result<GitComm
   };
   bumpp_core::git::git_commit(&resolve_cwd(cwd)?, &core_spec)
     .map(|(e, m)| GitCommitOutcome {
-      event: e.as_str().to_string(),
+      event: e.into(),
       commit_message: m,
     })
     .map_err(to_napi_err)
@@ -135,7 +135,7 @@ pub fn git_tag(cwd: Option<String>, spec: TagSpec) -> napi::Result<GitTagOutcome
   };
   bumpp_core::git::git_tag(&resolve_cwd(cwd)?, &core_spec)
     .map(|(e, n)| GitTagOutcome {
-      event: e.as_str().to_string(),
+      event: e.into(),
       tag_name: n,
     })
     .map_err(to_napi_err)
@@ -146,7 +146,7 @@ pub fn git_tag(cwd: Option<String>, spec: TagSpec) -> napi::Result<GitTagOutcome
 pub fn git_push(cwd: Option<String>, with_tags: bool) -> napi::Result<GitPushOutcome> {
   bumpp_core::git::git_push(&resolve_cwd(cwd)?, with_tags)
     .map(|e| GitPushOutcome {
-      event: e.as_str().to_string(),
+      event: e.into(),
     })
     .map_err(to_napi_err)
 }
@@ -162,7 +162,7 @@ pub fn run_npm_script(
   bumpp_core::scripts::run_npm_script(&resolve_cwd(cwd)?, &script, ignore_scripts)
     .map(|r| {
       r.map(|(e, s)| NpmScriptOutcome {
-        event: e.as_str().to_string(),
+        event: e.into(),
         script: s,
       })
     })
@@ -295,7 +295,7 @@ pub struct VersionBumpOptions {
 /// 上游 `VersionBumpProgress` 负载形状
 #[napi(object)]
 pub struct VersionBumpProgress {
-  pub event: String,
+  pub event: ProgressEvent,
   pub script: Option<String>,
   pub release: Option<String>,
   #[napi(js_name = "currentVersion")]
@@ -387,7 +387,7 @@ impl From<VersionBumpOptions> for BumpTaskData {
 
 fn to_napi_progress(p: &bumpp_core::bump::Progress) -> VersionBumpProgress {
   VersionBumpProgress {
-    event: p.event.as_str().to_string(),
+    event: p.event.into(),
     script: p.script.map(str::to_owned),
     release: p.release.map(str::to_owned),
     current_version: p.current_version.to_string(),
@@ -496,4 +496,36 @@ pub fn version_bump(
     data: options.into(),
     progress,
   }))
+}
+
+/// 上游 `ProgressEvent` 字符串枚举（npm/bump 消费侧的 switch 键）
+#[napi(string_enum)]
+#[derive(Clone, Copy)]
+pub enum ProgressEvent {
+  #[napi(value = "file updated")]
+  FileUpdated,
+  #[napi(value = "file skipped")]
+  FileSkipped,
+  #[napi(value = "git commit")]
+  GitCommit,
+  #[napi(value = "git tag")]
+  GitTag,
+  #[napi(value = "git push")]
+  GitPush,
+  #[napi(value = "npm script")]
+  NpmScript,
+}
+
+impl From<bumpp_core::progress::ProgressEvent> for ProgressEvent {
+  fn from(e: bumpp_core::progress::ProgressEvent) -> Self {
+    use bumpp_core::progress::ProgressEvent as Core;
+    match e {
+      Core::FileUpdated => Self::FileUpdated,
+      Core::FileSkipped => Self::FileSkipped,
+      Core::GitCommit => Self::GitCommit,
+      Core::GitTag => Self::GitTag,
+      Core::GitPush => Self::GitPush,
+      Core::NpmScript => Self::NpmScript,
+    }
+  }
 }

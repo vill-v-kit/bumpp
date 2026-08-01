@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "catalog:dev",
-    "bumpp": "catalog:",
+    "bumpp": "^11.1.0",
     "vitest": "catalog:dev"
   }
 }

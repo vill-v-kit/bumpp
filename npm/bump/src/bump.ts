@@ -1,4 +1,4 @@
-import { ProgressEvent, type VersionBumpProgress, versionBump, versionBumpInfo } from 'bumpp'
+import { ProgressEvent, type VersionBumpProgress, versionBump, versionBumpInfo } from '@vill-v/bumpp-core'
 import { consola } from 'consola'
 import { Spinner } from 'picospinner'
 import { changelog, getTag } from './changelog'
