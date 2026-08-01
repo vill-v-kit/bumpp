@@ -47,14 +47,14 @@ const parity = async (
   current = '1.0.0',
   next = '2.0.0',
 ) => {
-  // 上游 versionBump 先 glob 文件列表（排序、丢弃无匹配项）再逐个更新；
-  // 这里按 glob 后的顺序传给两侧，保持可比
-  const sorted = [...targets].sort()
   const [upDir, rsDir] = twinDirs(files)
-  const upstream = await runUpstream(upDir, sorted, current, next)
-  const ours = updateFiles(sorted, rsDir, current, next)
-  // 路径列表：上游用 upDir 前缀，我们用 rsDir，归一化后比较
-  const normalize = (list: string[], dir: string) => list.map((p) => p.replace(dir, '<DIR>'))
+  const upstream = await runUpstream(upDir, targets, current, next)
+  const ours = updateFiles(targets, rsDir, current, next)
+  // 路径列表：上游用 upDir 前缀，我们用 rsDir，归一化后比较。
+  // 列表顺序跨平台不稳定（上游 glob 在不同平台的排序行为不同），按集合比较；
+  // 逐文件内容与格式才是 parity 主体（下方逐字节断言）
+  const normalize = (list: string[], dir: string) =>
+    list.map((p) => p.replace(dir, '<DIR>')).sort()
   expect(normalize(ours.updatedFiles, rsDir)).toEqual(normalize(upstream.updatedFiles, upDir))
   expect(normalize(ours.skippedFiles, rsDir)).toEqual(normalize(upstream.skippedFiles, upDir))
   // 文件内容逐字节一致
