@@ -125,4 +125,4 @@ jobs:
         run: cp npm/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node npm/bumpp-core-${{ matrix.settings.triple }}/
 
       - name: Test bindings
-        run: pnpm --filter @vill-v/bumpp-core exec vitest run
+        run: pnpm exec vitest run npm/bumpp-core
