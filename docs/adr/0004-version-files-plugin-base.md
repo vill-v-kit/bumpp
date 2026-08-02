@@ -10,11 +10,13 @@
   ```rust
   pub trait VersionFilePlugin {
     fn matches(&self, rel_path: &Path) -> bool;
-    fn update(&self, path: &Path, current: &str, new: &str) -> Result<UpdateOutcome>;
+    fn update(&self, path: &Path, rel_path: &Path, current: &str, new: &str) -> Result<UpdateOutcome>;
   }
   ```
 
-  内置有序链：`JsManifestPlugin`（8 种 basename + package-lock `packages[""].version` 规则）→ `CargoTomlPlugin`（COL-20 落地）→ `TextPlugin`（上游 `(\b|v){version}\b` 替换，兜底）。按 `matches` 顺序分发，命中即走对应通道。
+  `path` 为用于 IO 的绝对路径；`rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案（保持与迁移前一致的相对路径文案，落实"行为零变化"）。
+
+  内置有序链：`JsManifestPlugin`（8 种 basename + package-lock `packages[""].version` 规则）→ `CargoTomlPlugin`（COL-23 落地）→ `TextPlugin`（上游 `(\b|v){version}\b` 替换，兜底）。按 `matches` 顺序分发，命中即走对应通道。
 - **静态分发**：开放注册 API 留待真实外部插件出现时再引（当前无注册方，不做运行时 registry）。
 - **纯迁移先行**：JS 生态 JSON 逻辑（JSONC 容错解析、isManifest、span 替换保格式、跳过规则）原样搬入，行为零变化由现有双层测试兜底。
 

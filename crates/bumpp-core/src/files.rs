@@ -1,32 +1,13 @@
-//! 文件版本更新：对齐上游 bumpp v11 `updateFile` / `updateManifestFile` / `updateTextFile`。
+//! 文件版本更新编排：对齐上游 bumpp v11 `updateFiles`。
 //!
-//! - manifest（package.json 等 8 种 basename）：JSONC 容错解析后仅替换 `version` 值所在的
-//!   文本区间（package-lock 另含 `packages[""].version`），其余字节原样保留；
-//! - 其他文件：按上游正则 `(\b|v){version}\b` 全局替换（`\b` 为 JS 的 ASCII 语义）。
+//! 各生态的解析与更新由 version-files crate 的插件链承担（ADR-0004）；
+//! 本模块只做编排：文件存在性、事件产出、路径归一。
 
 use std::error::Error;
 use std::fmt;
-use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use jsonc_parser::ast::{Object, Value};
-use jsonc_parser::common::{Range, Ranged};
-use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
-
-use crate::jsonc::{get_prop, is_manifest};
 use crate::progress::ProgressEvent;
-
-/// 按 manifest 处理的 basename（上游 switch 列表，小写比较）
-const MANIFEST_BASENAMES: [&str; 8] = [
-  "package.json",
-  "package-lock.json",
-  "bower.json",
-  "component.json",
-  "jsr.json",
-  "jsr.jsonc",
-  "deno.json",
-  "deno.jsonc",
-];
 
 #[derive(Debug)]
 pub enum FilesError {
@@ -42,6 +23,14 @@ impl fmt::Display for FilesError {
 }
 
 impl Error for FilesError {}
+
+impl From<version_files::UpdateError> for FilesError {
+  fn from(e: version_files::UpdateError) -> Self {
+    Self::Io {
+      message: e.to_string(),
+    }
+  }
+}
 
 /// 一次 updateFiles 的结果。
 ///
@@ -102,7 +91,7 @@ pub fn update_files(
   Ok(outcome)
 }
 
-/// 上游 `updateFile`：文件不存在 → skipped；按 basename 分流 manifest / text
+/// 上游 `updateFile`：文件不存在 → skipped；存在则经 version-files 插件链分发更新（ADR-0004）
 fn update_file(
   rel_path: &str,
   cwd: &Path,
@@ -113,112 +102,9 @@ fn update_file(
   if !path.exists() {
     return Ok(false);
   }
-  let basename = path
-    .file_name()
-    .map(|n| n.to_string_lossy().trim().to_lowercase())
-    .unwrap_or_default();
-  if MANIFEST_BASENAMES.contains(&basename.as_str()) {
-    update_manifest(&path, rel_path, new_version)
-  } else {
-    update_text(&path, rel_path, current_version, new_version)
-  }
-}
-
-/// 上游 `updateManifestFile`：只设置顶层 `version`（package-lock 另含嵌套路径），
-/// 通过文本区间替换保留原格式
-fn update_manifest(path: &Path, rel_path: &str, new_version: &str) -> Result<bool, FilesError> {
-  let text = read_text(path, rel_path)?;
-  // 上游 jsonc.parse 容错：解析失败的文件按 skip 处理，批次继续
-  let Ok(ast) = parse_to_ast(&text, &CollectOptions::default(), &ParseOptions::default()) else {
-    return Ok(false);
-  };
-  let Some(Value::Object(root)) = &ast.value else {
-    return Ok(false);
-  };
-  if !is_manifest(root) {
-    return Ok(false);
-  }
-  // version 缺失或为 null → 跳过
-  let Some(version_prop) = get_prop(root, "version") else {
-    return Ok(false);
-  };
-  if matches!(&version_prop.value, Value::NullKeyword(_)) {
-    return Ok(false);
-  }
-  // version 已是新值 → 跳过（不重写文件）
-  if let Value::StringLit(s) = &version_prop.value {
-    if s.value == new_version {
-      return Ok(false);
-    }
-  }
-
-  let mut edits = vec![(version_prop.value.range(), quote(new_version))];
-  // isPackageLockManifest：packages[""].version 为 string 时一并更新
-  if let Some(nested) = package_lock_root_version(root) {
-    edits.push((nested.range(), quote(new_version)));
-  }
-
-  write_text(path, rel_path, &apply_edits(&text, &edits))?;
-  Ok(true)
-}
-
-/// 上游 `isPackageLockManifest` 的取值：`packages[""].version` 为 string 时返回该节点
-fn package_lock_root_version<'a>(root: &'a Object<'a>) -> Option<&'a Value<'a>> {
-  let version = get_prop(root, "packages")
-    .and_then(|p| p.value.as_object())
-    .and_then(|p| get_prop(p, ""))
-    .and_then(|p| p.value.as_object())
-    .and_then(|p| get_prop(p, "version"))
-    .map(|p| &p.value)?;
-  matches!(version, Value::StringLit(_)).then_some(version)
-}
-
-/// 上游 `updateTextFile`：全局替换 `(\b|v){version}\b`，`\b` 对齐 JS 的 ASCII 语义
-fn update_text(
-  path: &Path,
-  rel_path: &str,
-  current_version: &str,
-  new_version: &str,
-) -> Result<bool, FilesError> {
-  let text = read_text(path, rel_path)?;
-  if !text.contains(current_version) {
-    return Ok(false);
-  }
-  // 上游 sanitizedVersion 转义全部 \W 字符；regex::escape 语义等价
-  let pattern = format!("((?-u:\\b)|v){}(?-u:\\b)", regex::escape(current_version));
-  let re = regex::Regex::new(&pattern).expect("版本号转义后必为合法正则");
-  let new_text = re.replace_all(&text, |caps: &regex::Captures| {
-    format!("{}{new_version}", &caps[1])
-  });
-  write_text(path, rel_path, &new_text)?;
-  Ok(true)
-}
-
-fn read_text(path: &Path, rel_path: &str) -> Result<String, FilesError> {
-  fs::read_to_string(path).map_err(|e| FilesError::Io {
-    message: format!("读取 {rel_path} 失败：{e}"),
-  })
-}
-
-fn write_text(path: &Path, rel_path: &str, content: &str) -> Result<(), FilesError> {
-  fs::write(path, content).map_err(|e| FilesError::Io {
-    message: format!("写入 {rel_path} 失败：{e}"),
-  })
-}
-
-fn quote(value: &str) -> String {
-  format!("\"{value}\"")
-}
-
-/// 将区间替换应用到原文（按起点倒序，避免位移）
-fn apply_edits(text: &str, edits: &[(Range, String)]) -> String {
-  let mut sorted: Vec<_> = edits.to_vec();
-  sorted.sort_by_key(|(range, _)| std::cmp::Reverse(range.start));
-  let mut result = text.to_owned();
-  for (range, replacement) in sorted {
-    result.replace_range(range.start..range.end, &replacement);
-  }
-  result
+  let outcome =
+    version_files::update_file(Path::new(rel_path), &path, current_version, new_version)?;
+  Ok(matches!(outcome, version_files::UpdateOutcome::Updated))
 }
 
 /// Node `path.resolve(cwd, rel)` 的语义化归一：消除 `.` 与 `..` 段（不解符号链接）
