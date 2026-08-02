@@ -13,6 +13,7 @@ use crate::exec::{run, ExecError};
 use crate::files::{self, FilesError};
 use crate::git::{git_commit, git_push, git_tag, CommitSpec, TagSpec};
 use crate::info::{get_current_version, resolve_new_version, BumpState, InfoError};
+use crate::pm::detect_package_manager;
 use crate::progress::ProgressEvent;
 use crate::scripts::run_npm_script;
 
@@ -118,6 +119,14 @@ impl From<FilesError> for BumpError {
 
 impl From<ExecError> for BumpError {
   fn from(e: ExecError) -> Self {
+    Self::Exec {
+      message: e.to_string(),
+    }
+  }
+}
+
+impl From<crate::pm::PmError> for BumpError {
+  fn from(e: crate::pm::PmError) -> Self {
     Self::Exec {
       message: e.to_string(),
     }
@@ -389,40 +398,6 @@ fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
   matched.sort();
   matched.dedup();
   matched
-}
-
-/// 上游 package-manager-detector 的常用路径：packageManager 字段 → lockfile
-fn detect_package_manager(cwd: &Path) -> Result<&'static str, BumpError> {
-  if let Ok(text) = std::fs::read_to_string(cwd.join("package.json")) {
-    if let Some(jsonc_parser::ast::Value::Object(root)) = crate::jsonc::parse(&text) {
-      if let Some(pm) = crate::jsonc::get_prop(&root, "packageManager")
-        .and_then(|p| p.value.as_string_lit().cloned())
-        .and_then(|s| s.value.split('@').next().map(str::to_owned))
-      {
-        return Ok(match pm.as_str() {
-          "pnpm" => "pnpm",
-          "yarn" => "yarn",
-          "bun" => "bun",
-          _ => "npm",
-        });
-      }
-    }
-  }
-  for (file, pm) in [
-    ("pnpm-lock.yaml", "pnpm"),
-    ("package-lock.json", "npm"),
-    ("yarn.lock", "yarn"),
-    ("bun.lockb", "bun"),
-    ("bun.lock", "bun"),
-    ("deno.lock", "deno"),
-  ] {
-    if cwd.join(file).exists() {
-      return Ok(pm);
-    }
-  }
-  Err(BumpError::Exec {
-    message: "Could not detect package manager, failed to run npm install".to_string(),
-  })
 }
 
 /// 上游 `printSummary`（confirm 前的变更摘要）
