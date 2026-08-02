@@ -307,7 +307,7 @@ pub struct VersionBumpResults {
   pub skipped_files: Vec<String>,
 }
 
-/// versionBump 的纯数据输入（Function 抽取后，跨线程安全）
+/// versionBump 的纯数据输入（无 JS 回调，天然跨线程安全）
 pub struct BumpTaskData {
   release: Option<String>,
   files: Vec<String>,

@@ -1,6 +1,8 @@
 //! 进度事件与内置打印：事件类型对齐上游 bumpp v11 `ProgressEvent`；
 //! 打印样式仿 consola（ADR-0002：progress 内置 Rust，不再回传 JS）。
 
+use dialoguer::console::style;
+
 /// 上游 `ProgressEvent` 枚举，字符串值逐一对齐
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgressEvent {
@@ -40,8 +42,6 @@ mod tests {
     assert_eq!(ProgressEvent::NpmScript.as_str(), "npm script");
   }
 }
-
-use dialoguer::console::style;
 
 /// 事件 → CLI 输出字符串（仿 consola 样式：success ✔ 绿 / info ℹ 蓝；
 /// 非 TTY 时 console 自动降级为无 ANSI 纯文本）。
