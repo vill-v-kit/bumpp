@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use crate::{read_text, write_text, UpdateError, UpdateOutcome, VersionFilePlugin};
+use super::{read_text, write_text, FilesError, UpdateOutcome, VersionFilePlugin};
 
 pub(crate) struct TextPlugin;
 
@@ -20,7 +20,7 @@ impl VersionFilePlugin for TextPlugin {
     rel_path: &Path,
     current: &str,
     new: &str,
-  ) -> Result<UpdateOutcome, UpdateError> {
+  ) -> Result<UpdateOutcome, FilesError> {
     let text = read_text(path, rel_path)?;
     if !text.contains(current) {
       return Ok(UpdateOutcome::Skipped);

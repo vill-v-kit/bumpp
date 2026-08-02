@@ -1,10 +1,16 @@
 //! 文件版本更新矩阵——对齐上游 bumpp v11 updateFile / updateManifestFile / updateTextFile。
+//! 生态插件矩阵按 src/files/ 结构镜像为子模块（ADR-0007）。
 
 use std::fs;
 
 use bumpp_core::files::update_files;
 use bumpp_core::progress::ProgressEvent;
 use tempfile::TempDir;
+
+mod cargo_toml;
+mod dispatch;
+mod js_manifest;
+mod text;
 
 fn write(dir: &TempDir, name: &str, content: &str) {
   fs::write(dir.path().join(name), content).unwrap();

@@ -1,5 +1,7 @@
 # version-files 插件底座 crate
 
+> **已被 [ADR-0007](./0007-version-files-merge-back.md) 取代（crate 边界部分）**：`crates/version-files` 已合并回 `crates/bumpp-core/src/files/`。本文的插件 trait、静态链顺序与"纯迁移、行为零变化"结论仍然有效。
+
 版本文件的解析与更新从 `bumpp-core` 的 `files` 模块拆出，独立为 `crates/version-files`：内置插件底座 trait 与静态插件链（JS 生态 JSON manifest、Cargo TOML、文本兜底），为将来 maven / gradle 等生态提供统一扩展点。`bumpp-core` 依赖它，行为完全不变。
 
 ## Decisions

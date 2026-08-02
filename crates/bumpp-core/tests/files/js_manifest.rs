@@ -3,8 +3,8 @@
 use std::fs;
 use std::path::Path;
 
+use bumpp_core::files::{dispatch_file as update_file, UpdateOutcome};
 use tempfile::TempDir;
-use version_files::{update_file, UpdateOutcome};
 
 fn bump(dir: &TempDir, name: &str) -> UpdateOutcome {
   update_file(Path::new(name), &dir.path().join(name), "1.0.0", "2.0.0").unwrap()

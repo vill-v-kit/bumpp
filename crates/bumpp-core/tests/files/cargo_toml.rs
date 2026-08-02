@@ -4,8 +4,8 @@
 use std::fs;
 use std::path::Path;
 
+use bumpp_core::files::{dispatch_file as update_file, FilesError as UpdateError, UpdateOutcome};
 use tempfile::TempDir;
-use version_files::{update_file, UpdateError, UpdateOutcome};
 
 const CURRENT: &str = "1.0.0";
 const NEW: &str = "2.0.0";

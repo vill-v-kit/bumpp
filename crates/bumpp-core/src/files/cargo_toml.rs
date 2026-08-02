@@ -12,13 +12,13 @@
 //!
 //! Cargo.lock 同步：从清单所在目录向上发现首个 `Cargo.lock`；找不到则仅更新清单
 //! （库 crate 可不提交 lock，不视为漂移）。找到则必须同步成功——条目缺失、版本
-//! 漂移、lock 解析失败均立即报错（`UpdateError::Lock`），且清单不先行改写。
+//! 漂移、lock 解析失败均立即报错（`FilesError::Lock`），且清单不先行改写。
 
 use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Formatted, Item, Table, Value};
 
-use crate::{read_text, write_text, UpdateError, UpdateOutcome, VersionFilePlugin};
+use super::{read_text, write_text, FilesError, UpdateOutcome, VersionFilePlugin};
 
 pub(crate) struct CargoTomlPlugin;
 
@@ -37,15 +37,13 @@ impl VersionFilePlugin for CargoTomlPlugin {
     rel_path: &Path,
     current: &str,
     new: &str,
-  ) -> Result<UpdateOutcome, UpdateError> {
+  ) -> Result<UpdateOutcome, FilesError> {
     let text = read_text(path, rel_path)?;
     // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
     // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
-    let mut doc = text
-      .parse::<DocumentMut>()
-      .map_err(|e| UpdateError::Parse {
-        message: format!("解析 {} 失败：{e}", rel_path.display()),
-      })?;
+    let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
+      message: format!("解析 {} 失败：{e}", rel_path.display()),
+    })?;
 
     let package = doc.get("package").and_then(Item::as_table_like);
     // `[package].version` 字面量 → 更新并按 crate name 定向同步 lock
@@ -59,7 +57,7 @@ impl VersionFilePlugin for CargoTomlPlugin {
       let name = package
         .and_then(|p| p.get("name"))
         .and_then(Item::as_str)
-        .ok_or_else(|| UpdateError::Lock {
+        .ok_or_else(|| FilesError::Lock {
           message: format!(
             "{} 的 [package] 缺少 name 字段，无法定向同步 Cargo.lock",
             rel_path.display()
@@ -137,7 +135,7 @@ fn apply(
   path: &Path,
   rel_path: &Path,
   new: &str,
-) -> Result<UpdateOutcome, UpdateError> {
+) -> Result<UpdateOutcome, FilesError> {
   let table = match location {
     VersionLocation::Package => doc.get_mut("package").and_then(Item::as_table_like_mut),
     VersionLocation::WorkspacePackage => doc
@@ -164,7 +162,7 @@ fn sync_lock_by_name(
   name: &str,
   current: &str,
   new: &str,
-) -> Result<LockSync, UpdateError> {
+) -> Result<LockSync, FilesError> {
   let mut name_seen = false;
   let (sync, synced) = sweep_lock(lock_path, current, new, |pkg| {
     let matched = pkg.get("name").and_then(Item::as_str) == Some(name);
@@ -172,7 +170,7 @@ fn sync_lock_by_name(
     matched
   })?;
   if synced == 0 {
-    return Err(UpdateError::Lock {
+    return Err(FilesError::Lock {
       message: match name_seen {
         true => format!(
           "{} 中 crate \"{name}\" 的版本与 Cargo.toml 当前版本 {current} 不一致（版本漂移）",
@@ -194,10 +192,10 @@ fn sync_lock_workspace_members(
   lock_path: &Path,
   current: &str,
   new: &str,
-) -> Result<LockSync, UpdateError> {
+) -> Result<LockSync, FilesError> {
   let (sync, swept) = sweep_lock(lock_path, current, new, |pkg| pkg.get("source").is_none())?;
   if swept == 0 {
-    return Err(UpdateError::Lock {
+    return Err(FilesError::Lock {
       message: format!(
         "{} 中未找到版本为 {current} 的 workspace 成员条目（版本漂移）",
         lock_path.display()
@@ -214,7 +212,7 @@ fn sweep_lock(
   current: &str,
   new: &str,
   mut is_target: impl FnMut(&Table) -> bool,
-) -> Result<(LockSync, usize), UpdateError> {
+) -> Result<(LockSync, usize), FilesError> {
   let mut doc = parse_lock(lock_path)?;
   let mut synced = 0;
   if let Some(packages) = doc
@@ -238,10 +236,10 @@ fn sweep_lock(
 }
 
 /// 清单已写盘后落 lock；返回主文件 + 附带 lock 的更新结果
-fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, UpdateError> {
+fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, FilesError> {
   match lock {
     Some(sync) => {
-      std::fs::write(&sync.path, &sync.content).map_err(|e| UpdateError::Lock {
+      std::fs::write(&sync.path, &sync.content).map_err(|e| FilesError::Lock {
         message: format!("写入 {} 失败：{e}", sync.path.display()),
       })?;
       Ok(UpdateOutcome::UpdatedWith(vec![sync.path]))
@@ -250,11 +248,11 @@ fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, UpdateError> {
   }
 }
 
-fn parse_lock(lock_path: &Path) -> Result<DocumentMut, UpdateError> {
-  let text = std::fs::read_to_string(lock_path).map_err(|e| UpdateError::Lock {
+fn parse_lock(lock_path: &Path) -> Result<DocumentMut, FilesError> {
+  let text = std::fs::read_to_string(lock_path).map_err(|e| FilesError::Lock {
     message: format!("读取 {} 失败：{e}", lock_path.display()),
   })?;
-  text.parse::<DocumentMut>().map_err(|e| UpdateError::Lock {
+  text.parse::<DocumentMut>().map_err(|e| FilesError::Lock {
     message: format!("解析 {} 失败：{e}", lock_path.display()),
   })
 }

@@ -8,7 +8,7 @@ use jsonc_parser::ast::{Object, ObjectProp, Value};
 use jsonc_parser::common::{Range, Ranged};
 use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
 
-use crate::{read_text, write_text, UpdateError, UpdateOutcome, VersionFilePlugin};
+use super::{read_text, write_text, FilesError, UpdateOutcome, VersionFilePlugin};
 
 /// 按 manifest 处理的 basename（上游 switch 列表，小写比较）
 const MANIFEST_BASENAMES: [&str; 8] = [
@@ -41,7 +41,7 @@ impl VersionFilePlugin for JsManifestPlugin {
     rel_path: &Path,
     _current: &str,
     new: &str,
-  ) -> Result<UpdateOutcome, UpdateError> {
+  ) -> Result<UpdateOutcome, FilesError> {
     let text = read_text(path, rel_path)?;
     // 上游 jsonc.parse 容错：解析失败的文件按 skip 处理，批次继续
     let Ok(ast) = parse_to_ast(&text, &CollectOptions::default(), &ParseOptions::default()) else {

@@ -1,13 +1,33 @@
-//! 文件版本更新编排：对齐上游 bumpp v11 `updateFiles`。
+//! 文件版本更新：编排（对齐上游 bumpp v11 `updateFiles`）+ 各生态插件（ADR-0007）。
 //!
-//! 各生态的解析与更新由 version-files crate 的插件链承担（ADR-0004）；
-//! 本模块只做编排：文件存在性、事件产出、路径归一。
+//! 生态插件按 `matches` 顺序静态分发，命中即走对应通道（每生态一文件）：
+//! `js_manifest`（JS 生态 JSON manifest）→ `cargo_toml`（Cargo 清单 + Cargo.lock
+//! 定向同步，ADR-0003）→ `text`（文本模板替换，兜底）。maven / gradle 等未来
+//! 生态以同 trait 插件加入本目录（Text 之前）。
+//!
+//! 编排层职责：文件存在性、事件产出、路径归一；插件附带同步的文件（如
+//! Cargo.toml 带动的 Cargo.lock）紧随主文件补发 FileUpdated——updated_files
+//! 是 git 提交暂存的依据。
 
 use std::error::Error;
 use std::fmt;
 use std::path::{Component, Path, PathBuf};
 
 use crate::progress::ProgressEvent;
+
+mod cargo_toml;
+mod js_manifest;
+mod text;
+
+/// 单次文件更新结果（FileUpdated / FileSkipped 事件来源）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UpdateOutcome {
+  Updated,
+  Skipped,
+  /// 主文件已更新，并附带同步更新了其他文件（绝对路径，已归一化）——
+  /// 如 Cargo.toml 带动的 Cargo.lock 定向同步（ADR-0003）
+  UpdatedWith(Vec<PathBuf>),
+}
 
 #[derive(Debug)]
 pub enum FilesError {
@@ -36,14 +56,52 @@ impl fmt::Display for FilesError {
 
 impl Error for FilesError {}
 
-impl From<version_files::UpdateError> for FilesError {
-  fn from(e: version_files::UpdateError) -> Self {
-    match e {
-      version_files::UpdateError::Io { message } => Self::Io { message },
-      version_files::UpdateError::Parse { message } => Self::Parse { message },
-      version_files::UpdateError::Lock { message } => Self::Lock { message },
-    }
-  }
+/// 版本文件插件：识别文件形态并保格式更新其中的版本号（无状态，静态链跨线程共享）
+pub(crate) trait VersionFilePlugin: Sync {
+  /// 按相对路径（实际比较 basename）判断是否走本通道
+  fn matches(&self, rel_path: &Path) -> bool;
+  /// 更新 `path`（绝对路径）指向的文件；`current` / `new` 为当前与新版本号；
+  /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案
+  fn update(
+    &self,
+    path: &Path,
+    rel_path: &Path,
+    current: &str,
+    new: &str,
+  ) -> Result<UpdateOutcome, FilesError>;
+}
+
+/// 内置有序链（JsManifest → CargoToml → Text 兜底）
+static PLUGINS: &[&dyn VersionFilePlugin] = &[
+  &js_manifest::JsManifestPlugin,
+  &cargo_toml::CargoTomlPlugin,
+  &text::TextPlugin,
+];
+
+/// 按 `rel_path` 分发到首个命中的插件，更新 `abs_path` 指向的文件
+pub fn dispatch_file(
+  rel_path: &Path,
+  abs_path: &Path,
+  current: &str,
+  new: &str,
+) -> Result<UpdateOutcome, FilesError> {
+  PLUGINS
+    .iter()
+    .find(|p| p.matches(rel_path))
+    .expect("TextPlugin 兜底必命中")
+    .update(abs_path, rel_path, current, new)
+}
+
+pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {
+  std::fs::read_to_string(path).map_err(|e| FilesError::Io {
+    message: format!("读取 {} 失败：{e}", rel_path.display()),
+  })
+}
+
+pub(crate) fn write_text(path: &Path, rel_path: &Path, content: &str) -> Result<(), FilesError> {
+  std::fs::write(path, content).map_err(|e| FilesError::Io {
+    message: format!("写入 {} 失败：{e}", rel_path.display()),
+  })
 }
 
 /// 一次 updateFiles 的结果。
@@ -84,7 +142,7 @@ impl UpdateFilesOutcome {
 }
 
 /// 上游 `updateFiles`：逐个文件更新版本号，按处理顺序产出 FileUpdated / FileSkipped 事件。
-/// 插件链附带同步的文件（Cargo.toml 带动的 Cargo.lock，ADR-0003）紧随主文件补发
+/// 插件附带同步的文件（Cargo.toml 带动的 Cargo.lock，ADR-0003）紧随主文件补发
 /// FileUpdated——updated_files 是 git 提交暂存的依据，附带文件必须入列
 pub fn update_files(
   files: &[String],
@@ -113,8 +171,8 @@ pub fn update_files(
   Ok(outcome)
 }
 
-/// 上游 `updateFile`：文件不存在 → skipped；存在则经 version-files 插件链分发更新
-/// （ADR-0004）。返回 (主文件是否更新, 插件附带同步的文件路径)
+/// 上游 `updateFile`：文件不存在 → skipped；存在则经插件链分发更新。
+/// 返回 (主文件是否更新, 插件附带同步的文件路径)
 fn update_file(
   rel_path: &str,
   cwd: &Path,
@@ -126,12 +184,11 @@ fn update_file(
   if !path.exists() {
     return Ok((false, vec![]));
   }
-  let outcome =
-    version_files::update_file(Path::new(rel_path), &path, current_version, new_version)?;
+  let outcome = dispatch_file(Path::new(rel_path), &path, current_version, new_version)?;
   Ok(match outcome {
-    version_files::UpdateOutcome::Updated => (true, vec![]),
-    version_files::UpdateOutcome::UpdatedWith(extra_paths) => (true, extra_paths),
-    version_files::UpdateOutcome::Skipped => (false, vec![]),
+    UpdateOutcome::Updated => (true, vec![]),
+    UpdateOutcome::UpdatedWith(extra_paths) => (true, extra_paths),
+    UpdateOutcome::Skipped => (false, vec![]),
   })
 }
 

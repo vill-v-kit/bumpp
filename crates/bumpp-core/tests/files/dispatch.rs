@@ -3,8 +3,8 @@
 use std::fs;
 use std::path::Path;
 
+use bumpp_core::files::{dispatch_file as update_file, UpdateOutcome};
 use tempfile::TempDir;
-use version_files::{update_file, UpdateOutcome};
 
 #[test]
 fn manifest_basename_wins_over_text_fallback() {
