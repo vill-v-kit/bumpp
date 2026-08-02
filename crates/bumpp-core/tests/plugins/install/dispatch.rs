@@ -3,7 +3,7 @@
 
 use std::fs;
 
-use bumpp_core::install::{cargo, resolve_ecosystems, Ecosystem};
+use bumpp_core::plugins::{install::cargo, resolve_ecosystems, Ecosystem};
 use tempfile::TempDir;
 
 fn resolve(files: &[&str]) -> Vec<Ecosystem> {

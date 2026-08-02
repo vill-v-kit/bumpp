@@ -5,11 +5,9 @@ use std::error::Error;
 use std::fmt;
 use std::path::Path;
 
-use jsonc_parser::ast::Value;
 use semver::Version;
 
 use crate::commits::get_recent_commits;
-use crate::jsonc::{is_manifest, parse};
 use crate::prompt::prompt_new_version;
 use crate::version::{next_version, next_versions, ReleaseType};
 
@@ -17,7 +15,7 @@ use crate::version::{next_version, next_versions, ReleaseType};
 pub struct BumpInfoOptions<'a> {
   /// release type 或版本号；None / "prompt" 走交互 prompt
   pub release: Option<&'a str>,
-  /// 扫描当前版本的候选文件（.json 后缀者在前，package.json/deno.json/deno.jsonc 恒追加）
+  /// 扫描当前版本的候选文件（按序先命中先赢；清单外追加链上 basename 探测表，ADR-0009）
   pub files: &'a [String],
   /// 显式指定当前版本（跳过文件扫描）
   pub current_version: Option<&'a str>,
@@ -139,7 +137,9 @@ fn parse_loose(raw: &str) -> Result<String, InfoError> {
     })
 }
 
-/// 上游 `getCurrentVersion`：options.currentVersion 优先，否则按候选文件顺序扫描
+/// 上游 `getCurrentVersion`：options.currentVersion 优先，否则按候选文件顺序
+/// 经插件底座链分发读取（ADR-0009）；候选清单之外追加探测表——链上清单
+/// basename 并集（node 8 项在 cargo.toml 前，链序即优先级）
 pub(crate) fn get_current_version(
   files: &[String],
   current_version: Option<&str>,
@@ -149,18 +149,15 @@ pub(crate) fn get_current_version(
     // 上游 Operation 构造器：显式 currentVersion 时 currentVersionSource 为 "user"
     return Ok((v.to_string(), "user".to_string()));
   }
-  let mut files_to_check: Vec<String> = files
-    .iter()
-    .filter(|f| f.ends_with(".json"))
-    .cloned()
-    .collect();
-  for default in ["package.json", "deno.json", "deno.jsonc"] {
-    if !files_to_check.iter().any(|f| f == default) {
-      files_to_check.push(default.to_string());
+  let mut files_to_check: Vec<String> = files.to_vec();
+  for probe in crate::plugins::default_file_patterns(false) {
+    if !files_to_check.iter().any(|f| *f == probe) {
+      files_to_check.push(probe);
     }
   }
   for file in &files_to_check {
-    if let Some(version) = read_version(cwd, file) {
+    let abs = crate::plugins::resolve(cwd, file);
+    if let Some(version) = crate::plugins::dispatch_read_version(Path::new(file), &abs) {
       return Ok((version, file.clone()));
     }
   }
@@ -170,20 +167,4 @@ pub(crate) fn get_current_version(
       files_to_check.join(", ")
     ),
   })
-}
-
-/// 上游 `readVersion`：JSONC 容错解析 + isManifest + semver.valid（严格）
-fn read_version(cwd: &Path, file: &str) -> Option<String> {
-  let text = std::fs::read_to_string(cwd.join(file)).ok()?;
-  let Value::Object(root) = parse(&text)? else {
-    return None;
-  };
-  if !is_manifest(&root) {
-    return None;
-  }
-  let version = crate::jsonc::get_prop(&root, "version")?
-    .value
-    .as_string_lit()?;
-  Version::parse(&version.value).ok()?;
-  Some(version.value.to_string())
 }

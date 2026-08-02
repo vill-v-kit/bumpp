@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::Path;
 
-use bumpp_core::files::{dispatch_file as update_file, UpdateOutcome};
+use bumpp_core::plugins::{dispatch_file as update_file, UpdateOutcome};
 use tempfile::TempDir;
 
 fn bump(dir: &TempDir, name: &str, current: &str, new: &str) -> UpdateOutcome {
@@ -67,4 +67,20 @@ fn prerelease_current_version_in_text() {
     UpdateOutcome::Updated
   );
   assert_eq!(read(&dir, "a.txt"), "now at 1.0.0-beta.2!\n");
+}
+
+// ---- read_version（ADR-0009：兜底通道无版本解析能力） ----
+
+#[test]
+fn text_channel_has_no_read_version() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, "VERSION.txt", "version 1.2.3\n");
+  assert_eq!(
+    bumpp_core::plugins::dispatch_read_version(
+      Path::new("VERSION.txt"),
+      &dir.path().join("VERSION.txt"),
+    ),
+    None,
+    "Text 兜底通道不承载版本解析（ADR-0009）"
+  );
 }

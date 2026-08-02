@@ -50,7 +50,7 @@ pub fn update_files(
   new_version: String,
 ) -> napi::Result<UpdateFilesOutcome> {
   let cwd = resolve_cwd(cwd)?;
-  bumpp_core::files::update_files(&files, &cwd, &current_version, &new_version)
+  bumpp_core::plugins::update_files(&files, &cwd, &current_version, &new_version)
     .map(|o| UpdateFilesOutcome {
       updated_files: o.updated_files().iter().map(|s| s.to_string()).collect(),
       skipped_files: o.skipped_files().iter().map(|s| s.to_string()).collect(),
@@ -62,7 +62,7 @@ pub fn update_files(
 /// CLI 的 `-r` 以此展开整树收集，未来生态在 core 链上落插件即自动纳入。
 #[napi]
 pub fn version_file_manifest_globs() -> Vec<String> {
-  bumpp_core::files::recursive_manifest_globs()
+  bumpp_core::plugins::recursive_manifest_globs()
 }
 
 #[napi(object)]
@@ -104,12 +104,6 @@ pub struct GitTagOutcome {
 #[napi(object)]
 pub struct GitPushOutcome {
   pub event: String,
-}
-
-#[napi(object)]
-pub struct NpmScriptOutcome {
-  pub event: String,
-  pub script: String,
 }
 
 /// git commit（shell out 到 git 二进制），对齐上游 `gitCommit`。
@@ -154,24 +148,6 @@ pub fn git_push(cwd: Option<String>, with_tags: bool) -> napi::Result<GitPushOut
   bumpp_core::git::git_push(&resolve_cwd(cwd)?, with_tags)
     .map(|e| GitPushOutcome {
       event: e.as_str().to_string(),
-    })
-    .map_err(to_napi_err)
-}
-
-/// 执行 package.json 中的 npm script（ignoreScripts 时不执行），对齐上游 `runNpmScript`。
-/// 返回 null 表示未执行；脚本非零退出不传播（上游 parity）。
-#[napi]
-pub fn run_npm_script(
-  cwd: Option<String>,
-  script: String,
-  ignore_scripts: bool,
-) -> napi::Result<Option<NpmScriptOutcome>> {
-  bumpp_core::scripts::run_npm_script(&resolve_cwd(cwd)?, &script, ignore_scripts)
-    .map(|r| {
-      r.map(|(e, s)| NpmScriptOutcome {
-        event: e.as_str().to_string(),
-        script: s,
-      })
     })
     .map_err(to_napi_err)
 }
@@ -274,6 +250,15 @@ pub fn version_bump_info(
   napi::bindgen_prelude::AsyncTask::new(VersionBumpInfoTask { arg })
 }
 
+/// 配置声明的脚本命令（ADR-0011）：三时序槽位各自的 shell 命令串
+#[napi(object)]
+#[derive(Default, Clone)]
+pub struct Scripts {
+  pub preversion: Option<String>,
+  pub version: Option<String>,
+  pub postversion: Option<String>,
+}
+
 #[napi(object)]
 #[derive(Default)]
 pub struct VersionBumpOptions {
@@ -292,6 +277,7 @@ pub struct VersionBumpOptions {
   pub ignore_scripts: Option<bool>,
   pub install: Option<bool>,
   pub execute: Option<String>,
+  pub scripts: Option<Scripts>,
   pub preid: Option<String>,
   #[napi(js_name = "currentVersion")]
   pub current_version: Option<String>,
@@ -329,6 +315,7 @@ pub struct BumpTaskData {
   ignore_scripts: bool,
   install: bool,
   execute: Option<String>,
+  scripts: Option<Scripts>,
   preid: Option<String>,
   current_version: Option<String>,
   recursive: bool,
@@ -354,6 +341,7 @@ impl From<VersionBumpOptions> for BumpTaskData {
       ignore_scripts: o.ignore_scripts.unwrap_or(false),
       install: o.install.unwrap_or(false),
       execute: o.execute,
+      scripts: o.scripts,
       preid: o.preid,
       current_version: o.current_version,
       recursive: o.recursive.unwrap_or(false),
@@ -389,6 +377,11 @@ impl napi::Task for VersionBumpTask {
       ignore_scripts: options.ignore_scripts,
       install: options.install,
       execute: options.execute.as_deref(),
+      scripts: options.scripts.clone().map(|s| bumpp_core::bump::Scripts {
+        preversion: s.preversion,
+        version: s.version,
+        postversion: s.postversion,
+      }),
       preid: options.preid.as_deref(),
       current_version: options.current_version.as_deref(),
     };
@@ -417,7 +410,7 @@ impl napi::Task for VersionBumpTask {
   }
 }
 
-/// 完整 bump 流程：文件更新 + npm scripts + git commit/tag/push。
+/// 完整 bump 流程：文件更新 + 配置声明的脚本（ADR-0011）+ git commit/tag/push。
 /// 进度由 Rust 内置打印（ADR-0002），不再回传 JS。对齐上游 `versionBump`。
 #[napi]
 pub fn version_bump(

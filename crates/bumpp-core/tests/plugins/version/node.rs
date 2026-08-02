@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::Path;
 
-use bumpp_core::files::{dispatch_file as update_file, UpdateOutcome};
+use bumpp_core::plugins::{dispatch_file as update_file, UpdateOutcome};
 use tempfile::TempDir;
 
 fn bump(dir: &TempDir, name: &str) -> UpdateOutcome {
@@ -125,4 +125,68 @@ fn manifest_basename_matching_is_case_insensitive() {
     read(&dir, "PACKAGE.JSON"),
     "{\n  \"version\": \"2.0.0\"\n}\n"
   );
+}
+
+// ---- read_version（ADR-0009：版本解析生态化，经链分发公开面） ----
+
+use bumpp_core::plugins::dispatch_read_version;
+
+fn read_version_of(dir: &TempDir, name: &str) -> Option<String> {
+  dispatch_read_version(Path::new(name), &dir.path().join(name))
+}
+
+#[test]
+fn read_version_extracts_semver_from_manifest() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, "package.json", "{\n  \"version\": \"1.2.3\"\n}\n");
+  assert_eq!(read_version_of(&dir, "package.json"), Some("1.2.3".into()));
+}
+
+#[test]
+fn read_version_tolerates_jsonc_comments() {
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    "deno.jsonc",
+    "{\n  // c\n  \"version\": \"2.0.0-beta.1\"\n}\n",
+  );
+  assert_eq!(
+    read_version_of(&dir, "deno.jsonc"),
+    Some("2.0.0-beta.1".into())
+  );
+}
+
+#[test]
+fn read_version_rejects_non_semver_version() {
+  let dir = TempDir::new().unwrap();
+  // 上游 readVersion 的 semver.valid 门（编排层统一承担）：非法版本不视为版本来源
+  write(&dir, "package.json", "{\n  \"version\": \"1.0\"\n}\n");
+  assert_eq!(read_version_of(&dir, "package.json"), None);
+}
+
+#[test]
+fn read_version_none_for_missing_null_or_non_string_version() {
+  for content in [
+    "{\n  \"name\": \"demo\"\n}\n",
+    "{\n  \"version\": null\n}\n",
+    "{\n  \"version\": 42\n}\n",
+  ] {
+    let dir = TempDir::new().unwrap();
+    write(&dir, "package.json", content);
+    assert_eq!(read_version_of(&dir, "package.json"), None, "{content}");
+  }
+}
+
+#[test]
+fn read_version_none_for_non_manifest_or_broken_json() {
+  let dir = TempDir::new().unwrap();
+  // 非 manifest（version 为数字外的非法形态组合）与坏 JSON 均返回 None
+  write(&dir, "jsr.json", "{ not json");
+  assert_eq!(read_version_of(&dir, "jsr.json"), None);
+}
+
+#[test]
+fn read_version_none_for_missing_file() {
+  let dir = TempDir::new().unwrap();
+  assert_eq!(read_version_of(&dir, "package.json"), None);
 }

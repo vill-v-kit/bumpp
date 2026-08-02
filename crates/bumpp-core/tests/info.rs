@@ -219,3 +219,95 @@ fn error_display_is_readable() {
   };
   assert!(err.to_string().contains("Unable to determine"));
 }
+
+// ---- 版本来源生态化（ADR-0009）：get_current_version 经插件底座链分发 ----
+
+#[test]
+fn current_version_scanned_from_cargo_toml_probe() {
+  // 纯 Cargo 仓库（无 package.json）：探测表含 cargo.toml，版本来源生态化
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  git(&path, &["init", "-b", "main"]);
+  git(&path, &["config", "user.email", "test@example.com"]);
+  git(&path, &["config", "user.name", "Test"]);
+  fs::write(
+    path.join("Cargo.toml"),
+    "[package]\nname = \"demo\"\nversion = \"4.5.6\"\n",
+  )
+  .unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "chore: init"]);
+  let state = version_bump_info(&opts(Some("patch")), &path).unwrap();
+  assert_eq!(state.current_version, "4.5.6");
+  assert_eq!(state.current_version_source, "Cargo.toml");
+  assert_eq!(state.new_version, "4.5.7");
+}
+
+#[test]
+fn current_version_from_workspace_package_literal() {
+  // 虚拟 workspace 根：仅 [workspace.package].version 字面量可作版本来源
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  fs::write(
+    path.join("Cargo.toml"),
+    "[workspace]\nmembers = []\n\n[workspace.package]\nversion = \"7.8.9\"\n",
+  )
+  .unwrap();
+  let state = version_bump_info(&opts(Some("patch")), &path).unwrap();
+  assert_eq!(state.current_version, "7.8.9");
+  assert_eq!(state.current_version_source, "Cargo.toml");
+}
+
+#[test]
+fn files_order_determines_version_source() {
+  // ADR-0009 已记录后果：按 files 顺序先命中先赢——version_bump 的 normalize
+  // 后清单按字典序，Cargo.toml 排在 package.json 前
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir); // package.json 1.2.3
+  fs::write(
+    path.join("Cargo.toml"),
+    "[package]\nname = \"demo\"\nversion = \"9.9.9\"\n",
+  )
+  .unwrap();
+  let opts = BumpInfoOptions {
+    release: Some("patch"),
+    files: &["Cargo.toml".to_string(), "package.json".to_string()],
+    current_version: None,
+    preid: None,
+  };
+  let state = version_bump_info(&opts, &path).unwrap();
+  assert_eq!(state.current_version, "9.9.9");
+  assert_eq!(state.current_version_source, "Cargo.toml");
+}
+
+#[test]
+fn probe_list_prefers_node_manifests_in_chain_order() {
+  // 空 files → 探测表 = 链序 basename 并集（node 8 项在 cargo.toml 前）
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir); // package.json 1.2.3
+  fs::write(
+    path.join("Cargo.toml"),
+    "[package]\nname = \"demo\"\nversion = \"9.9.9\"\n",
+  )
+  .unwrap();
+  let state = version_bump_info(&opts(Some("patch")), &path).unwrap();
+  assert_eq!(state.current_version, "1.2.3");
+  assert_eq!(state.current_version_source, "package.json");
+}
+
+#[test]
+fn non_manifest_files_in_list_are_not_version_sources() {
+  // Text 通道文件（README 等）不提供版本；跳过继续探测
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir); // package.json 1.2.3
+  fs::write(path.join("VERSION.txt"), "version 8.8.8\n").unwrap();
+  let opts = BumpInfoOptions {
+    release: Some("patch"),
+    files: &["VERSION.txt".to_string()],
+    current_version: None,
+    preid: None,
+  };
+  let state = version_bump_info(&opts, &path).unwrap();
+  assert_eq!(state.current_version, "1.2.3");
+  assert_eq!(state.current_version_source, "package.json");
+}

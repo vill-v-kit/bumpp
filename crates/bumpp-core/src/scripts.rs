@@ -1,70 +1,25 @@
-//! npm scripts 执行：对齐上游 bumpp v11 `runNpmScript`。
-//!
-//! 上游只有 preversion / version / postversion 三个脚本位，由 versionBump 流程在
-//! 对应步骤前后调用（编排见 COL-15）；本模块提供单个脚本的执行原语。
+//! 通用脚本执行（ADR-0011）：`bump.config.json` `scripts` 声明的 shell 命令，
+//! 由 versionBump 流程在 preversion / version / postversion 三个时序槽位调用。
+//! 本模块提供单条命令的执行原语；槽位编排见 bump.rs。
 
 use std::path::Path;
 
-use jsonc_parser::ast::Value;
+use crate::exec::{run, ExecError};
 
-use crate::exec::{run_unchecked, ExecError};
-use crate::jsonc::{get_prop, is_manifest, parse};
-use crate::progress::ProgressEvent;
-
-/// 上游 `runNpmScript`：package.json 中存在对应 script 时执行 `npm run <script> --silent`。
-///
-/// - `ignore_scripts`、非 manifest、脚本不存在或值为 falsy → 返回 `Ok(None)`；
-/// - 上游未开 throwOnError：脚本非零退出**不传播**，执行过即产出事件；
-/// - package.json 读取失败（如缺失）→ 错误传播（上游 ENOENT parity）。
-pub fn run_npm_script(
-  cwd: &Path,
-  script: &str,
-  ignore_scripts: bool,
-) -> Result<Option<(ProgressEvent, String)>, ExecError> {
-  if ignore_scripts {
-    return Ok(None);
-  }
-  let manifest_path = cwd.join("package.json");
-  let text = std::fs::read_to_string(&manifest_path).map_err(|e| ExecError::Io {
-    message: format!("读取 {} 失败：{e}", manifest_path.display()),
-  })?;
-  let Some(Value::Object(root)) = parse(&text) else {
-    return Ok(None);
-  };
-  // 上游 isManifest && hasScript 双门：manifest 不合法或脚本值为 falsy 均不执行
-  let should_run = is_manifest(&root)
-    && get_prop(&root, "scripts")
-      .and_then(|p| p.value.as_object())
-      .and_then(|scripts| get_prop(scripts, script))
-      .is_some_and(|p| json_truthy(&p.value));
-  if !should_run {
-    return Ok(None);
-  }
-  run_unchecked(
-    NPM_BIN,
-    &[
-      "run".to_string(),
-      script.to_string(),
-      "--silent".to_string(),
-    ],
-    cwd,
-  )?;
-  Ok(Some((ProgressEvent::NpmScript, script.to_string())))
-}
-
-/// npm 可执行名：Windows 下 Rust 的 Command 不做 PATHEXT 解析，必须显式 `npm.cmd`
-#[cfg(windows)]
-const NPM_BIN: &str = "npm.cmd";
-#[cfg(not(windows))]
-const NPM_BIN: &str = "npm";
-
-/// 上游 `Boolean(scripts[script])` 的 JS 真值语义
-fn json_truthy(value: &Value) -> bool {
-  match value {
-    Value::NullKeyword(_) => false,
-    Value::BooleanLit(b) => b.value,
-    Value::StringLit(s) => !s.value.is_empty(),
-    Value::NumberLit(n) => n.value.parse::<f64>().is_ok_and(|v| v != 0.0),
-    Value::Object(_) | Value::Array(_) => true,
-  }
+/// 经系统 shell 执行命令串（Unix `sh -c`；Windows `cmd /d /s /c`——`/d /s`
+/// 对齐 npm 默认：跳过注册表 AutoRun 钩子，避免用户机器环境污染发版）。
+/// 非零退出即报错传播——配置声明的钩子失败时发版不得静默继续
+/// （ADR-0011；对齐 ADR-0003 失败即报错精神，有意偏离上游 npm scripts
+/// 未开 throwOnError 的不传播 parity）
+pub fn run_script(cwd: &Path, command: &str) -> Result<(), ExecError> {
+  #[cfg(windows)]
+  let (shell, flags) = ("cmd", vec!["/d", "/s", "/c"]);
+  #[cfg(not(windows))]
+  let (shell, flags) = ("sh", vec!["-c"]);
+  let args: Vec<String> = flags
+    .into_iter()
+    .map(str::to_string)
+    .chain(std::iter::once(command.to_string()))
+    .collect();
+  run(shell, &args, cwd).map(|_| ())
 }

@@ -1,4 +1,4 @@
-//! git 操作与 npm scripts——在真实临时 git 仓库中验证，对齐上游 bumpp v11 行为。
+//! git 操作（commit / tag / push）——在真实临时 git 仓库中验证，对齐上游 bumpp v11 行为。
 
 use std::fs;
 use std::path::Path;

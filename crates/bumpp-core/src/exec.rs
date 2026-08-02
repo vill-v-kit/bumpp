@@ -44,13 +44,6 @@ pub fn run(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecErr
   }
 }
 
-/// 执行命令但不因非零退出报错（上游 npm scripts 未开 throwOnError 的 parity）
-pub fn run_unchecked(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError> {
-  let output = spawn(program, args, cwd)?;
-  replay(&output);
-  Ok(output)
-}
-
 fn spawn(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError> {
   Command::new(program)
     .args(args)

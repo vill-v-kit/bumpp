@@ -34,7 +34,8 @@ export const resolveConfig = async (rawConfig: Config): Promise<ResolveConfig> =
 
   const bumpp = await loadBumpConfig({
     cwd,
-    files: ['package.json', 'package-lock.json'],
+    // ADR-0009：files 不再硬编码——空清单时 core 以插件底座链上
+    // manifest basenames 的根级并集为默认（生态感知的单一事实源）
     commit: true,
     tag: true,
     push: true,

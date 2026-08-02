@@ -18,10 +18,7 @@ const initRepo = (): string => {
   git(dir, 'config user.name Test')
   git(dir, 'config commit.gpgsign false')
   git(dir, 'config tag.gpgsign false')
-  writeFileSync(
-    join(dir, 'package.json'),
-    '{\n  "version": "1.0.0",\n  "scripts": {\n    "preversion": "node -e \\"require(\'fs\').writeFileSync(\'pre.txt\',\'\')\\"",\n    "postversion": "node -e \\"require(\'fs\').writeFileSync(\'post.txt\',\'\')\\""\n  }\n}\n',
-  )
+  writeFileSync(join(dir, 'package.json'), '{\n  "version": "1.0.0"\n}\n')
   writeFileSync(join(dir, 'VERSION.txt'), 'version 1.0.0\n')
   git(dir, 'add .')
   git(dir, 'commit -m "chore: init"')
@@ -33,7 +30,7 @@ afterEach(() => {
   dirs = []
 })
 
-it('全链路：文件更新 + scripts 时序 + commit/tag（进度内置打印，JS 无回调）', async () => {
+it('全链路：文件更新 + config scripts 时序 + commit/tag（进度内置打印，JS 无回调）', async () => {
   const dir = initRepo()
   let ticks = 0
   const probe = setInterval(() => ticks++, 5)
@@ -45,6 +42,11 @@ it('全链路：文件更新 + scripts 时序 + commit/tag（进度内置打印�
     tag: true,
     push: false,
     confirm: false,
+    // ADR-0011：脚本经配置声明（npm scripts 通道已移除）
+    scripts: {
+      preversion: 'node -e "require(\'fs\').writeFileSync(\'pre.txt\',\'\')"',
+      postversion: 'node -e "require(\'fs\').writeFileSync(\'post.txt\',\'\')"',
+    },
   })
   clearInterval(probe)
 

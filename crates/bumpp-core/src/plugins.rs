@@ -1,13 +1,17 @@
-//! 文件版本更新：编排（对齐上游 bumpp v11 `updateFiles`）+ 各生态插件（ADR-0007）。
+//! 插件底座（ADR-0010）：生态知识（清单识别、版本更新、install 适配、recursive
+//! 收集）的单一事实源。静态链按 `matches` 首命中分发（ADR-0007）：
+//! node（JS manifest）→ cargo（Cargo 清单 + Cargo.lock 定向同步，ADR-0003）→
+//! text（文本模板替换，兜底，仅有版本更新能力）。
 //!
-//! 生态插件按 `matches` 顺序静态分发，命中即走对应通道（每生态一文件）：
-//! `js_manifest`（JS 生态 JSON manifest）→ `cargo_toml`（Cargo 清单 + Cargo.lock
-//! 定向同步，ADR-0003）→ `text`（文本模板替换，兜底）。maven / gradle 等未来
-//! 生态以同 trait 插件加入本目录（Text 之前）。
+//! 布局（Rust 一致性限制：同 trait 同类型的 impl 块不可拆分，trait 实现只能与
+//! 类型同文件）：根部每文件一个插件类型，方法一行委托到能力子目录的纯函数——
+//! - `version/`   版本解析与版本更新
+//! - `install/`   生态 install 适配（ADR-0008）
+//! - `recursive/` 清单 basename 常量（recursive 收集与默认清单的模式来源）
 //!
-//! 编排层职责：文件存在性、事件产出、路径归一；插件附带同步的文件（如
-//! Cargo.toml 带动的 Cargo.lock）紧随主文件补发 FileUpdated——updated_files
-//! 是 git 提交暂存的依据。
+//! 编排层职责：文件存在性、事件产出、路径归一、install 链走查。
+//! 插件附带同步的文件（如 Cargo.toml 带动的 Cargo.lock）紧随主文件补发
+//! FileUpdated——updated_files 是 git 提交暂存的依据。
 
 use std::error::Error;
 use std::fmt;
@@ -15,11 +19,14 @@ use std::path::{Component, Path, PathBuf};
 
 use crate::progress::ProgressEvent;
 
-mod cargo_toml;
-mod js_manifest;
+pub mod install;
+mod cargo;
+mod node;
+pub(crate) mod recursive;
 mod text;
+pub(crate) mod version;
 
-/// 生态：一套工具链及其版本文件与安装机制的集合（ADR-0008；files/ 与 install/ 共享）
+/// 生态：一套工具链及其版本文件与安装机制的集合（ADR-0008）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ecosystem {
   Node,
@@ -63,7 +70,20 @@ impl fmt::Display for FilesError {
 
 impl Error for FilesError {}
 
-/// 版本文件插件：识别文件形态并保格式更新其中的版本号（无状态，静态链跨线程共享）
+#[derive(Debug)]
+pub struct InstallError {
+  message: String,
+}
+
+impl fmt::Display for InstallError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(&self.message)
+  }
+}
+
+impl Error for InstallError {}
+
+/// 版本文件插件：识别文件形态并承载该生态的各项能力（无状态，静态链跨线程共享）
 pub(crate) trait VersionFilePlugin: Sync {
   /// 按相对路径（实际比较 basename）判断是否走本通道
   fn matches(&self, rel_path: &Path) -> bool;
@@ -72,6 +92,9 @@ pub(crate) trait VersionFilePlugin: Sync {
   /// 本生态的清单 basename 集合（recursive 整树收集的模式来源，ADR-0003 opt-in；
   /// 兜底通道无清单概念，返回空）
   fn manifest_basenames(&self) -> &'static [&'static str];
+  /// 从 `path`（绝对路径）提取版本字面量（ADR-0009）；非本生态形态、缺字段、
+  /// 读取失败均返回 None——semver 校验由编排层统一承担（上游 semver.valid 门）
+  fn read_version(&self, path: &Path) -> Option<String>;
   /// 更新 `path`（绝对路径）指向的文件；`current` / `new` 为当前与新版本号；
   /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案
   fn update(
@@ -81,12 +104,14 @@ pub(crate) trait VersionFilePlugin: Sync {
     current: &str,
     new: &str,
   ) -> Result<UpdateOutcome, FilesError>;
+  /// 本生态的 install 适配（ADR-0008）；无适配能力的通道（Text）返回 None
+  fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>>;
 }
 
-/// 内置有序链（JsManifest → CargoToml → Text 兜底）
+/// 内置有序链（Node → Cargo → Text 兜底）
 static PLUGINS: &[&dyn VersionFilePlugin] = &[
-  &js_manifest::JsManifestPlugin,
-  &cargo_toml::CargoTomlPlugin,
+  &node::NodePlugin,
+  &cargo::CargoPlugin,
   &text::TextPlugin,
 ];
 
@@ -94,11 +119,35 @@ static PLUGINS: &[&dyn VersionFilePlugin] = &[
 /// 链上各插件声明的 manifest basenames 聚合为 `**/` glob 模式——生态清单知识的
 /// 单一事实源，CLI 经 napi 取用，展开与 IGNORED_DIRS 过滤由 normalize_files 承担
 pub fn recursive_manifest_globs() -> Vec<String> {
+  default_file_patterns(true)
+}
+
+/// files 为空时的默认文件清单（ADR-0009）：链上 manifest basenames 的根级并集
+/// （glob 展开使不存在的文件自然消失，无需运行时生态探测）；recursive 时升级为
+/// `**/` 整树收集模式（与 recursive_manifest_globs 同一张表）
+pub fn default_file_patterns(recursive: bool) -> Vec<String> {
   PLUGINS
     .iter()
     .flat_map(|p| p.manifest_basenames())
-    .map(|b| format!("**/{b}"))
+    .map(|b| {
+      if recursive {
+        format!("**/{b}")
+      } else {
+        b.to_string()
+      }
+    })
     .collect()
+}
+
+/// 链分发版本读取（ADR-0009）：首个命中插件提取版本字面量，
+/// semver 校验在编排层统一承担（上游 readVersion 的 semver.valid 门）
+pub fn dispatch_read_version(rel_path: &Path, abs_path: &Path) -> Option<String> {
+  let raw = PLUGINS
+    .iter()
+    .find(|p| p.matches(rel_path))?
+    .read_version(abs_path)?;
+  semver::Version::parse(&raw).ok()?;
+  Some(raw)
 }
 
 /// 按 `rel_path` 分发到首个命中的插件，更新 `abs_path` 指向的文件
@@ -115,12 +164,40 @@ pub fn dispatch_file(
     .update(abs_path, rel_path, current, new)
 }
 
-/// 文件路径所属生态（经链上首个命中插件判定；仅命中兜底通道时为 None）
-pub(crate) fn ecosystem_of(rel_path: &Path) -> Option<Ecosystem> {
-  PLUGINS
+/// 按生态适配触发 install（ADR-0008 的链走查实现）：逐个执行待触发插件的适配
+pub fn run_installs(cwd: &Path, updated_files: &[String]) -> Result<(), InstallError> {
+  for plugin in installs_to_run(updated_files) {
+    if let Some(result) = plugin.install(cwd) {
+      result?;
+    }
+  }
+  Ok(())
+}
+
+/// 更新文件清单 → 待触发生态集合（链序；零生态命中回退 Node，ADR-0008）
+pub fn resolve_ecosystems(updated_files: &[String]) -> Vec<Ecosystem> {
+  installs_to_run(updated_files)
     .iter()
-    .find(|p| p.matches(rel_path))
-    .and_then(|p| p.ecosystem())
+    .filter_map(|p| p.ecosystem())
+    .collect()
+}
+
+/// 待触发的插件集合：每个更新文件的首个命中插件按链序去重（Text 命中不触发
+/// 任何适配）；零生态命中（仅 Text 通道或无更新文件）回退 Node——与上游
+/// `--install`（无条件 node PM install）行为一致（ADR-0008）
+fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlugin> {
+  let mut indices: Vec<usize> = updated_files
+    .iter()
+    .filter_map(|f| PLUGINS.iter().position(|p| p.matches(Path::new(f))))
+    .collect();
+  indices.sort_unstable();
+  indices.dedup();
+  let mut plugins: Vec<&'static dyn VersionFilePlugin> =
+    indices.into_iter().map(|i| PLUGINS[i]).collect();
+  if plugins.iter().all(|p| p.ecosystem().is_none()) {
+    plugins.push(&node::NodePlugin);
+  }
+  plugins
 }
 
 pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {
@@ -224,7 +301,7 @@ fn update_file(
 }
 
 /// Node `path.resolve(cwd, rel)` 的语义化归一：消除 `.` 与 `..` 段（不解符号链接）
-fn resolve(cwd: &Path, rel: &str) -> PathBuf {
+pub(crate) fn resolve(cwd: &Path, rel: &str) -> PathBuf {
   let mut out = cwd.to_path_buf();
   for component in Path::new(rel).components() {
     match component {

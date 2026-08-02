@@ -1,9 +1,9 @@
-//! 静态链分发：按 matches 顺序命中通道，TextPlugin 兜底（ADR-0007）。
+//! 静态链分发：按 matches 顺序命中通道，TextPlugin 兜底（ADR-0007/0010）。
 
 use std::fs;
 use std::path::Path;
 
-use bumpp_core::files::{dispatch_file as update_file, UpdateOutcome};
+use bumpp_core::plugins::{dispatch_file as update_file, UpdateOutcome};
 use tempfile::TempDir;
 
 #[test]
@@ -130,25 +130,5 @@ fn cargo_toml_basename_matching_is_case_insensitive() {
   assert_eq!(
     fs::read_to_string(dir.path().join("CARGO.TOML")).unwrap(),
     "[package]\nname = \"demo\"\nversion = \"2.0.0\"\n"
-  );
-}
-
-#[test]
-fn recursive_manifest_globs_cover_all_ecosystems() {
-  // 链上模式表（ADR-0003 opt-in）：node 8 种 manifest + cargo.toml；
-  // Text 兜底无清单概念不贡献
-  assert_eq!(
-    bumpp_core::files::recursive_manifest_globs(),
-    vec![
-      "**/package.json",
-      "**/package-lock.json",
-      "**/bower.json",
-      "**/component.json",
-      "**/jsr.json",
-      "**/jsr.jsonc",
-      "**/deno.json",
-      "**/deno.jsonc",
-      "**/cargo.toml",
-    ]
   );
 }

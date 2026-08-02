@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
-use bumpp_core::bump::{version_bump, BumpOptions, CommitInput, Progress, TagInput};
+use bumpp_core::bump::{version_bump, BumpOptions, CommitInput, Progress, Scripts, TagInput};
 use bumpp_core::progress::ProgressEvent;
 use tempfile::TempDir;
 
@@ -55,6 +55,7 @@ fn base_options<'a>() -> BumpOptions<'a> {
     ignore_scripts: false,
     install: false,
     execute: None,
+    scripts: None,
     preid: None,
     current_version: None,
   }
@@ -78,18 +79,20 @@ fn collect_events() -> (EventLog, impl FnMut(&Progress)) {
 fn full_pipeline_files_commit_tag_and_events() {
   let dir = TempDir::new().unwrap();
   let path = init_repo(&dir);
-  // 两个 npm script 位 + 一个文本文件
-  fs::write(
-    path.join("package.json"),
-    "{\n  \"version\": \"1.0.0\",\n  \"scripts\": {\n    \"preversion\": \"node -e \\\"require('fs').writeFileSync('pre.txt','')\\\"\",\n    \"postversion\": \"node -e \\\"require('fs').writeFileSync('post.txt','')\\\"\"\n  }\n}\n",
-  )
-  .unwrap();
+  // 两个配置声明的脚本槽位（ADR-0011）+ 一个文本文件
   fs::write(path.join("VERSION.txt"), "version 1.0.0\n").unwrap();
   git(&path, &["add", "."]); // 提交内文件须已跟踪（上游 pathspec 行为一致）
   git(&path, &["commit", "-m", "add files"]);
   let (events, mut cb) = collect_events();
+  let pre_cmd = "node -e \"require('fs').writeFileSync('pre.txt','')\"";
+  let post_cmd = "node -e \"require('fs').writeFileSync('post.txt','')\"";
   let opts = BumpOptions {
     files: vec!["package.json".to_string(), "VERSION.txt".to_string()],
+    scripts: Some(Scripts {
+      preversion: Some(pre_cmd.to_string()),
+      postversion: Some(post_cmd.to_string()),
+      ..Default::default()
+    }),
     ..base_options()
   };
   let results = version_bump(&opts, &path, &mut cb).unwrap();
@@ -124,16 +127,17 @@ fn full_pipeline_files_commit_tag_and_events() {
   assert_eq!(
     kinds,
     vec![
-      ProgressEvent::NpmScript, // preversion
+      ProgressEvent::Script, // preversion
       ProgressEvent::FileUpdated,
       ProgressEvent::FileUpdated,
       ProgressEvent::GitCommit,
       ProgressEvent::GitTag,
-      ProgressEvent::NpmScript, // postversion
+      ProgressEvent::Script, // postversion
     ]
   );
-  assert_eq!(events[0].1.as_deref(), Some("preversion"));
-  assert_eq!(events[5].1.as_deref(), Some("postversion"));
+  // 脚本事件负载为命令本体（ADR-0011）
+  assert_eq!(events[0].1.as_deref(), Some(pre_cmd));
+  assert_eq!(events[5].1.as_deref(), Some(post_cmd));
 }
 
 #[test]
@@ -233,15 +237,14 @@ fn commit_false_skips_commit_but_tag_implies_commit() {
 fn ignore_scripts_skips_all_script_steps() {
   let dir = TempDir::new().unwrap();
   let path = init_repo(&dir);
-  fs::write(
-    path.join("package.json"),
-    "{\n  \"version\": \"1.0.0\",\n  \"scripts\": { \"preversion\": \"exit 1\" }\n}\n",
-  )
-  .unwrap();
   let (events, mut cb) = collect_events();
   let opts = BumpOptions {
     ignore_scripts: true,
     files: vec!["package.json".to_string()],
+    scripts: Some(Scripts {
+      preversion: Some("exit 1".to_string()),
+      ..Default::default()
+    }),
     ..base_options()
   };
   version_bump(&opts, &path, &mut cb).unwrap();
@@ -249,7 +252,29 @@ fn ignore_scripts_skips_all_script_steps() {
     .lock()
     .unwrap()
     .iter()
-    .all(|(e, _)| *e != ProgressEvent::NpmScript));
+    .all(|(e, _)| *e != ProgressEvent::Script));
+}
+
+#[test]
+fn failing_script_aborts_bump() {
+  // ADR-0011：配置声明的脚本非零退出即报错传播，发版中止
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  let (_events, mut cb) = collect_events();
+  let opts = BumpOptions {
+    files: vec!["package.json".to_string()],
+    scripts: Some(Scripts {
+      preversion: Some("exit 1".to_string()),
+      ..Default::default()
+    }),
+    ..base_options()
+  };
+  let err = version_bump(&opts, &path, &mut cb).unwrap_err();
+  assert!(err.to_string().contains("exit 1"), "错误应含命令：{err}");
+  // preversion 在 updateFiles 之前：文件未被改写
+  assert!(fs::read_to_string(path.join("package.json"))
+    .unwrap()
+    .contains("1.0.0"));
 }
 
 #[test]
@@ -340,7 +365,7 @@ fn recursive_default_files_expand_packages_manifests() {
   git(&path, &["init", "-b", "main"]);
   git(&path, &["config", "user.email", "test@example.com"]);
   git(&path, &["config", "user.name", "Test"]);
-  // 根 package.json 为 scripts 探测所需（无 scripts 字段即无操作）
+  // 根 package.json 提供版本来源
   fs::write(
     path.join("package.json"),
     "{\n  \"version\": \"1.0.0\"\n}\n",
@@ -362,8 +387,8 @@ fn recursive_default_files_expand_packages_manifests() {
   let (_events, mut cb) = collect_events();
   let results = version_bump(&options, &path, &mut cb).unwrap();
 
-  // 上游 recursive 语义：files 为空时默认清单追加 packages/**/package.json
-  // （CLI 流程不经此分支——JS 层消化 recursive；本测试补齐 core 原无覆盖的分支）
+  // ADR-0009：recursive 默认清单 = 链上 basename 表的 `**/` 整树收集模式，
+  // 整树命中 packages 下的 manifest（替代上游 packages/**/package.json 硬编码）
   assert_eq!(results.new_version, "2.0.0");
   assert_eq!(results.updated_files.len(), 2);
   assert!(

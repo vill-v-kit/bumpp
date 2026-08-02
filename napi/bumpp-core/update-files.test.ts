@@ -76,7 +76,6 @@ it('package.json 保格式更新，与上游逐字节一致', async () => {
 it('package-lock.json 嵌套 version 更新，与上游逐字节一致', async () => {
   await parity(
     {
-      // 上游 runNpmScript 需要 package.json 存在（不在更新列表中）
       'package.json': '{\n  "version": "1.0.0"\n}\n',
       'package-lock.json':
         '{\n  "name": "demo",\n  "version": "1.0.0",\n  "lockfileVersion": 3,\n  "packages": {\n    "": {\n      "name": "demo",\n      "version": "1.0.0"\n    },\n    "node_modules/dep": {\n      "version": "1.0.0"\n    }\n  }\n}\n',

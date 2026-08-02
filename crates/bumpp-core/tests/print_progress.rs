@@ -45,9 +45,10 @@ fn git_events_match_js_progress_texts() {
 }
 
 #[test]
-fn npm_script_is_green_success_with_script_name() {
+fn script_is_green_success_with_command() {
+  // ADR-0011：scripts 通用化为配置声明的 shell 命令，打印命令本体
   assert_eq!(
-    format_line(ProgressEvent::NpmScript, Some("preversion"), "2.0.0", None),
-    "✔ Npm run preversion"
+    format_line(ProgressEvent::Script, Some("cargo build"), "2.0.0", None),
+    "✔ Run cargo build"
   );
 }

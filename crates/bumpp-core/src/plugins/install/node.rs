@@ -10,7 +10,7 @@ use std::error::Error;
 use std::fmt;
 use std::path::Path;
 
-use crate::install::InstallError;
+use crate::plugins::InstallError;
 
 /// node 适配入口：detect → `<pm> install`（上游 `options.install` 语义）
 pub fn install(cwd: &Path) -> Result<(), InstallError> {

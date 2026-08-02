@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::Path;
 
-use bumpp_core::files::{dispatch_file as update_file, FilesError as UpdateError, UpdateOutcome};
+use bumpp_core::plugins::{dispatch_file as update_file, FilesError as UpdateError, UpdateOutcome};
 use tempfile::TempDir;
 
 const CURRENT: &str = "1.0.0";
@@ -296,4 +296,59 @@ fn unparseable_lock_is_an_error() {
   let err = bump(&dir).unwrap_err();
   assert!(err.to_string().contains("Cargo.lock"));
   assert_eq!(read(&dir, "Cargo.toml"), original);
+}
+
+// ---- read_version（ADR-0009：版本解析生态化，经链分发公开面） ----
+
+use bumpp_core::plugins::dispatch_read_version;
+
+fn read_version_of(dir: &TempDir) -> Option<String> {
+  dispatch_read_version(
+    Path::new("Cargo.toml"),
+    &dir.path().join("Cargo.toml"),
+  )
+}
+
+#[test]
+fn read_version_extracts_package_version_literal() {
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    "Cargo.toml",
+    "[package]\nname = \"demo\"\nversion = \"1.2.3\"\n",
+  );
+  assert_eq!(read_version_of(&dir), Some("1.2.3".into()));
+}
+
+#[test]
+fn read_version_falls_back_to_workspace_package_literal() {
+  let dir = TempDir::new().unwrap();
+  // 虚拟 workspace 根：仅 [workspace.package].version 字面量
+  write(
+    &dir,
+    "Cargo.toml",
+    "[workspace]\nmembers = []\n\n[workspace.package]\nversion = \"7.8.9\"\n",
+  );
+  assert_eq!(read_version_of(&dir), Some("7.8.9".into()));
+}
+
+#[test]
+fn read_version_none_for_workspace_inherited_member() {
+  let dir = TempDir::new().unwrap();
+  // version.workspace = true 继承形态：本文件无版本字面量
+  write(
+    &dir,
+    "Cargo.toml",
+    "[package]\nname = \"demo\"\nversion.workspace = true\n",
+  );
+  assert_eq!(read_version_of(&dir), None);
+}
+
+#[test]
+fn read_version_none_for_broken_or_missing_manifest() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, "Cargo.toml", "{ not toml");
+  assert_eq!(read_version_of(&dir), None);
+  let empty = TempDir::new().unwrap();
+  assert_eq!(read_version_of(&empty), None);
 }

@@ -3,7 +3,8 @@
 
 use dialoguer::console::style;
 
-/// 上游 `ProgressEvent` 枚举，字符串值逐一对齐
+/// 进度事件（上游 `ProgressEvent` 枚举；`Script` 为 ADR-0011 通用化后的形态，
+/// 替代上游 `NpmScript`——npm scripts 通道已移除，事件不回传 JS，见 ADR-0002）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgressEvent {
   FileUpdated,
@@ -11,11 +12,11 @@ pub enum ProgressEvent {
   GitCommit,
   GitTag,
   GitPush,
-  NpmScript,
+  Script,
 }
 
 impl ProgressEvent {
-  /// 上游枚举的字符串值
+  /// 事件的字符串值（前五项逐一对齐上游）
   pub fn as_str(self) -> &'static str {
     match self {
       Self::FileUpdated => "file updated",
@@ -23,7 +24,7 @@ impl ProgressEvent {
       Self::GitCommit => "git commit",
       Self::GitTag => "git tag",
       Self::GitPush => "git push",
-      Self::NpmScript => "npm script",
+      Self::Script => "script",
     }
   }
 }
@@ -39,7 +40,7 @@ mod tests {
     assert_eq!(ProgressEvent::GitCommit.as_str(), "git commit");
     assert_eq!(ProgressEvent::GitTag.as_str(), "git tag");
     assert_eq!(ProgressEvent::GitPush.as_str(), "git push");
-    assert_eq!(ProgressEvent::NpmScript.as_str(), "npm script");
+    assert_eq!(ProgressEvent::Script.as_str(), "script");
   }
 }
 
@@ -70,12 +71,8 @@ pub fn format_line(
     ProgressEvent::GitCommit => format!("{} Git commit", style("ℹ").blue()),
     ProgressEvent::GitTag => format!("{} Git tag", style("ℹ").blue()),
     ProgressEvent::GitPush => format!("{} Git push", style("✔").green()),
-    ProgressEvent::NpmScript => {
-      format!(
-        "{} Npm run {}",
-        style("✔").green(),
-        script.unwrap_or_default()
-      )
+    ProgressEvent::Script => {
+      format!("{} Run {}", style("✔").green(), script.unwrap_or_default())
     }
   }
 }

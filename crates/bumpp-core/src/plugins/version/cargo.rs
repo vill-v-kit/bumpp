@@ -1,4 +1,4 @@
-//! Cargo 清单插件（ADR-0003）：toml_edit 保格式更新 `[package].version`，绝不触碰
+//! Cargo 生态版本能力（ADR-0003）：toml_edit 保格式更新 `[package].version`，绝不触碰
 //! `[dependencies]` 等其他表；并按 crate name 定向同步向上发现的 `Cargo.lock` 的
 //! `[[package]]` 条目（同一 toml_edit 机制，不跑 cargo）。
 //!
@@ -18,95 +18,100 @@ use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Formatted, Item, Table, Value};
 
-use super::{read_text, write_text, Ecosystem, FilesError, UpdateOutcome, VersionFilePlugin};
+use super::super::{read_text, write_text, FilesError, UpdateOutcome};
 
-pub(crate) struct CargoTomlPlugin;
+/// Cargo 清单识别：basename `cargo.toml`（小写比较——与 MANIFEST_BASENAMES
+/// 常量的磁盘惯例名无关，识别面保持大小写不敏感）
+pub(crate) fn matches(rel_path: &Path) -> bool {
+  rel_path
+    .file_name()
+    .map(|n| n.to_string_lossy().trim().eq_ignore_ascii_case("cargo.toml"))
+    .unwrap_or(false)
+}
 
-impl VersionFilePlugin for CargoTomlPlugin {
-  /// basename `cargo.toml`（小写比较）
-  fn matches(&self, rel_path: &Path) -> bool {
-    rel_path
-      .file_name()
-      .map(|n| n.to_string_lossy().trim().to_lowercase() == "cargo.toml")
-      .unwrap_or(false)
-  }
+/// 版本解析（ADR-0009）：`[package].version` 字面量优先，其次
+/// `[workspace.package].version` 字面量；继承形态（`version.workspace = true`）、
+/// 读取/解析失败均返回 None；semver 校验由编排层统一承担
+pub(crate) fn read_version(path: &Path) -> Option<String> {
+  let text = std::fs::read_to_string(path).ok()?;
+  let doc = text.parse::<DocumentMut>().ok()?;
+  let package_version = doc
+    .get("package")
+    .and_then(Item::as_table_like)
+    .and_then(|p| p.get("version"))
+    .and_then(Item::as_str);
+  package_version
+    .or_else(|| workspace_version_literal(&doc))
+    .map(str::to_string)
+}
 
-  fn ecosystem(&self) -> Option<Ecosystem> {
-    Some(Ecosystem::Cargo)
-  }
+/// 保格式更新清单版本并按需定向同步 Cargo.lock（形态探测见模块头注释）
+pub(crate) fn update(
+  path: &Path,
+  rel_path: &Path,
+  current: &str,
+  new: &str,
+) -> Result<UpdateOutcome, FilesError> {
+  let text = read_text(path, rel_path)?;
+  // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
+  // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
+  let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
+    message: format!("解析 {} 失败：{e}", rel_path.display()),
+  })?;
 
-  fn manifest_basenames(&self) -> &'static [&'static str] {
-    &["cargo.toml"]
-  }
-
-  fn update(
-    &self,
-    path: &Path,
-    rel_path: &Path,
-    current: &str,
-    new: &str,
-  ) -> Result<UpdateOutcome, FilesError> {
-    let text = read_text(path, rel_path)?;
-    // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
-    // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
-    let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
-      message: format!("解析 {} 失败：{e}", rel_path.display()),
-    })?;
-
-    let package = doc.get("package").and_then(Item::as_table_like);
-    // `[package].version` 字面量 → 更新并按 crate name 定向同步 lock
-    if let Some(v) = package
-      .and_then(|p| p.get("version"))
-      .and_then(Item::as_str)
-    {
-      if v == new {
-        return Ok(UpdateOutcome::Skipped);
-      }
-      let name = package
-        .and_then(|p| p.get("name"))
-        .and_then(Item::as_str)
-        .ok_or_else(|| FilesError::Lock {
-          message: format!(
-            "{} 的 [package] 缺少 name 字段，无法定向同步 Cargo.lock",
-            rel_path.display()
-          ),
-        })?
-        .to_string();
-      // 先完成全部计算（含 lock 同步校验），失败即报错且清单不改写
-      let lock = find_lock(path)
-        .map(|lock_path| sync_lock_by_name(&lock_path, &name, current, new))
-        .transpose()?;
-      return apply(
-        &mut doc,
-        VersionLocation::Package,
-        lock,
-        path,
-        rel_path,
-        new,
-      );
-    }
-
-    // version 非字面量（`version.workspace = true` 继承 / 缺失 / 其他形态）：
-    // 本文件若含 `[workspace.package].version` 字面量（本文件即根）→ 更新该字段
-    // （lock 按成员扫描同步）；否则跳过——真成员的根清单作为显式文件项自行处理
-    let Some(v) = workspace_version_literal(&doc) else {
-      return Ok(UpdateOutcome::Skipped);
-    };
+  let package = doc.get("package").and_then(Item::as_table_like);
+  // `[package].version` 字面量 → 更新并按 crate name 定向同步 lock
+  if let Some(v) = package
+    .and_then(|p| p.get("version"))
+    .and_then(Item::as_str)
+  {
     if v == new {
       return Ok(UpdateOutcome::Skipped);
     }
+    let name = package
+      .and_then(|p| p.get("name"))
+      .and_then(Item::as_str)
+      .ok_or_else(|| FilesError::Lock {
+        message: format!(
+          "{} 的 [package] 缺少 name 字段，无法定向同步 Cargo.lock",
+          rel_path.display()
+        ),
+      })?
+      .to_string();
+    // 先完成全部计算（含 lock 同步校验），失败即报错且清单不改写
     let lock = find_lock(path)
-      .map(|lock_path| sync_lock_workspace_members(&lock_path, current, new))
+      .map(|lock_path| sync_lock_by_name(&lock_path, &name, current, new))
       .transpose()?;
-    apply(
+    return apply(
       &mut doc,
-      VersionLocation::WorkspacePackage,
+      VersionLocation::Package,
       lock,
       path,
       rel_path,
       new,
-    )
+    );
   }
+
+  // version 非字面量（`version.workspace = true` 继承 / 缺失 / 其他形态）：
+  // 本文件若含 `[workspace.package].version` 字面量（本文件即根）→ 更新该字段
+  // （lock 按成员扫描同步）；否则跳过——真成员的根清单作为显式文件项自行处理
+  let Some(v) = workspace_version_literal(&doc) else {
+    return Ok(UpdateOutcome::Skipped);
+  };
+  if v == new {
+    return Ok(UpdateOutcome::Skipped);
+  }
+  let lock = find_lock(path)
+    .map(|lock_path| sync_lock_workspace_members(&lock_path, current, new))
+    .transpose()?;
+  apply(
+    &mut doc,
+    VersionLocation::WorkspacePackage,
+    lock,
+    path,
+    rel_path,
+    new,
+  )
 }
 
 /// 从清单所在目录向上发现首个 Cargo.lock（workspace 成员的 lock 位于仓库根）

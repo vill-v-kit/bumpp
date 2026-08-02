@@ -26,10 +26,10 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-it('-r 递归收集经 core 插件链模式表（node manifests + cargo.toml，ADR-0003 opt-in）', async () => {
+it('-r 递归收集经 core 插件链模式表（node manifests + Cargo.toml，ADR-0003 opt-in）', async () => {
   const config = await resolveConfig({ bumpp: { recursive: true } })
   expect(config.bumpp.files).toContain('**/package.json')
-  // 插件链的 basename 一律小写（matches 亦为小写比较）
-  expect(config.bumpp.files).toContain('**/cargo.toml')
+  // basename 取磁盘惯例名（Cargo.toml 大写开头），Linux 大小写敏感 FS 上才能命中
+  expect(config.bumpp.files).toContain('**/Cargo.toml')
   expect(config.bumpp.recursive).toBe(false)
 })

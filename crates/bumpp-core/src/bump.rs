@@ -10,12 +10,11 @@ use dialoguer::theme::ColorfulTheme;
 use dialoguer::Confirm;
 
 use crate::exec::{run, ExecError};
-use crate::files::{self, FilesError};
 use crate::git::{git_commit, git_push, git_tag, CommitSpec, TagSpec};
 use crate::info::{get_current_version, resolve_new_version, BumpState, InfoError};
-use crate::install::InstallError;
+use crate::plugins::{self, FilesError, InstallError};
 use crate::progress::ProgressEvent;
-use crate::scripts::run_npm_script;
+use crate::scripts::run_script;
 
 /// commit 选项（上游 `boolean | string`，对象形态上游亦未支持）
 #[derive(Debug, Clone, Copy)]
@@ -29,6 +28,18 @@ pub enum CommitInput<'a> {
 pub enum TagInput<'a> {
   Bool(bool),
   Name(&'a str),
+}
+
+/// 配置声明的脚本命令（ADR-0011）：三个时序槽位各自的 shell 命令串，
+/// 经系统 shell 执行；槽位语义与上游 npm scripts 位一致
+#[derive(Debug, Clone, Default)]
+pub struct Scripts {
+  /// updateFiles 之前
+  pub preversion: Option<String>,
+  /// git commit/tag 之前
+  pub version: Option<String>,
+  /// git 完成之后、push 之前
+  pub postversion: Option<String>,
 }
 
 /// versionBump 输入（上游 VersionBumpOptions 的相关子集）
@@ -48,6 +59,8 @@ pub struct BumpOptions<'a> {
   pub ignore_scripts: bool,
   pub install: bool,
   pub execute: Option<&'a str>,
+  /// 配置声明的脚本命令（ADR-0011）；ignore_scripts 为 true 时全部跳过
+  pub scripts: Option<Scripts>,
   pub preid: Option<&'a str>,
   pub current_version: Option<&'a str>,
 }
@@ -132,16 +145,6 @@ impl From<InstallError> for BumpError {
     }
   }
 }
-
-/// 上游默认文件清单（files 为空时）
-const DEFAULT_FILES: [&str; 6] = [
-  "package.json",
-  "package-lock.json",
-  "jsr.json",
-  "jsr.jsonc",
-  "deno.json",
-  "deno.jsonc",
-];
 
 /// 上游 glob 忽略目录（`**/{...}/**`）
 const IGNORED_DIRS: [&str; 6] = [
@@ -254,16 +257,21 @@ pub fn version_bump(
   }
 
   // ---- preversion → updateFiles → install/execute → version → git → postversion → push ----
+  // ADR-0011：脚本来自配置声明（scripts 槽位），经系统 shell 执行；
+  // 非零退出即报错传播；ignore_scripts 全部跳过
   macro_rules! script_step {
-    ($name:literal) => {
-      if let Some((_, script)) = run_npm_script(cwd, $name, options.ignore_scripts)? {
-        emit!(ProgressEvent::NpmScript, Some(script.as_str()));
+    ($slot:ident) => {
+      if !options.ignore_scripts {
+        if let Some(command) = options.scripts.as_ref().and_then(|s| s.$slot.as_deref()) {
+          run_script(cwd, command)?;
+          emit!(ProgressEvent::Script, Some(command));
+        }
       }
     };
   }
-  script_step!("preversion");
+  script_step!(preversion);
 
-  let outcome = files::update_files(&files, cwd, &state.current_version, &state.new_version)?;
+  let outcome = plugins::update_files(&files, cwd, &state.current_version, &state.new_version)?;
   for (event, path) in outcome.events() {
     if *event == ProgressEvent::FileUpdated {
       state.updated_files.push(path.clone());
@@ -275,7 +283,7 @@ pub fn version_bump(
 
   // ---- install（ADR-0008：仅当本次有文件被实际更新时，按生态适配触发） ----
   if options.install && !state.updated_files.is_empty() {
-    crate::install::run_installs(cwd, &state.updated_files)?;
+    plugins::run_installs(cwd, &state.updated_files)?;
   }
 
   if let Some(execute) = options.execute {
@@ -289,7 +297,7 @@ pub fn version_bump(
     run(program, args, cwd)?;
   }
 
-  script_step!("version");
+  script_step!(version);
 
   if let Some(commit) = &commit {
     let (_, message) = git_commit(
@@ -325,7 +333,7 @@ pub fn version_bump(
     emit!(ProgressEvent::GitTag, None);
   }
 
-  script_step!("postversion");
+  script_step!(postversion);
 
   if options.push {
     let _ = git_push(cwd, tag.is_some())?;
@@ -361,15 +369,12 @@ struct NormalizedTag<'a> {
   name: &'a str,
 }
 
-/// 上游 normalizeOptions 的文件清单归一：空清单启用默认列表，随后 glob 展开（排序、忽略目录）
+/// 上游 normalizeOptions 的文件清单归一：空清单启用默认列表，随后 glob 展开（排序、忽略目录）。
+/// 默认列表 = 插件底座链上 manifest basenames 的根级并集（ADR-0009）；recursive 时
+/// 升级为 `**/` 整树收集模式（替代上游 `packages/**/package.json` 硬编码）
 fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
   let patterns: Vec<String> = if options.files.is_empty() {
-    let mut defaults: Vec<String> = DEFAULT_FILES.iter().map(|s| s.to_string()).collect();
-    if options.recursive {
-      // 上游 recursive 默认含 packages/**/package.json（workspace 清单展开由消费侧负责）
-      defaults.push("packages/**/package.json".to_string());
-    }
-    defaults
+    plugins::default_file_patterns(options.recursive)
   } else {
     options.files.clone()
   };
