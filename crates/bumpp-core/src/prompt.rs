@@ -2,6 +2,9 @@
 //!
 //! 选项集与文案逐一对齐（PADDING = 13、padStart 右对齐；customVersion 已随本重写移除，
 //! 无 "from config"）。
+//! 注意：选项文本一律不内嵌 ANSI 样式——dialoguer FuzzySelect 渲染活动行
+//! （选中样式 + fuzzy 高亮）会撕裂条目内已有的转义序列，ESC 丢失后 `[1m`/`[0m`
+//! 裸显（COL-30）。prompt 标题行的样式不受该路径影响，可正常使用。
 
 use dialoguer::console::style;
 use dialoguer::theme::ColorfulTheme;
@@ -17,10 +20,7 @@ const PADDING: usize = 13;
 /// 构建 prompt 选项 (value, title) 列表——纯函数，顺序与文案对齐上游（padStart 右对齐）
 pub fn build_choices(current_version: &str, next: &NextVersions) -> Vec<(String, String)> {
   let entry = |label: &str, value: &str, version: &str| {
-    (
-      value.to_string(),
-      format!("{label:>PADDING$} {}", style(version).bold()),
-    )
+    (value.to_string(), format!("{label:>PADDING$} {version}"))
   };
   vec![
     entry("major", "major", &next.major),
