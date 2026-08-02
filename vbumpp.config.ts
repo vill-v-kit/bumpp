@@ -7,7 +7,7 @@ export default defineConfig({
     files: [
       'crates/bumpp-core/Cargo.toml',
       'crates/version-files/Cargo.toml',
-      'npm/bumpp-core/Cargo.toml',
+      'napi/bumpp-core/Cargo.toml',
     ],
   },
   changelog: {

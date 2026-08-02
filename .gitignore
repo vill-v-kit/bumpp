@@ -9,4 +9,4 @@ dist
 # rust / napi build artifacts
 target
 *.node
-npm/bumpp-core/index.d.ts
+napi/bumpp-core/index.d.ts

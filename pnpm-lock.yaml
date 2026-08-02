@@ -118,43 +118,7 @@ importers:
         specifier: catalog:dev
         version: 4.1.10(@types/node@26.1.1)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))
 
-  npm/bump:
-    dependencies:
-      '@esconf/core':
-        specifier: 'catalog:'
-        version: 2.0.0
-      '@esconf/preset-mini':
-        specifier: 'catalog:'
-        version: 2.0.0
-      '@inquirer/password':
-        specifier: 'catalog:'
-        version: 5.1.1(@types/node@26.1.1)
-      '@vill-v/bumpp-core':
-        specifier: workspace:*
-        version: link:../bumpp-core
-      cac:
-        specifier: 'catalog:'
-        version: 7.0.0
-      changelogen:
-        specifier: 'catalog:'
-        version: 0.6.2
-      consola:
-        specifier: 'catalog:'
-        version: 3.4.2
-      defu:
-        specifier: 'catalog:'
-        version: 6.1.7
-      picospinner:
-        specifier: 'catalog:'
-        version: 3.0.0
-      tinyexec:
-        specifier: 'catalog:'
-        version: 1.2.4
-      tinyglobby:
-        specifier: 'catalog:'
-        version: 0.2.17
-
-  npm/bumpp-core:
+  napi/bumpp-core:
     devDependencies:
       '@napi-rs/cli':
         specifier: catalog:dev
@@ -182,15 +146,51 @@ importers:
         specifier: workspace:*
         version: link:../bumpp-core-win32-x64-msvc
 
-  npm/bumpp-core-darwin-arm64: {}
+  napi/bumpp-core-darwin-arm64: {}
 
-  npm/bumpp-core-linux-arm64-gnu: {}
+  napi/bumpp-core-linux-arm64-gnu: {}
 
-  npm/bumpp-core-linux-x64-gnu: {}
+  napi/bumpp-core-linux-x64-gnu: {}
 
-  npm/bumpp-core-win32-arm64-msvc: {}
+  napi/bumpp-core-win32-arm64-msvc: {}
 
-  npm/bumpp-core-win32-x64-msvc: {}
+  napi/bumpp-core-win32-x64-msvc: {}
+
+  npm/bump:
+    dependencies:
+      '@esconf/core':
+        specifier: 'catalog:'
+        version: 2.0.0
+      '@esconf/preset-mini':
+        specifier: 'catalog:'
+        version: 2.0.0
+      '@inquirer/password':
+        specifier: 'catalog:'
+        version: 5.1.1(@types/node@26.1.1)
+      '@vill-v/bumpp-core':
+        specifier: workspace:*
+        version: link:../../napi/bumpp-core
+      cac:
+        specifier: 'catalog:'
+        version: 7.0.0
+      changelogen:
+        specifier: 'catalog:'
+        version: 0.6.2
+      consola:
+        specifier: 'catalog:'
+        version: 3.4.2
+      defu:
+        specifier: 'catalog:'
+        version: 6.1.7
+      picospinner:
+        specifier: 'catalog:'
+        version: 3.0.0
+      tinyexec:
+        specifier: 'catalog:'
+        version: 1.2.4
+      tinyglobby:
+        specifier: 'catalog:'
+        version: 0.2.17
 
   npm/gitcode:
     dependencies:

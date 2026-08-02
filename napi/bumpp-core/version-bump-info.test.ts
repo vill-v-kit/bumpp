@@ -78,7 +78,7 @@ it('currentVersion 选项跳过文件扫描', async () => {
 })
 
 it('字符串入参等价于 { release }（上游 parity）', async () => {
-  // npm/bumpp-core 自身 package.json 版本 5.1.0（process.cwd 为包目录）
+  // napi/bumpp-core 自身 package.json 版本 5.1.0（process.cwd 为包目录）
   const { state } = await versionBumpInfo('minor')
   expect(state.currentVersion).toBe('5.1.0')
   expect(state.newVersion).toBe('5.2.0')

@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vill-v-kit/bumpp",
-    "directory": "npm/bumpp-core"
+    "directory": "napi/bumpp-core"
   },
   "type": "module",
   "main": "index.js",

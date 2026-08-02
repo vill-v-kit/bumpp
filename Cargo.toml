@@ -1,14 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "npm/*"]
-# 纯 JS / 平台二进制的 npm 包没有 Cargo.toml，会被 npm/* glob 匹配到而报错，必须显式排除
+members = ["crates/*", "napi/*", "npm/*"]
+# 纯 JS / 平台二进制的包没有 Cargo.toml，会被 npm/* 与 napi/* glob 匹配到而报错，必须显式排除
 exclude = [
+  "napi/bumpp-core-darwin-arm64",
+  "napi/bumpp-core-linux-arm64-gnu",
+  "napi/bumpp-core-linux-x64-gnu",
+  "napi/bumpp-core-win32-arm64-msvc",
+  "napi/bumpp-core-win32-x64-msvc",
   "npm/bump",
-  "npm/bumpp-core-darwin-arm64",
-  "npm/bumpp-core-linux-arm64-gnu",
-  "npm/bumpp-core-linux-x64-gnu",
-  "npm/bumpp-core-win32-arm64-msvc",
-  "npm/bumpp-core-win32-x64-msvc",
   "npm/gitcode",
   "npm/gitee",
   "npm/github",

@@ -23,13 +23,13 @@ cargo fmt --all && cargo clippy --workspace --all-targets
 ## 仓库布局约定
 
 - `crates/` — 纯 Rust 库 crate（不依赖 napi，可独立 `cargo test`）
-- `napi/` — 不发版的 napi 绑定包
-- `npm/` — 最终要发版的 npm 包（优先级高于 `napi/`：会发版的绑定包直接放这里）
+- `napi/` — 内部机制包：napi 绑定包及其平台二进制分发包（判别标准是受众而非是否发布，ADR-0005）
+- `npm/` — 面向用户的 npm 包（用户直接安装使用的包）
 
 配套规则（详见 [AGENTS.md](./AGENTS.md)「仓库布局」）：
 
 - 根 `Cargo.toml` 是虚拟 workspace；新增 `crates/`、`napi/` 目录时同步加入 `members` glob
-- `npm/` 下无 `Cargo.toml` 的包（纯 JS 包、平台二进制包）必须加入根 `Cargo.toml` 的 `exclude`
+- `npm/`、`napi/` 下无 `Cargo.toml` 的包（纯 JS 包、平台二进制包）必须加入根 `Cargo.toml` 的 `exclude`
 - `[profile.*]` 只写在根 workspace 清单
 - Rust 代码统一两空格缩进（根 `rustfmt.toml`）
 

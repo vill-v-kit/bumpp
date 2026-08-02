@@ -89,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.triple }}
-          path: npm/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node
+          path: napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node
           if-no-files-found: error
 
   test-bindings:
@@ -122,10 +122,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bindings-${{ matrix.settings.triple }}
-          path: npm/bumpp-core
+          path: napi/bumpp-core
 
       - name: Copy artifact into platform package
-        run: cp npm/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node npm/bumpp-core-${{ matrix.settings.triple }}/
+        run: cp napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node napi/bumpp-core-${{ matrix.settings.triple }}/
 
       - name: Test bindings
-        run: pnpm exec vitest run npm/bumpp-core
+        run: pnpm exec vitest run napi/bumpp-core

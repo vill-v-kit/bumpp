@@ -1,6 +1,6 @@
 # 用纯 Rust + napi 核心替换 bumpp 依赖
 
-将对上游 `antfu/bumpp` 的依赖（以及实验性的 `packages/next`）替换为自研的纯 Rust 实现 `@vill-v/bumpp-core`（`npm/bumpp-core`），通过 napi-rs 向 Node.js 暴露接口。行为语义全量对齐上游 bumpp v11，但配置文件只支持 JSON。
+将对上游 `antfu/bumpp` 的依赖（以及实验性的 `packages/next`）替换为自研的纯 Rust 实现 `@vill-v/bumpp-core`（`napi/bumpp-core`，自 ADR-0005 起由 `npm/` 迁入），通过 napi-rs 向 Node.js 暴露接口。行为语义全量对齐上游 bumpp v11，但配置文件只支持 JSON。
 
 ## Decisions
 

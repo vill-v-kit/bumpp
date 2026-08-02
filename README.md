@@ -2,7 +2,7 @@
 
 遵循 semver 规范进行 release 的工具包（暂时只针对个人使用，并没有开放过多的配置项）
 
-本包为 [`@vill-v/bumpp-core`](./npm/bumpp-core)（自研 Rust 版本引擎，语义全量对齐 [bumpp](https://github.com/antfu/bumpp) v11）与 [changelogen](https://github.com/unjs/changelogen) 的组合
+本包为 [`@vill-v/bumpp-core`](./napi/bumpp-core)（自研 Rust 版本引擎，语义全量对齐 [bumpp](https://github.com/antfu/bumpp) v11）与 [changelogen](https://github.com/unjs/changelogen) 的组合
 
 解决
 

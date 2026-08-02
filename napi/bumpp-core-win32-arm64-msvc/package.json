@@ -1,5 +1,5 @@
 {
-  "name": "@vill-v/bumpp-core-darwin-arm64",
+  "name": "@vill-v/bumpp-core-win32-arm64-msvc",
   "version": "5.1.0",
   "license": "MIT",
   "author": {
@@ -9,13 +9,13 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vill-v-kit/bumpp",
-    "directory": "npm/bumpp-core-darwin-arm64"
+    "directory": "napi/bumpp-core-win32-arm64-msvc"
   },
-  "os": ["darwin"],
+  "os": ["win32"],
   "cpu": ["arm64"],
-  "main": "bumpp-core.darwin-arm64.node",
+  "main": "bumpp-core.win32-arm64-msvc.node",
   "files": [
-    "bumpp-core.darwin-arm64.node"
+    "bumpp-core.win32-arm64-msvc.node"
   ],
   "publishConfig": {
     "access": "public"
