@@ -1,16 +1,28 @@
-//! 包管理器检测：对齐上游 package-manager-detector 的默认行为（ADR-0006）。
+//! Node 生态 install 适配（ADR-0008）：检测包管理器后执行 `<pm> install`。
 //!
-//! 逐级向上爬目录（目录为外层循环）；每级目录内按上游默认策略顺序
-//! lockfile → packageManager 字段检测，字段值不识别时 fall through。
-//! agent / lockfile 名单对齐上游 `AGENTS` / `LOCKS` 常量。
-//!
-//! 边界：唯一消费方是 `version_bump` 的 --install（install 命令为
-//! `<agent> install`，无需上游 COMMANDS 映射）；第二消费方出现时按
-//! ADR-0004 同款流程拆 `crates/package-manager`。
+//! 检测对齐上游 package-manager-detector 的默认行为（ADR-0006）：逐级向上爬
+//! 目录（目录为外层循环）；每级目录内按上游默认策略顺序 lockfile →
+//! packageManager 字段检测，字段值不识别时 fall through。agent / lockfile
+//! 名单对齐上游 `AGENTS` / `LOCKS` 常量；install 命令对名单内 agent 恒为
+//! `<agent> install`（无需上游 COMMANDS 映射）。
 
 use std::error::Error;
 use std::fmt;
 use std::path::Path;
+
+use crate::install::InstallError;
+
+/// node 适配入口：detect → `<pm> install`（上游 `options.install` 语义）
+pub fn install(cwd: &Path) -> Result<(), InstallError> {
+  let pm = detect_package_manager(cwd).map_err(|e| InstallError {
+    message: e.to_string(),
+  })?;
+  crate::exec::run(pm, &["install".to_string()], cwd)
+    .map_err(|e| InstallError {
+      message: e.to_string(),
+    })
+    .map(|_| ())
+}
 
 #[derive(Debug)]
 pub struct PmError {

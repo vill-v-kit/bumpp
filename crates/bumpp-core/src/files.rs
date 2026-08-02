@@ -19,6 +19,13 @@ mod cargo_toml;
 mod js_manifest;
 mod text;
 
+/// 生态：一套工具链及其版本文件与安装机制的集合（ADR-0008；files/ 与 install/ 共享）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Ecosystem {
+  Node,
+  Cargo,
+}
+
 /// 单次文件更新结果（FileUpdated / FileSkipped 事件来源）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UpdateOutcome {
@@ -60,6 +67,8 @@ impl Error for FilesError {}
 pub(crate) trait VersionFilePlugin: Sync {
   /// 按相对路径（实际比较 basename）判断是否走本通道
   fn matches(&self, rel_path: &Path) -> bool;
+  /// 本通道所服务的生态；兜底通道（Text）为 None（不贡献 install 触发，ADR-0008）
+  fn ecosystem(&self) -> Option<Ecosystem>;
   /// 更新 `path`（绝对路径）指向的文件；`current` / `new` 为当前与新版本号；
   /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案
   fn update(
@@ -90,6 +99,14 @@ pub fn dispatch_file(
     .find(|p| p.matches(rel_path))
     .expect("TextPlugin 兜底必命中")
     .update(abs_path, rel_path, current, new)
+}
+
+/// 文件路径所属生态（经链上首个命中插件判定；仅命中兜底通道时为 None）
+pub(crate) fn ecosystem_of(rel_path: &Path) -> Option<Ecosystem> {
+  PLUGINS
+    .iter()
+    .find(|p| p.matches(rel_path))
+    .and_then(|p| p.ecosystem())
 }
 
 pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {

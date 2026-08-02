@@ -13,7 +13,7 @@ use crate::exec::{run, ExecError};
 use crate::files::{self, FilesError};
 use crate::git::{git_commit, git_push, git_tag, CommitSpec, TagSpec};
 use crate::info::{get_current_version, resolve_new_version, BumpState, InfoError};
-use crate::pm::detect_package_manager;
+use crate::install::InstallError;
 use crate::progress::ProgressEvent;
 use crate::scripts::run_npm_script;
 
@@ -125,8 +125,8 @@ impl From<ExecError> for BumpError {
   }
 }
 
-impl From<crate::pm::PmError> for BumpError {
-  fn from(e: crate::pm::PmError) -> Self {
+impl From<InstallError> for BumpError {
+  fn from(e: InstallError) -> Self {
     Self::Exec {
       message: e.to_string(),
     }
@@ -273,9 +273,9 @@ pub fn version_bump(
     emit!(*event, None);
   }
 
-  if options.install {
-    let pm = detect_package_manager(cwd)?;
-    run(pm, &["install".to_string()], cwd)?;
+  // ---- install（ADR-0008：仅当本次有文件被实际更新时，按生态适配触发） ----
+  if options.install && !state.updated_files.is_empty() {
+    crate::install::run_installs(cwd, &state.updated_files)?;
   }
 
   if let Some(execute) = options.execute {

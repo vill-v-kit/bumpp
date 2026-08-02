@@ -8,7 +8,7 @@ use jsonc_parser::ast::{Object, ObjectProp, Value};
 use jsonc_parser::common::{Range, Ranged};
 use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
 
-use super::{read_text, write_text, FilesError, UpdateOutcome, VersionFilePlugin};
+use super::{read_text, write_text, Ecosystem, FilesError, UpdateOutcome, VersionFilePlugin};
 
 /// 按 manifest 处理的 basename（上游 switch 列表，小写比较）
 const MANIFEST_BASENAMES: [&str; 8] = [
@@ -31,6 +31,10 @@ impl VersionFilePlugin for JsManifestPlugin {
       .map(|n| n.to_string_lossy().trim().to_lowercase())
       .unwrap_or_default();
     MANIFEST_BASENAMES.contains(&basename.as_str())
+  }
+
+  fn ecosystem(&self) -> Option<Ecosystem> {
+    Some(Ecosystem::Node)
   }
 
   /// 上游 `updateManifestFile`：只设置顶层 `version`（package-lock 另含嵌套路径），

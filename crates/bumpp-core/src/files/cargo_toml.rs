@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Formatted, Item, Table, Value};
 
-use super::{read_text, write_text, FilesError, UpdateOutcome, VersionFilePlugin};
+use super::{read_text, write_text, Ecosystem, FilesError, UpdateOutcome, VersionFilePlugin};
 
 pub(crate) struct CargoTomlPlugin;
 
@@ -29,6 +29,10 @@ impl VersionFilePlugin for CargoTomlPlugin {
       .file_name()
       .map(|n| n.to_string_lossy().trim().to_lowercase() == "cargo.toml")
       .unwrap_or(false)
+  }
+
+  fn ecosystem(&self) -> Option<Ecosystem> {
+    Some(Ecosystem::Cargo)
   }
 
   fn update(

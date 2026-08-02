@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::{read_text, write_text, FilesError, UpdateOutcome, VersionFilePlugin};
+use super::{read_text, write_text, Ecosystem, FilesError, UpdateOutcome, VersionFilePlugin};
 
 pub(crate) struct TextPlugin;
 
@@ -11,6 +11,10 @@ impl VersionFilePlugin for TextPlugin {
   /// 兜底通道：永远命中（必须处于链尾）
   fn matches(&self, _rel_path: &Path) -> bool {
     true
+  }
+
+  fn ecosystem(&self) -> Option<Ecosystem> {
+    None // 兜底通道不归属任何生态
   }
 
   /// 上游 `updateTextFile`：全局替换 `(\b|v){version}\b`，`\b` 对齐 JS 的 ASCII 语义

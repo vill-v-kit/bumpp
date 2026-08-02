@@ -3,7 +3,7 @@
 
 use std::fs;
 
-use bumpp_core::pm::detect_package_manager;
+use bumpp_core::install::node::detect_package_manager;
 use tempfile::TempDir;
 
 fn write(dir: &TempDir, name: &str, content: &str) {

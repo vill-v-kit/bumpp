@@ -19,6 +19,10 @@ _Avoid_: bump type、version type
 虽然发布到 npm、但设计上就不是给用户直接使用的包——判别问句："用户会直接 npm install 它吗？"不会即归 `napi/` 目录（ADR-0005，与是否发布无关）。成员：Core（napi 绑定本体）、Platform package（平台二进制分发包）；它们发布仅因 npm 不支持 workspace 协议与 optionalDependencies 按平台分发的机制需要。
 _Avoid_: 内部包（过宽，`crates/` 亦属内部）、native package
 
+**生态 (Ecosystem)**:
+一套工具链及其版本文件与安装机制的集合（node / cargo；未来 maven、gradle）。bumpp-core 按生态组织目录：版本更新逻辑在 `src/files/`（每生态一插件文件，ADR-0007），install 适配在 `src/install/`（每生态一文件，ADR-0008）；`--install` 按本次 bump 实际更新的生态条件触发。
+_Avoid_: platform（指 OS/CPU 平台）、registry（指发布平台）
+
 **Core**:
 纯 Rust + napi-rs 实现的版本引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`），对外提供三个与上游 bumpp v11 兼容的 API：`versionBump` / `versionBumpInfo` / `loadBumpConfig`。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）
