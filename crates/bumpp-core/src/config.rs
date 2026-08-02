@@ -1,21 +1,23 @@
-//! `loadBumpConfig`：仅支持 JSON 配置文件，语义对齐上游 antfu/bumpp v11。
+//! `loadBumpConfig`：仅支持 JSON 配置文件（ADR-0013），语义对齐上游 antfu/bumpp v11。
 //!
 //! 合并顺序（浅展开，整体替换）：`bumpConfigDefaults` ← 配置文件 ← overrides。
 //! 上游经 napi 传入的 JS `undefined` 会序列化为 `null`，剥离时对齐上游的
 //! `v !== void 0` 过滤。
+//!
+//! loader 只认 `.vbumpprc.json`（或 `configFilePath` override）：旧名
+//! （`bump.config.*` / `vbumpp.config.*` / `changelog.config.*`）不探测、
+//! 不读取、不报错，静默失效（ADR-0013）。
 
 use std::error::Error;
 use std::fmt;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{Map, Value};
 
-/// 配置文件探测基名（上游为 `bump.config`）
-const CONFIG_BASENAME: &str = "bump.config";
-
-/// 上游支持但我们不执行的脚本扩展名（上游探测顺序），检测到即报错
-const SCRIPT_EXTENSIONS: [&str; 6] = ["ts", "mts", "cts", "js", "mjs", "cjs"];
+use crate::plugins::recursive_manifest_globs;
+/// 配置文件探测：唯一文件名（ADR-0013：单一文件名，无旧名探测）
+const CONFIG_FILE: &str = ".vbumpprc.json";
 
 #[derive(Debug)]
 pub enum LoadConfigError {
@@ -78,11 +80,8 @@ pub fn load_bump_config(
       merge(&mut merged, read_config(&path)?);
     }
     None => {
-      // 存在脚本配置即报错（即使 bump.config.json 同时存在）——不静默忽略
-      if let Some(script) = probe_script_config(cwd) {
-        return Err(unsupported_config(&script));
-      }
-      let json_path = cwd.join(format!("{CONFIG_BASENAME}.json"));
+      // 唯一探测点：`.vbumpprc.json`；旧名不探测、静默失效（ADR-0013）
+      let json_path = cwd.join(CONFIG_FILE);
       if json_path.is_file() {
         merge(&mut merged, read_config(&json_path)?);
       }
@@ -91,6 +90,22 @@ pub fn load_bump_config(
 
   if let Some(overrides) = overrides {
     merge(&mut merged, strip_nulls(overrides));
+  }
+
+  // recursive 展开收归加载器（ADR-0013，原 JS 后处理）：merged recursive 为真时
+  // 追加插件底座链 recursive 模式表并置 false（ADR-0003 opt-in 语义不变）；
+  // files 非数组属病理用法，不动其值，仅消费 recursive 标志
+  if merged.get("recursive").and_then(Value::as_bool) == Some(true) {
+    if let Some(files) = merged.get_mut("files").and_then(Value::as_array_mut) {
+      files.extend(recursive_manifest_globs().into_iter().map(Value::String));
+    }
+    merged.insert("recursive".into(), false.into());
+  }
+
+  // files 去重（保序，首次出现为准）——原 JS 后处理的无条件去重随加载器一并迁移
+  if let Some(files) = merged.get_mut("files").and_then(Value::as_array_mut) {
+    let mut seen = std::collections::HashSet::new();
+    files.retain(|f| f.as_str().is_none_or(|s| seen.insert(s.to_owned())));
   }
   Ok(merged)
 }
@@ -105,13 +120,6 @@ fn merge(base: &mut Map<String, Value>, overrides: Map<String, Value>) {
 /// 剥离 null 值，对齐上游 `Object.entries(overrides).filter(([, v]) => v !== void 0)`。
 fn strip_nulls(map: Map<String, Value>) -> Map<String, Value> {
   map.into_iter().filter(|(_, v)| !v.is_null()).collect()
-}
-
-fn probe_script_config(cwd: &Path) -> Option<PathBuf> {
-  SCRIPT_EXTENSIONS
-    .iter()
-    .map(|ext| cwd.join(format!("{CONFIG_BASENAME}.{ext}")))
-    .find(|p| p.is_file())
 }
 
 fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
@@ -144,9 +152,8 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
 fn unsupported_config(path: &Path) -> LoadConfigError {
   LoadConfigError::UnsupportedConfig {
     message: format!(
-      "仅支持 JSON 配置（bump.config.json）；检测到脚本配置 {}，本实现不执行 TS/JS 配置。\
-       迁移指引：将导出的配置对象写入 bump.config.json 后删除原文件。\
-       注意：customVersion 等函数选项无法以 JSON 表达，已随本重写移除。",
+      "仅支持 JSON 配置（.vbumpprc.json 或 configFilePath 指向的 .json 文件）；\
+       指定的配置文件 {} 不是 JSON，本实现不执行 TS/JS 配置。",
       path.display()
     ),
   }

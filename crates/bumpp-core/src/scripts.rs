@@ -1,4 +1,4 @@
-//! 通用脚本执行（ADR-0011）：`bump.config.json` `scripts` 声明的 shell 命令，
+//! 通用脚本执行（ADR-0011）：`.vbumpprc.json` `scripts` 声明的 shell 命令，
 //! 由 versionBump 流程在 preversion / version / postversion 三个时序槽位调用。
 //! 本模块提供单条命令的执行原语；槽位编排见 bump.rs。
 
