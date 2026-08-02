@@ -40,7 +40,7 @@ _Avoid_: files 插件链（ADR-0007 时代的旧称）
 _Avoid_: 版本文件（过宽——还含 text 通道的任意文本文件，如 README、.env）
 
 **Core**:
-纯 Rust + napi-rs 实现的版本与 changelog 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。对外 API 两组：与上游 bumpp v11 兼容的 `versionBump` / `versionBumpInfo` / `loadBumpConfig`；changelog 系 `generateChangelog` / `getLastGitTag` / `getCurrentGitBranch` / `resolveRepoConfig`（changelogen 使用面的 Rust 重写，ADR-0012）。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
+纯 Rust + napi-rs 实现的版本与 changelog 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。对外 API 两组：与上游 bumpp v11 兼容的 `versionBump` / `versionBumpInfo` / `loadBumpConfig`；changelog 系 `generateChangelog` / `getLastGitTag` / `getGitDiff` / `getCurrentGitBranch` / `resolveRepoConfig`（changelogen 使用面的 Rust 重写，ADR-0012）。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:

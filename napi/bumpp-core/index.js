@@ -82,22 +82,30 @@ function requireNative() {
 const nativeBinding = requireNative()
 
 const {
+  getCurrentGitBranch,
+  getGitDiff,
+  getLastGitTag,
   gitCommit,
   gitPush,
   gitTag,
   loadBumpConfig,
   plus100,
+  resolveRepoConfig,
   updateFiles,
   versionBump,
   versionBumpInfo,
   versionFileManifestGlobs,
 } = nativeBinding
 export {
+  getCurrentGitBranch,
+  getGitDiff,
+  getLastGitTag,
   gitCommit,
   gitPush,
   gitTag,
   loadBumpConfig,
   plus100,
+  resolveRepoConfig,
   updateFiles,
   versionBump,
   versionBumpInfo,

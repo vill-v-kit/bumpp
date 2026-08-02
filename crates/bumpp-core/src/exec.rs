@@ -28,10 +28,17 @@ impl Error for ExecError {}
 
 /// 执行命令并捕获输出；非零退出返回含 stderr 的错误（不回放，stderr 由错误携带）
 pub fn run(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError> {
+  let output = capture(program, args, cwd)?;
+  replay(&output);
+  Ok(output)
+}
+
+/// 只读查询的静默捕获：与 `run` 同错误语义，但成功不回放——
+/// 查询输出是返回值而非给用户看的进度（git describe / log / rev-parse 等）
+pub fn capture(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError> {
   let display = format!("{program} {}", args.join(" "));
   let output = spawn(program, args, cwd)?;
   if output.status.success() {
-    replay(&output);
     Ok(output)
   } else {
     Err(ExecError::Failed {

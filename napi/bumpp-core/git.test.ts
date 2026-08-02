@@ -3,7 +3,15 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
-import { gitCommit, gitPush, gitTag } from './index.js'
+import {
+  getCurrentGitBranch,
+  getGitDiff,
+  getLastGitTag,
+  gitCommit,
+  gitPush,
+  gitTag,
+  resolveRepoConfig,
+} from './index.js'
 
 let dirs: string[] = []
 
@@ -114,4 +122,51 @@ it('git 命令失败时错误含 stderr', () => {
       newVersion: '2.0.0',
     }),
   ).toThrowError(/not a git repository/)
+})
+
+it('getLastGitTag 返回真实 tag 名，无 tag / 非仓库返回 null', () => {
+  const dir = initRepo()
+  expect(getLastGitTag(dir)).toBeNull()
+  git(dir, 'tag v1.0.0')
+  expect(getLastGitTag(dir)).toBe('v1.0.0')
+  const notRepo = mkdtempSync(join(tmpdir(), 'bumpp-notrepo-'))
+  dirs.push(notRepo)
+  expect(getLastGitTag(notRepo)).toBeNull()
+})
+
+it('getCurrentGitBranch 返回当前分支名', () => {
+  const dir = initRepo()
+  expect(getCurrentGitBranch(dir)).toBe('main')
+})
+
+it('getGitDiff 返回范围内提交（新→旧，含 author 与 body）', () => {
+  const dir = initRepo()
+  git(dir, 'tag v1.0.0')
+  writeFileSync(join(dir, 'a.txt'), 'a')
+  git(dir, 'add .')
+  git(dir, 'commit -m "feat: add a"')
+  writeFileSync(join(dir, 'b.txt'), 'b')
+  git(dir, 'add .')
+  git(dir, 'commit -m "fix: b" -m "BREAKING CHANGE: b breaks"')
+  const commits = getGitDiff('v1.0.0', undefined, dir)
+  expect(commits).toHaveLength(2)
+  expect(commits[0].message).toBe('fix: b')
+  expect(commits[0].shortHash).toBe(git(dir, 'log -1 --pretty=%h'))
+  expect(commits[0].author).toEqual({ name: 'Test', email: 'test@example.com' })
+  expect(commits[0].body).toContain('BREAKING CHANGE: b breaks')
+  expect(commits[1].message).toBe('feat: add a')
+})
+
+it('resolveRepoConfig：package.json repository 优先，无源返回 null', () => {
+  const dir = initRepo()
+  expect(resolveRepoConfig(dir)).toBeNull()
+  writeFileSync(
+    join(dir, 'package.json'),
+    '{ "repository": "git@github.com:owner/repo.git" }',
+  )
+  expect(resolveRepoConfig(dir)).toEqual({
+    provider: 'github',
+    domain: 'github.com',
+    repo: 'owner/repo',
+  })
 })

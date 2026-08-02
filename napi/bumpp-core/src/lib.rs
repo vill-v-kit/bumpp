@@ -420,3 +420,83 @@ pub fn version_bump(
     data: options.into(),
   })
 }
+
+/// changelogen `RawCommit` 的 author 字段（ADR-0012）
+#[napi(object)]
+pub struct GitAuthor {
+  pub name: String,
+  pub email: String,
+}
+
+/// changelogen `RawCommit`（`getGitDiff` 的元素）
+#[napi(object)]
+pub struct RawCommit {
+  pub message: String,
+  #[napi(js_name = "shortHash")]
+  pub short_hash: String,
+  pub author: GitAuthor,
+  pub body: String,
+}
+
+impl From<bumpp_core::git::RawCommit> for RawCommit {
+  fn from(c: bumpp_core::git::RawCommit) -> Self {
+    Self {
+      message: c.message,
+      short_hash: c.short_hash,
+      author: GitAuthor {
+        name: c.author.name,
+        email: c.author.email,
+      },
+      body: c.body,
+    }
+  }
+}
+
+/// changelogen `RepoConfig`：provider / domain / repo 三元组，各字段可为空
+#[napi(object)]
+pub struct RepoConfig {
+  pub provider: Option<String>,
+  pub domain: Option<String>,
+  pub repo: Option<String>,
+}
+
+impl From<bumpp_core::git::RepoConfig> for RepoConfig {
+  fn from(r: bumpp_core::git::RepoConfig) -> Self {
+    Self {
+      provider: r.provider,
+      domain: r.domain,
+      repo: r.repo,
+    }
+  }
+}
+
+/// changelogen `getLastGitTag`：最近 tag 名；无 tag / 非 git 仓库返回 null（软失败）
+#[napi]
+pub fn get_last_git_tag(cwd: Option<String>) -> napi::Result<Option<String>> {
+  bumpp_core::git::get_last_git_tag(&resolve_cwd(cwd)?).map_err(to_napi_err)
+}
+
+/// changelogen `getCurrentGitBranch`：当前分支名；非 git 仓库报错
+#[napi]
+pub fn get_current_git_branch(cwd: Option<String>) -> napi::Result<String> {
+  bumpp_core::git::get_current_git_branch(&resolve_cwd(cwd)?).map_err(to_napi_err)
+}
+
+/// changelogen `getGitDiff`：`from...to`（三点对称差，to 缺省 HEAD）范围内提交（新→旧）
+#[napi]
+pub fn get_git_diff(
+  from: String,
+  to: Option<String>,
+  cwd: Option<String>,
+) -> napi::Result<Vec<RawCommit>> {
+  let commits = bumpp_core::git::get_git_diff(&resolve_cwd(cwd)?, &from, to.as_deref())
+    .map_err(to_napi_err)?;
+  Ok(commits.into_iter().map(RawCommit::from).collect())
+}
+
+/// changelogen `resolveRepoConfig`：package.json `repository` 优先、git remote 兜底；
+/// 两源皆无返回 null
+#[napi]
+pub fn resolve_repo_config(cwd: Option<String>) -> napi::Result<Option<RepoConfig>> {
+  Ok(bumpp_core::git::resolve_repo_config(&resolve_cwd(cwd)?).map(RepoConfig::from))
+}
