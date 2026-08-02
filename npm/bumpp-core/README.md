@@ -2,10 +2,9 @@
 
 自研 Rust 版本引擎（纯 Rust + [napi-rs](https://napi.rs/)），语义全量对齐上游 [bumpp](https://github.com/antfu/bumpp) v11，向 Node.js 暴露四个兼容 API：
 
-- `versionBump` — 文件版本更新 + npm scripts + git commit/tag/push（ThreadsafeFunction 进度回传）
+- `versionBump` — 文件版本更新 + npm scripts + git commit/tag/push（进度由 Rust 内置打印）
 - `versionBumpInfo` — 候选版本计算 + Rust 渲染的交互 prompt
 - `loadBumpConfig` — 配置加载合并（仅支持 JSON 配置文件）
-- `ProgressEvent` — 六类进度事件（file updated / file skipped / git commit / git tag / git push / npm script）
 
 ## 支持平台
 

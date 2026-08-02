@@ -54,7 +54,7 @@ pub struct UpdateFilesOutcome {
 }
 
 impl UpdateFilesOutcome {
-  /// 处理顺序的 (事件, 绝对路径) 序列，供 COL-15 经 ThreadsafeFunction 回传
+  /// 处理顺序的 (事件, 绝对路径) 序列，供内置打印与观察者闭包消费（ADR-0002）
   pub fn events(&self) -> &[(ProgressEvent, String)] {
     &self.events
   }

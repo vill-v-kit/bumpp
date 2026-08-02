@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
-import { versionBump, type VersionBumpProgress } from './index.js'
+import { versionBump } from './index.js'
 
 let dirs: string[] = []
 
@@ -33,9 +33,8 @@ afterEach(() => {
   dirs = []
 })
 
-it('全链路：文件更新 + scripts 时序 + commit/tag + 进度事件', async () => {
+it('全链路：文件更新 + scripts 时序 + commit/tag（进度内置打印，JS 无回调）', async () => {
   const dir = initRepo()
-  const events: VersionBumpProgress[] = []
   let ticks = 0
   const probe = setInterval(() => ticks++, 5)
   const results = await versionBump({
@@ -46,7 +45,6 @@ it('全链路：文件更新 + scripts 时序 + commit/tag + 进度事件', asyn
     tag: true,
     push: false,
     confirm: false,
-    progress: (p) => events.push(p),
   })
   clearInterval(probe)
 
@@ -59,36 +57,18 @@ it('全链路：文件更新 + scripts 时序 + commit/tag + 进度事件', asyn
   // scripts 按序执行
   expect(existsSync(join(dir, 'pre.txt'))).toBe(true)
   expect(existsSync(join(dir, 'post.txt'))).toBe(true)
-  // results 形状
+  // results 形状不变
   expect(results.newVersion).toBe('2.0.0')
   expect(results.currentVersion).toBe('1.0.0')
   expect(results.commit).toBe('chore: release v2.0.0')
   expect(results.tag).toBe('v2.0.0')
   expect(results.updatedFiles).toHaveLength(2)
-  // 事件序列与上游时序一致
-  expect(events.map((e) => e.event)).toEqual([
-    'npm script',
-    'file updated',
-    'file updated',
-    'git commit',
-    'git tag',
-    'npm script',
-  ])
-  expect(events[0].script).toBe('preversion')
-  expect(events[5].script).toBe('postversion')
-  // 负载形状：FileUpdated 时 updatedFiles 为累计数组（消费端 pop 最后一个）
-  expect(events[1].updatedFiles).toHaveLength(1)
-  expect(events[2].updatedFiles).toHaveLength(2)
-  expect(events[2].newVersion).toBe('2.0.0')
-  expect(events[3].commit).toBe('chore: release v2.0.0')
-  // 上游：tag 启用时 GitTag 前的事件负载为 ""（state.tagName 初值）
-  expect(events[3].tag).toBe('')
-  expect(events[4].tag).toBe('v2.0.0')
+  expect(results.skippedFiles).toHaveLength(0)
   // 慢速 git 操作期间事件循环未被阻塞
   expect(ticks).toBeGreaterThan(0)
 })
 
-it('push 到远端并收到 git push 事件，慢操作期间事件循环不被阻塞', async () => {
+it('push 到远端，慢操作期间事件循环不被阻塞', async () => {
   const dir = initRepo()
   const bare = mkdtempSync(join(tmpdir(), 'bumpp-vb-bare-'))
   dirs.push(bare)
@@ -97,7 +77,6 @@ it('push 到远端并收到 git push 事件，慢操作期间事件循环不被�
   git(dir, 'push -u origin main')
   // 慢速 git 操作：pre-push hook 休眠 1s
   writeFileSync(join(dir, '.git/hooks/pre-push'), '#!/bin/sh\nsleep 1\n', { mode: 0o755 })
-  const events: string[] = []
   let ticks = 0
   const probe = setInterval(() => ticks++, 50)
   await versionBump({
@@ -108,13 +87,11 @@ it('push 到远端并收到 git push 事件，慢操作期间事件循环不被�
     tag: true,
     push: true,
     confirm: false,
-    progress: (p) => events.push(p.event),
   })
   clearInterval(probe)
-  expect(ticks).toBeGreaterThan(5)
   expect(git(bare, 'log -1 --pretty=%s main')).toBe('chore: release v2.0.0')
   expect(git(bare, 'tag -l')).toBe('v2.0.0')
-  expect(events[events.length - 1]).toBe('git push')
+  expect(ticks).toBeGreaterThan(5)
 })
 
 it('失败步骤拒绝且错误可读', async () => {

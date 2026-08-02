@@ -25,7 +25,7 @@ export interface Config {
   /**
    * bumpp 配置信息
    */
-  bumpp?: Omit<VersionBumpOptions, 'progress' | 'cwd'>
+  bumpp?: Omit<VersionBumpOptions, 'cwd'>
 }
 
 /**
@@ -39,7 +39,7 @@ export interface ResolveConfig {
   /**
    * bumpp 配置信息
    */
-  bumpp: Omit<VersionBumpOptions, 'progress'>
+  bumpp: VersionBumpOptions
   accesstoken: Accesstokens
 }
 

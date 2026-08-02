@@ -1,46 +1,8 @@
-import { ProgressEvent, type VersionBumpProgress, versionBump, versionBumpInfo } from '@vill-v/bumpp-core'
-import { consola } from 'consola'
+import { versionBump, versionBumpInfo } from '@vill-v/bumpp-core'
 import { Spinner } from 'picospinner'
 import { changelog, getTag } from './changelog'
 import { resolveConfig } from './config'
 import type { BumpVersion, Config } from './types'
-
-/**
- * antfu/bumpp progress
- */
-function progress({
-  event,
-  script,
-  updatedFiles,
-  skippedFiles,
-  newVersion,
-}: VersionBumpProgress): void {
-  switch (event) {
-    case ProgressEvent.FileUpdated:
-      consola.success(`Updated ${updatedFiles.pop()} to ${newVersion}`)
-      break
-
-    case ProgressEvent.FileSkipped:
-      consola.info(`${skippedFiles.pop()} did not need to be updated`)
-      break
-
-    case ProgressEvent.GitCommit:
-      consola.info('Git commit')
-      break
-
-    case ProgressEvent.GitTag:
-      consola.info('Git tag')
-      break
-
-    case ProgressEvent.GitPush:
-      consola.success('Git push')
-      break
-
-    case ProgressEvent.NpmScript:
-      consola.success(`Npm run ${script}`)
-      break
-  }
-}
 
 /**
  * 更新版本
@@ -72,8 +34,8 @@ export const bumpVersion = async (option: Config = {}): Promise<BumpVersion> => 
     }
   }
 
-  // 更新包版本信息
-  await versionBump({ ...config.bumpp, progress, release: state.newVersion })
+  // 更新包版本信息（进度由 Rust Core 内置打印，ADR-0002）
+  await versionBump({ ...config.bumpp, release: state.newVersion })
 
   return res
 }

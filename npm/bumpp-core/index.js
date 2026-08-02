@@ -82,7 +82,6 @@ function requireNative() {
 const nativeBinding = requireNative()
 
 const {
-  ProgressEvent,
   gitCommit,
   gitPush,
   gitTag,
@@ -94,7 +93,6 @@ const {
   versionBumpInfo,
 } = nativeBinding
 export {
-  ProgressEvent,
   gitCommit,
   gitPush,
   gitTag,

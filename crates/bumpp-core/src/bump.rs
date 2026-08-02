@@ -211,8 +211,8 @@ pub fn version_bump(
   }
 
   macro_rules! emit {
-    ($event:expr, $script:expr) => {
-      progress(&Progress {
+    ($event:expr, $script:expr) => {{
+      let p = Progress {
         event: $event,
         script: $script,
         release: state.release.as_deref(),
@@ -232,8 +232,16 @@ pub fn version_bump(
         },
         updated_files: &state.updated_files,
         skipped_files: &state.skipped_files,
-      })
-    };
+      };
+      // 内置打印（ADR-0002）：仿 consola 样式，文件事件取最后一个（本次事件的文件）
+      let file = match p.event {
+        ProgressEvent::FileUpdated => p.updated_files.last().map(String::as_str),
+        ProgressEvent::FileSkipped => p.skipped_files.last().map(String::as_str),
+        _ => None,
+      };
+      crate::progress::print_line(p.event, p.script, p.new_version, file);
+      progress(&p);
+    }};
   }
 
   // ---- preversion → updateFiles → install/execute → version → git → postversion → push ----

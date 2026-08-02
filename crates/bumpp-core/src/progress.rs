@@ -1,7 +1,5 @@
-//! 进度事件：对齐上游 bumpp v11 `ProgressEvent` 枚举（versionBump 执行过程中的事件类型）。
-//!
-//! 本模块只定义事件数据结构；事件的产生与经 ThreadsafeFunction 回传 JS 在
-//! COL-15（versionBump）落地。
+//! 进度事件与内置打印：事件类型对齐上游 bumpp v11 `ProgressEvent`；
+//! 打印样式仿 consola（ADR-0002：progress 内置 Rust，不再回传 JS）。
 
 /// 上游 `ProgressEvent` 枚举，字符串值逐一对齐
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,4 +39,53 @@ mod tests {
     assert_eq!(ProgressEvent::GitPush.as_str(), "git push");
     assert_eq!(ProgressEvent::NpmScript.as_str(), "npm script");
   }
+}
+
+use dialoguer::console::style;
+
+/// 事件 → CLI 输出字符串（仿 consola 样式：success ✔ 绿 / info ℹ 蓝；
+/// 非 TTY 时 console 自动降级为无 ANSI 纯文本）。
+/// `file` 为本次事件对应的文件路径（FileUpdated / FileSkipped 的最后一个）。
+pub fn format_line(
+  event: ProgressEvent,
+  script: Option<&str>,
+  new_version: &str,
+  file: Option<&str>,
+) -> String {
+  match event {
+    ProgressEvent::FileUpdated => {
+      format!(
+        "{} Updated {} to {new_version}",
+        style("✔").green(),
+        file.unwrap_or_default()
+      )
+    }
+    ProgressEvent::FileSkipped => {
+      format!(
+        "{} {} did not need to be updated",
+        style("ℹ").blue(),
+        file.unwrap_or_default()
+      )
+    }
+    ProgressEvent::GitCommit => format!("{} Git commit", style("ℹ").blue()),
+    ProgressEvent::GitTag => format!("{} Git tag", style("ℹ").blue()),
+    ProgressEvent::GitPush => format!("{} Git push", style("✔").green()),
+    ProgressEvent::NpmScript => {
+      format!(
+        "{} Npm run {}",
+        style("✔").green(),
+        script.unwrap_or_default()
+      )
+    }
+  }
+}
+
+/// 内置打印到 stdout（与 dialoguer prompt / printSummary 同通道）
+pub(crate) fn print_line(
+  event: ProgressEvent,
+  script: Option<&str>,
+  new_version: &str,
+  file: Option<&str>,
+) {
+  println!("{}", format_line(event, script, new_version, file));
 }
