@@ -1,4 +1,4 @@
-//! 文本兜底插件（上游 bumpp v11 `updateTextFile` 纯迁移，ADR-0004）：
+//! 文本兜底插件（上游 bumpp v11 `updateTextFile` 纯迁移，ADR-0007）：
 //! 按上游正则 `(\b|v){version}\b` 全局替换（`\b` 为 JS 的 ASCII 语义）。
 
 use std::path::Path;

@@ -7,7 +7,7 @@
 - **toml_edit 编辑**：精确定位 `[package]` 表的 `version` 字段做保格式替换；引入 `toml_edit` 依赖（cargo 自家使用的 TOML 编辑库）。
 - **workspace 版本继承场景**：先探测 `package.version` 形态——字面量字符串则更新；`version.workspace = true`（成员继承根 `[workspace.package]`）则**跳过该文件**（强写字面量会造成键冲突/破坏继承），改为更新根 `[workspace.package].version`（若存在）；两者皆无才按"version 缺失"走 FileSkipped。
 - **basename 识别**：core 的 files 模块将 `cargo.toml`（小写比较）加入 manifest 识别名单，命中时走 TOML 通道而非文本替换。
-- **显式纳入 files**：Cargo.toml 进入发版清单靠显式配置（本仓 `vbumpp.config.ts` 列明各 rust crate 的 Cargo.toml——当前为 `crates/bumpp-core`、`napi/bumpp-core` 两处（version-files 于 ADR-0007 合并回 bumpp-core）），不做 recursive 自动收集——避免误伤其他仓库中无关的 Cargo.toml。
+- **显式纳入 files**：Cargo.toml 进入发版清单靠显式配置（本仓 `vbumpp.config.ts` 列明各 rust crate 的 Cargo.toml——当前为 `crates/bumpp-core`、`napi/bumpp-core` 两处），不做 recursive 自动收集——避免误伤其他仓库中无关的 Cargo.toml。
 - **Cargo.lock 同步**：优先以同一 toml_edit 机制按 name 定向更新 `[[package]]` 条目（确定性、无需跑 cargo）；条目缺失等同步失败场景**失败即报错**（发版一致性优先）。`cargo check --workspace` 作为兜底的备选刷新方式。
 - **跳过规则复用**：与 manifest 相同——`version` 缺失或已是新版本时不改写（FileSkipped）。
 
@@ -24,7 +24,7 @@
 
 ## 落地补充（COL-23）
 
-实现于 `crates/bumpp-core/src/files/` 的 `CargoTomlPlugin`（ADR-0007 合并后）（ADR-0004 静态链：JsManifest → CargoToml → Text），以下细节为实施时确定：
+实现于 `crates/bumpp-core/src/files/` 的 `CargoTomlPlugin`（ADR-0007 静态链：JsManifest → CargoToml → Text），以下细节为实施时确定：
 
 - **lock 发现**：自清单所在目录向上取首个 `Cargo.lock`（workspace 成员的 lock 在仓库根）；找不到则仅更新清单（库 crate 可不提交 lock，不视为漂移）。
 - **失败语义**：lock 条目缺失、`[[package]]` 版本与清单当前版本漂移、lock 解析失败均立即报错（`FilesError::Lock`），且清单不先行改写（全部计算通过后才写盘）。

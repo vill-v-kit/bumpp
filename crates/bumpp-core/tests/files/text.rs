@@ -1,4 +1,4 @@
-//! TextPlugin 行为矩阵——对齐上游 bumpp v11 updateTextFile（ADR-0004 纯迁移）。
+//! TextPlugin 行为矩阵——对齐上游 bumpp v11 updateTextFile（ADR-0007 纯迁移）。
 
 use std::fs;
 use std::path::Path;

@@ -1,4 +1,4 @@
-//! JS 生态 manifest 插件（上游 bumpp v11 `updateManifestFile` 纯迁移，ADR-0004）：
+//! JS 生态 manifest 插件（上游 bumpp v11 `updateManifestFile` 纯迁移，ADR-0007）：
 //! JSONC 容错解析后仅替换 `version` 值所在的文本区间（package-lock 另含
 //! `packages[""].version`），其余字节原样保留。
 
