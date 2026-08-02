@@ -85,3 +85,50 @@ fn io_error_message_uses_rel_path() {
     "错误消息应以相对路径开头，实际：{message}"
   );
 }
+
+#[test]
+fn cargo_toml_wins_over_text_fallback() {
+  let dir = TempDir::new().unwrap();
+  // version.workspace = true 的成员：走 TOML 通道按 ADR-0003 跳过；
+  // 若误入 Text 通道，注释里的 1.0.0 会被正则替换
+  fs::write(
+    dir.path().join("Cargo.toml"),
+    "[package]\nname = \"demo\"\nversion.workspace = true\n# 提到 1.0.0 也不应被文本替换\n",
+  )
+  .unwrap();
+  let outcome = update_file(
+    Path::new("Cargo.toml"),
+    &dir.path().join("Cargo.toml"),
+    "1.0.0",
+    "2.0.0",
+  )
+  .unwrap();
+  assert_eq!(outcome, UpdateOutcome::Skipped);
+  assert_eq!(
+    fs::read_to_string(dir.path().join("Cargo.toml")).unwrap(),
+    "[package]\nname = \"demo\"\nversion.workspace = true\n# 提到 1.0.0 也不应被文本替换\n",
+    "TOML 通道 skip 不得改写文件"
+  );
+}
+
+#[test]
+fn cargo_toml_basename_matching_is_case_insensitive() {
+  let dir = TempDir::new().unwrap();
+  fs::write(
+    dir.path().join("CARGO.TOML"),
+    "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+  )
+  .unwrap();
+  let outcome = update_file(
+    Path::new("CARGO.TOML"),
+    &dir.path().join("CARGO.TOML"),
+    "1.0.0",
+    "2.0.0",
+  )
+  .unwrap();
+  assert_eq!(outcome, UpdateOutcome::Updated);
+  assert_eq!(
+    fs::read_to_string(dir.path().join("CARGO.TOML")).unwrap(),
+    "[package]\nname = \"demo\"\nversion = \"2.0.0\"\n"
+  );
+}

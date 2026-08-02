@@ -11,6 +11,7 @@ repository = "https://github.com/vill-v-kit/bumpp"
 [dependencies]
 jsonc-parser = "0.33.1"
 regex = "1.13.1"
+toml_edit = "0.23"
 
 [dev-dependencies]
 tempfile = "3.20.0"

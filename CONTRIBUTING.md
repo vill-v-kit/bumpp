@@ -46,10 +46,6 @@ GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时
 
 ## 已知事项
 
-### Cargo.toml 版本线漂移点
-
-`crates/bumpp-core/Cargo.toml`、`crates/version-files/Cargo.toml` 与 `npm/bumpp-core/Cargo.toml` 都携带 `version` 字段，而 `vbumpp -r`（发布流程）只更新各 `package.json` 的版本号。未来实际发版时需**手动同步三处 Cargo.toml 的版本**，或在发布流程中引入同步机制（如 vbumpp 支持 Cargo.toml 版本字段更新，见 ADR-0003）。
-
 ### 本阶段不发版
 
 Rust 重写阶段已完成，但按 ADR-0001 决议**不随此发版**：CHANGELOG 迁移说明与 major 版本动作留待后续变更（oxc 加载 TS 配置、changelog Rust 化等）收敛后，随未来实际发版一并处理。

@@ -11,13 +11,25 @@ use crate::progress::ProgressEvent;
 
 #[derive(Debug)]
 pub enum FilesError {
-  Io { message: String },
+  Io {
+    message: String,
+  },
+  /// 清单不可解析（ADR-0003：失败即报错）
+  Parse {
+    message: String,
+  },
+  /// Cargo.lock 定向同步失败（ADR-0003：失败即报错）
+  Lock {
+    message: String,
+  },
 }
 
 impl fmt::Display for FilesError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::Io { message } => f.write_str(message),
+      Self::Io { message } | Self::Parse { message } | Self::Lock { message } => {
+        f.write_str(message)
+      }
     }
   }
 }
@@ -26,8 +38,10 @@ impl Error for FilesError {}
 
 impl From<version_files::UpdateError> for FilesError {
   fn from(e: version_files::UpdateError) -> Self {
-    Self::Io {
-      message: e.to_string(),
+    match e {
+      version_files::UpdateError::Io { message } => Self::Io { message },
+      version_files::UpdateError::Parse { message } => Self::Parse { message },
+      version_files::UpdateError::Lock { message } => Self::Lock { message },
     }
   }
 }
@@ -69,7 +83,9 @@ impl UpdateFilesOutcome {
   }
 }
 
-/// 上游 `updateFiles`：逐个文件更新版本号，按处理顺序产出 FileUpdated / FileSkipped 事件
+/// 上游 `updateFiles`：逐个文件更新版本号，按处理顺序产出 FileUpdated / FileSkipped 事件。
+/// 插件链附带同步的文件（Cargo.toml 带动的 Cargo.lock，ADR-0003）紧随主文件补发
+/// FileUpdated——updated_files 是 git 提交暂存的依据，附带文件必须入列
 pub fn update_files(
   files: &[String],
   cwd: &Path,
@@ -78,7 +94,7 @@ pub fn update_files(
 ) -> Result<UpdateFilesOutcome, FilesError> {
   let mut outcome = UpdateFilesOutcome::default();
   for rel_path in files {
-    let modified = update_file(rel_path, cwd, current_version, new_version)?;
+    let (modified, extra_paths) = update_file(rel_path, cwd, current_version, new_version)?;
     // 上游事件路径经 path.resolve(cwd, relPath) 归一化（消除 ./ 与 .. 段）
     let abs_path = resolve(cwd, rel_path).to_string_lossy().into_owned();
     let event = if modified {
@@ -87,24 +103,36 @@ pub fn update_files(
       ProgressEvent::FileSkipped
     };
     outcome.events.push((event, abs_path));
+    for extra in extra_paths {
+      outcome.events.push((
+        ProgressEvent::FileUpdated,
+        extra.to_string_lossy().into_owned(),
+      ));
+    }
   }
   Ok(outcome)
 }
 
-/// 上游 `updateFile`：文件不存在 → skipped；存在则经 version-files 插件链分发更新（ADR-0004）
+/// 上游 `updateFile`：文件不存在 → skipped；存在则经 version-files 插件链分发更新
+/// （ADR-0004）。返回 (主文件是否更新, 插件附带同步的文件路径)
 fn update_file(
   rel_path: &str,
   cwd: &Path,
   current_version: &str,
   new_version: &str,
-) -> Result<bool, FilesError> {
-  let path = cwd.join(rel_path);
+) -> Result<(bool, Vec<PathBuf>), FilesError> {
+  // 归一化后的绝对路径：插件由其向上派生的附带路径（如相邻 Cargo.lock）随之归一
+  let path = resolve(cwd, rel_path);
   if !path.exists() {
-    return Ok(false);
+    return Ok((false, vec![]));
   }
   let outcome =
     version_files::update_file(Path::new(rel_path), &path, current_version, new_version)?;
-  Ok(matches!(outcome, version_files::UpdateOutcome::Updated))
+  Ok(match outcome {
+    version_files::UpdateOutcome::Updated => (true, vec![]),
+    version_files::UpdateOutcome::UpdatedWith(extra_paths) => (true, extra_paths),
+    version_files::UpdateOutcome::Skipped => (false, vec![]),
+  })
 }
 
 /// Node `path.resolve(cwd, rel)` 的语义化归一：消除 `.` 与 `..` 段（不解符号链接）

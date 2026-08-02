@@ -254,3 +254,45 @@ fn event_paths_are_resolved_like_node_path_resolve() {
     dir.path().join("sub/package.json").to_string_lossy()
   );
 }
+
+#[test]
+fn cargo_toml_update_emits_lock_file_updated_event() {
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    "Cargo.toml",
+    "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+  );
+  write(
+    &dir,
+    "Cargo.lock",
+    "version = 4\n\n[[package]]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+  );
+  let outcome = bump(&dir, &["Cargo.toml"]);
+  // Cargo.toml 带动 Cargo.lock 定向同步（ADR-0003）：附带文件紧随主文件补发
+  // FileUpdated，两者都进入 updated_files（git 提交暂存的依据）
+  let events: Vec<_> = outcome
+    .events()
+    .iter()
+    .map(|(e, p)| (*e, p.rsplit('/').next().unwrap().to_owned()))
+    .collect();
+  assert_eq!(
+    events,
+    vec![
+      (ProgressEvent::FileUpdated, "Cargo.toml".to_owned()),
+      (ProgressEvent::FileUpdated, "Cargo.lock".to_owned()),
+    ]
+  );
+  assert_eq!(
+    outcome.updated_files(),
+    vec![
+      dir.path().join("Cargo.toml").to_string_lossy().as_ref(),
+      dir.path().join("Cargo.lock").to_string_lossy().as_ref(),
+    ]
+  );
+  assert!(outcome.skipped_files().is_empty());
+  assert_eq!(
+    read(&dir, "Cargo.lock"),
+    "version = 4\n\n[[package]]\nname = \"demo\"\nversion = \"2.0.0\"\n"
+  );
+}
