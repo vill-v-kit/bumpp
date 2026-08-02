@@ -69,6 +69,9 @@ pub(crate) trait VersionFilePlugin: Sync {
   fn matches(&self, rel_path: &Path) -> bool;
   /// 本通道所服务的生态；兜底通道（Text）为 None（不贡献 install 触发，ADR-0008）
   fn ecosystem(&self) -> Option<Ecosystem>;
+  /// 本生态的清单 basename 集合（recursive 整树收集的模式来源，ADR-0003 opt-in；
+  /// 兜底通道无清单概念，返回空）
+  fn manifest_basenames(&self) -> &'static [&'static str];
   /// 更新 `path`（绝对路径）指向的文件；`current` / `new` 为当前与新版本号；
   /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案
   fn update(
@@ -86,6 +89,17 @@ static PLUGINS: &[&dyn VersionFilePlugin] = &[
   &cargo_toml::CargoTomlPlugin,
   &text::TextPlugin,
 ];
+
+/// 各生态清单的 recursive 收集模式表（`-r` 整树收集，ADR-0003 opt-in 语义）：
+/// 链上各插件声明的 manifest basenames 聚合为 `**/` glob 模式——生态清单知识的
+/// 单一事实源，CLI 经 napi 取用，展开与 IGNORED_DIRS 过滤由 normalize_files 承担
+pub fn recursive_manifest_globs() -> Vec<String> {
+  PLUGINS
+    .iter()
+    .flat_map(|p| p.manifest_basenames())
+    .map(|b| format!("**/{b}"))
+    .collect()
+}
 
 /// 按 `rel_path` 分发到首个命中的插件，更新 `abs_path` 指向的文件
 pub fn dispatch_file(

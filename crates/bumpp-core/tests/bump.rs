@@ -332,3 +332,47 @@ fn progress_snapshot_matches_upstream_shape() {
     .unwrap();
   assert_eq!(tag_event.5.as_deref(), Some("v2.0.0"));
 }
+
+#[test]
+fn recursive_default_files_expand_packages_manifests() {
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  git(&path, &["init", "-b", "main"]);
+  git(&path, &["config", "user.email", "test@example.com"]);
+  git(&path, &["config", "user.name", "Test"]);
+  // 根 package.json 为 scripts 探测所需（无 scripts 字段即无操作）
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  fs::create_dir_all(path.join("packages/sub")).unwrap();
+  fs::write(
+    path.join("packages/sub/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "chore: init"]);
+
+  let mut options = base_options();
+  options.recursive = true;
+  options.commit = None;
+  options.tag = None;
+  let (_events, mut cb) = collect_events();
+  let results = version_bump(&options, &path, &mut cb).unwrap();
+
+  // 上游 recursive 语义：files 为空时默认清单追加 packages/**/package.json
+  // （CLI 流程不经此分支——JS 层消化 recursive；本测试补齐 core 原无覆盖的分支）
+  assert_eq!(results.new_version, "2.0.0");
+  assert_eq!(results.updated_files.len(), 2);
+  assert!(
+    results.updated_files[1].ends_with("packages/sub/package.json"),
+    "应递归命中 packages 下的 manifest：{}",
+    results.updated_files[1]
+  );
+  assert_eq!(
+    fs::read_to_string(path.join("packages/sub/package.json")).unwrap(),
+    "{\n  \"version\": \"2.0.0\"\n}\n"
+  );
+}

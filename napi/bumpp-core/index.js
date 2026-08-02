@@ -91,6 +91,7 @@ const {
   updateFiles,
   versionBump,
   versionBumpInfo,
+  versionFileManifestGlobs,
 } = nativeBinding
 export {
   gitCommit,
@@ -102,4 +103,5 @@ export {
   updateFiles,
   versionBump,
   versionBumpInfo,
+  versionFileManifestGlobs,
 }

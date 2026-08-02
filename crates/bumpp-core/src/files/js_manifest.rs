@@ -37,6 +37,11 @@ impl VersionFilePlugin for JsManifestPlugin {
     Some(Ecosystem::Node)
   }
 
+  /// 8 种 manifest basename（小写比较与 recursive 收集共用）
+  fn manifest_basenames(&self) -> &'static [&'static str] {
+    &MANIFEST_BASENAMES
+  }
+
   /// 上游 `updateManifestFile`：只设置顶层 `version`（package-lock 另含嵌套路径），
   /// 通过文本区间替换保留原格式
   fn update(

@@ -17,6 +17,11 @@ impl VersionFilePlugin for TextPlugin {
     None // 兜底通道不归属任何生态
   }
 
+  /// 兜底通道无清单概念
+  fn manifest_basenames(&self) -> &'static [&'static str] {
+    &[]
+  }
+
   /// 上游 `updateTextFile`：全局替换 `(\b|v){version}\b`，`\b` 对齐 JS 的 ASCII 语义
   fn update(
     &self,

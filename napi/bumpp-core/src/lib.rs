@@ -58,6 +58,13 @@ pub fn update_files(
     .map_err(to_napi_err)
 }
 
+/// 各生态清单的 recursive 收集模式表（core 插件链聚合，ADR-0003 opt-in）：
+/// CLI 的 `-r` 以此展开整树收集，未来生态在 core 链上落插件即自动纳入。
+#[napi]
+pub fn version_file_manifest_globs() -> Vec<String> {
+  bumpp_core::files::recursive_manifest_globs()
+}
+
 #[napi(object)]
 pub struct CommitSpec {
   #[napi(js_name = "updatedFiles")]

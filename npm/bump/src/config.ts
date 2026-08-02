@@ -1,7 +1,6 @@
-import { loadBumpConfig } from '@vill-v/bumpp-core'
+import { loadBumpConfig, versionFileManifestGlobs } from '@vill-v/bumpp-core'
 import { type ChangelogConfig, loadChangelogConfig } from 'changelogen'
 import { defu } from 'defu'
-import { glob } from 'tinyglobby'
 import { loadConfig } from '@esconf/core'
 import { presetMini } from '@esconf/preset-mini'
 import { consola } from 'consola'
@@ -68,14 +67,10 @@ export const resolveConfig = async (rawConfig: Config): Promise<ResolveConfig> =
   }
 
   if (rawConfig.bumpp?.recursive) {
-    const files = await glob('**/package.json', {
-      ignore: ['**/node_modules/**'],
-      cwd,
-      onlyFiles: true,
-    })
-    files.forEach((item) => {
-      _resolveConfig.bumpp.files!.push(item)
-    })
+    // -r 整树收集（ADR-0003 opt-in）：模式表由 core 插件链聚合导出——
+    // 生态清单知识的单一事实源，未来生态在 core 链上落插件即自动纳入；
+    // 展开与 IGNORED_DIRS 过滤由 core normalize_files 统一承担
+    _resolveConfig.bumpp.files!.push(...versionFileManifestGlobs())
   }
 
   _resolveConfig.bumpp.recursive = false

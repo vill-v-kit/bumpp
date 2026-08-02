@@ -132,3 +132,23 @@ fn cargo_toml_basename_matching_is_case_insensitive() {
     "[package]\nname = \"demo\"\nversion = \"2.0.0\"\n"
   );
 }
+
+#[test]
+fn recursive_manifest_globs_cover_all_ecosystems() {
+  // 链上模式表（ADR-0003 opt-in）：node 8 种 manifest + cargo.toml；
+  // Text 兜底无清单概念不贡献
+  assert_eq!(
+    bumpp_core::files::recursive_manifest_globs(),
+    vec![
+      "**/package.json",
+      "**/package-lock.json",
+      "**/bower.json",
+      "**/component.json",
+      "**/jsr.json",
+      "**/jsr.jsonc",
+      "**/deno.json",
+      "**/deno.jsonc",
+      "**/cargo.toml",
+    ]
+  );
+}

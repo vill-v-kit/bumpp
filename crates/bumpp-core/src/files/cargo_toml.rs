@@ -35,6 +35,10 @@ impl VersionFilePlugin for CargoTomlPlugin {
     Some(Ecosystem::Cargo)
   }
 
+  fn manifest_basenames(&self) -> &'static [&'static str] {
+    &["cargo.toml"]
+  }
+
   fn update(
     &self,
     path: &Path,

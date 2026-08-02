@@ -17,6 +17,7 @@
   内置有序链：`JsManifestPlugin`（8 种 basename + package-lock `packages[""].version` 规则）→ `CargoTomlPlugin`（ADR-0003）→ `TextPlugin`（上游 `(\b|v){version}\b` 替换，兜底，不归属任何生态）。按 `matches` 顺序分发，命中即走对应通道。
 - **静态分发**：开放注册 API 留待真实外部插件出现时再引（当前无注册方，不做运行时 registry）。
 - **生态归属挂在链上**：`ecosystem()` 使 install 侧（ADR-0008）无需重复 basename 规则——链是生态知识的单一事实源。
+- **清单收集知识同在链上**：`manifest_basenames()` 聚合为 recursive 整树收集模式表（`recursive_manifest_globs()`），经 napi 导出供 CLI 的 `-r` 使用（ADR-0003 opt-in 语义）；新增生态时收集与更新一并纳入，JS 侧零改动。
 - **错误模型单一**：`FilesError`（Io / Parse / Lock）贯通编排与插件，无跨边界映射层。
 
 ## Considered Options
