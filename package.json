@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
+    "check:licenses": "node scripts/check-licenses.mjs",
     "release": "vbumpp -r && pnpm build",
     "pretest": "turbo run build",
     "test": "vitest"

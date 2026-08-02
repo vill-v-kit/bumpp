@@ -37,9 +37,7 @@ vbumpp package.json packages/*/package.json
 
 ## ❤️ 鸣谢
 
-[bumpp](https://github.com/antfu/bumpp)
-
-[changelogen](https://github.com/unjs/changelogen)
+本项目的版本引擎为 [bumpp](https://github.com/antfu/bumpp) v11 的 Rust 重写（语义全量对齐，Copyright (c) 2022 Anthony Fu、Copyright (c) 2015 James Messinger，[MIT](https://github.com/antfu/bumpp/blob/main/LICENSE)）；`npm/bump/src/changelog.ts` 改写自 [changelogen](https://github.com/unjs/changelogen)（Copyright (c) Pooya Parsa，[MIT](https://github.com/unjs/changelogen/blob/main/LICENSE)）。两个上游的版权行均已保留在根 [LICENSE](./LICENSE) 中。
 
 ## License
 

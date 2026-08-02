@@ -44,6 +44,8 @@ cargo fmt --all && cargo clippy --workspace --all-targets
 
 GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时触发**：5 个 target 的原生 runner 构建矩阵 + macOS / Ubuntu / Windows 的 test-bindings。日常直推 main 不触发；未来发版时在同一 workflow 挂 publish job。
 
+`pnpm check:licenses`（test job 同步执行）校验各发版包的 `LICENSE` 与根逐字节一致——MIT 要求软件副本携带版权与许可文本，发版包即"副本"载体。新增发版包时必须从根复制 `LICENSE`；根 `LICENSE` 变更后须同步全部副本。
+
 ## 已知事项
 
 ### 本阶段不发版

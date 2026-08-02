@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: package LICENSE sync
+        run: pnpm check:licenses
+
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
