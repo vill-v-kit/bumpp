@@ -90,7 +90,7 @@ fn gitlab_project_lookup_404_errors() {
   let cwd = git_repo(&dir, "git@gitlab.com:owner/repo.git");
   let err = bumpp_core::release::gitlab::create_with_host(
     &format!("http://{}", mock.addr),
-    "t",
+    "glpat-secret-token",
     "1.0.0",
     "",
     &cwd,

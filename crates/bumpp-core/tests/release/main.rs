@@ -154,7 +154,7 @@ fn non_2xx_surfaces_server_message() {
   let cwd = git_repo(&dir, "git@github.com:owner/repo.git");
   let err = bumpp_core::release::github::create_with_base(
     &format!("http://{}", mock.addr),
-    "t",
+    "ghp-secret-token",
     "1.0.0",
     "",
     &cwd,

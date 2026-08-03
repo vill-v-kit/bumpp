@@ -9,7 +9,8 @@
 //! HTTP 原语在 http.rs。
 //!
 //! token 解析链统一为：Token 存储 → 各家环境变量 →（仅 github）`gh auth token`
-//! 兜底。明文 token 不出本模块（ADR-0014：不跨 napi 边界）。
+//! 兜底。明文 token 不出本模块（ADR-0014：不跨 napi 边界）——错误消息经
+//! `ReleaseError::redact` 脱敏（原始与 form 编码形态都替换为掩码）。
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -100,6 +101,35 @@ impl fmt::Display for ReleaseError {
 }
 
 impl Error for ReleaseError {}
+
+impl ReleaseError {
+  /// 报错脱敏（ADR-0014："明文 token 不出本模块"对错误消息同样成立）：
+  /// token 的**原始形态与 form 编码形态**都替换为掩码——gitcode 经 query
+  /// 注入 token，ureq 传输报错可能含完整 URL；服务端错误回显（check_status
+  /// 提取的 message / 原始响应体）亦属不可控输入，两家形态都可能出现
+  fn redact(self, token: &str) -> Self {
+    if token.is_empty() {
+      return self;
+    }
+    const MASK: &str = "[redacted]";
+    let encoded: String = url::form_urlencoded::byte_serialize(token.as_bytes()).collect();
+    let scrub = |message: String| message.replace(token, MASK).replace(&encoded, MASK);
+    match self {
+      Self::Token { message } => Self::Token {
+        message: scrub(message),
+      },
+      Self::Config { message } => Self::Config {
+        message: scrub(message),
+      },
+      Self::Git { message } => Self::Git {
+        message: scrub(message),
+      },
+      Self::Http { message } => Self::Http {
+        message: scrub(message),
+      },
+    }
+  }
+}
 
 impl From<crate::exec::ExecError> for ReleaseError {
   fn from(e: crate::exec::ExecError) -> Self {

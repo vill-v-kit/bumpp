@@ -50,6 +50,16 @@ pub fn create_with_host(
   markdown: &str,
   cwd: &Path,
 ) -> Result<(), ReleaseError> {
+  send(host, token, new_version, markdown, cwd).map_err(|e| e.redact(token))
+}
+
+fn send(
+  host: &str,
+  token: &str,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+) -> Result<(), ReleaseError> {
   let (owner, repo) = resolve_owner_repo(cwd)?;
   let encoded_path: String =
     url::form_urlencoded::byte_serialize(format!("{owner}/{repo}").as_bytes()).collect();

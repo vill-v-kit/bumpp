@@ -29,6 +29,16 @@ pub fn create_with_base(
   markdown: &str,
   cwd: &Path,
 ) -> Result<(), ReleaseError> {
+  send(base_url, token, new_version, markdown, cwd).map_err(|e| e.redact(token))
+}
+
+fn send(
+  base_url: &str,
+  token: &str,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+) -> Result<(), ReleaseError> {
   let (owner, repo) = resolve_owner_repo(cwd)?;
   let branch = crate::git::get_current_git_branch(cwd)?;
   let mut body = github_like::release_body(new_version, markdown, &branch);

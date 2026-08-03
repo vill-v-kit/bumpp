@@ -28,3 +28,7 @@ JS 侧残留三块功能——Token 存储（accesstoken.ts）、`bump.ts` 薄�
 - 依赖清理：npm/bump 删 `picospinner` / `@inquirer/password`；四平台包删 `ofetch` / `tinyexec`；gitee / gitcode 删对 `@vill-v/bumpp-github` 的依赖。
 - Rust 依赖增量：`ureq` / `aes-gcm`（及 ADR-0015 的 `toml`）。
 - 五个平台二进制包包含 HTTP/TLS 栈，体积增长，发布前需复测交叉编译链。
+
+## 落地注记（2026-08，ADR-0018 拆分同期）
+
+- 「明文 token 不出本模块」对**错误消息**同样成立：`ReleaseError::redact(token)` 在四家 provider 注入缝出口统一脱敏——原始形态与 form 编码形态（gitcode 经 query 注入，ureq 传输报错与服务端错误回显都可能携带 URL/请求体）一律替换为 `[redacted]`。行为锚点：`tests/release/{gitcode,gitee}.rs` 的 `*_error_never_leaks_token`。
