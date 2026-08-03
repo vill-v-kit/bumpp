@@ -19,8 +19,8 @@ use std::path::{Component, Path, PathBuf};
 
 use crate::progress::ProgressEvent;
 
-pub mod install;
 mod cargo;
+pub mod install;
 mod node;
 pub(crate) mod recursive;
 mod text;
@@ -109,11 +109,8 @@ pub(crate) trait VersionFilePlugin: Sync {
 }
 
 /// 内置有序链（Node → Cargo → Text 兜底）
-static PLUGINS: &[&dyn VersionFilePlugin] = &[
-  &node::NodePlugin,
-  &cargo::CargoPlugin,
-  &text::TextPlugin,
-];
+static PLUGINS: &[&dyn VersionFilePlugin] =
+  &[&node::NodePlugin, &cargo::CargoPlugin, &text::TextPlugin];
 
 /// 各生态清单的 recursive 收集模式表（`-r` 整树收集，ADR-0003 opt-in 语义）：
 /// 链上各插件声明的 manifest basenames 聚合为 `**/` glob 模式——生态清单知识的

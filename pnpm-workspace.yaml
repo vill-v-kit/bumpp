@@ -3,12 +3,8 @@ packages:
   - npm/*
 
 catalog:
-  '@inquirer/password': ^5.1.1
   cac: ^7.0.0
   consola: ^3.4.2
-  ofetch: ^1.5.1
-  picospinner: ^3.0.0
-  tinyexec: ^1.2.4
 
 catalogs:
   dev:

@@ -1,42 +1,28 @@
 //! versionBump 全链路编排——真实临时 git 仓库，对齐上游时序与事件序列。
 
+mod common;
+
 use std::fs;
-use std::path::Path;
-use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 use bumpp_core::bump::{version_bump, BumpOptions, CommitInput, Progress, Scripts, TagInput};
 use bumpp_core::progress::ProgressEvent;
 use tempfile::TempDir;
 
-fn git(dir: &Path, args: &[&str]) -> String {
-  let output = Command::new("git")
-    .args(args)
-    .current_dir(dir)
-    .output()
-    .unwrap();
-  assert!(
-    output.status.success(),
-    "git {args:?} 失败：{}",
-    String::from_utf8_lossy(&output.stderr)
-  );
-  String::from_utf8(output.stdout).unwrap().trim().to_owned()
-}
-
 fn init_repo(dir: &TempDir) -> std::path::PathBuf {
   let path = dir.path().to_path_buf();
-  git(&path, &["init", "-b", "main"]);
-  git(&path, &["config", "user.email", "test@example.com"]);
-  git(&path, &["config", "user.name", "Test"]);
-  git(&path, &["config", "commit.gpgsign", "false"]);
-  git(&path, &["config", "tag.gpgsign", "false"]);
+  common::git(&path, &["init", "-b", "main"]);
+  common::git(&path, &["config", "user.email", "test@example.com"]);
+  common::git(&path, &["config", "user.name", "Test"]);
+  common::git(&path, &["config", "commit.gpgsign", "false"]);
+  common::git(&path, &["config", "tag.gpgsign", "false"]);
   fs::write(
     path.join("package.json"),
     "{\n  \"version\": \"1.0.0\"\n}\n",
   )
   .unwrap();
-  git(&path, &["add", "."]);
-  git(&path, &["commit", "-m", "chore: init"]);
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "chore: init"]);
   path
 }
 
@@ -81,8 +67,8 @@ fn full_pipeline_files_commit_tag_and_events() {
   let path = init_repo(&dir);
   // 两个配置声明的脚本槽位（ADR-0011）+ 一个文本文件
   fs::write(path.join("VERSION.txt"), "version 1.0.0\n").unwrap();
-  git(&path, &["add", "."]); // 提交内文件须已跟踪（上游 pathspec 行为一致）
-  git(&path, &["commit", "-m", "add files"]);
+  common::git(&path, &["add", "."]); // 提交内文件须已跟踪（上游 pathspec 行为一致）
+  common::git(&path, &["commit", "-m", "add files"]);
   let (events, mut cb) = collect_events();
   let pre_cmd = "node -e \"require('fs').writeFileSync('pre.txt','')\"";
   let post_cmd = "node -e \"require('fs').writeFileSync('post.txt','')\"";
@@ -107,10 +93,10 @@ fn full_pipeline_files_commit_tag_and_events() {
   );
   // commit 与 tag（上游默认信息模板）
   assert_eq!(
-    git(&path, &["log", "-1", "--pretty=%s"]),
+    common::git(&path, &["log", "-1", "--pretty=%s"]),
     "chore: release v2.0.0"
   );
-  assert_eq!(git(&path, &["tag", "-l"]), "v2.0.0");
+  assert_eq!(common::git(&path, &["tag", "-l"]), "v2.0.0");
   // scripts 按序执行
   assert!(path.join("pre.txt").exists());
   assert!(path.join("post.txt").exists());
@@ -145,12 +131,12 @@ fn push_pipeline_pushes_to_remote() {
   let dir = TempDir::new().unwrap();
   let path = init_repo(&dir);
   let bare = TempDir::new().unwrap();
-  git(&path, &["init", "--bare", bare.path().to_str().unwrap()]);
-  git(
+  common::git(&path, &["init", "--bare", bare.path().to_str().unwrap()]);
+  common::git(
     &path,
     &["remote", "add", "origin", bare.path().to_str().unwrap()],
   );
-  git(&path, &["push", "-u", "origin", "main"]);
+  common::git(&path, &["push", "-u", "origin", "main"]);
   let (events, mut cb) = collect_events();
   let opts = BumpOptions {
     files: vec!["package.json".to_string()],
@@ -159,10 +145,10 @@ fn push_pipeline_pushes_to_remote() {
   };
   version_bump(&opts, &path, &mut cb).unwrap();
   assert_eq!(
-    git(bare.path(), &["log", "-1", "--pretty=%s", "main"]),
+    common::git(bare.path(), &["log", "-1", "--pretty=%s", "main"]),
     "chore: release v2.0.0"
   );
-  assert_eq!(git(bare.path(), &["tag", "-l"]), "v2.0.0");
+  assert_eq!(common::git(bare.path(), &["tag", "-l"]), "v2.0.0");
   let kinds: Vec<ProgressEvent> = events.lock().unwrap().iter().map(|(e, _)| *e).collect();
   assert_eq!(kinds.last(), Some(&ProgressEvent::GitPush));
 }
@@ -176,8 +162,8 @@ fn empty_files_uses_default_manifest_list() {
     "{\n  \"version\": \"1.0.0\",\n  \"packages\": {}\n}\n",
   )
   .unwrap();
-  git(&path, &["add", "."]);
-  git(&path, &["commit", "-m", "add lock"]);
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "add lock"]);
   let (_events, mut cb) = collect_events();
   let opts = base_options(); // files 为空 → 默认清单
   version_bump(&opts, &path, &mut cb).unwrap();
@@ -199,8 +185,8 @@ fn glob_patterns_expand_and_sort() {
     "{\n  \"version\": \"1.0.0\"\n}\n",
   )
   .unwrap();
-  git(&path, &["add", "."]);
-  git(&path, &["commit", "-m", "add sub package"]);
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "add sub package"]);
   let (_events, mut cb) = collect_events();
   let opts = BumpOptions {
     files: vec![
@@ -228,7 +214,7 @@ fn commit_false_skips_commit_but_tag_implies_commit() {
     ..base_options()
   };
   version_bump(&opts, &path, &mut cb).unwrap();
-  assert_eq!(git(&path, &["tag", "-l"]), "v2.0.0");
+  assert_eq!(common::git(&path, &["tag", "-l"]), "v2.0.0");
   let kinds: Vec<ProgressEvent> = events.lock().unwrap().iter().map(|(e, _)| *e).collect();
   assert!(kinds.contains(&ProgressEvent::GitCommit), "tag 隐含 commit");
 }
@@ -362,9 +348,9 @@ fn progress_snapshot_matches_upstream_shape() {
 fn recursive_default_files_expand_packages_manifests() {
   let dir = TempDir::new().unwrap();
   let path = dir.path().to_path_buf();
-  git(&path, &["init", "-b", "main"]);
-  git(&path, &["config", "user.email", "test@example.com"]);
-  git(&path, &["config", "user.name", "Test"]);
+  common::git(&path, &["init", "-b", "main"]);
+  common::git(&path, &["config", "user.email", "test@example.com"]);
+  common::git(&path, &["config", "user.name", "Test"]);
   // 根 package.json 提供版本来源
   fs::write(
     path.join("package.json"),
@@ -377,8 +363,8 @@ fn recursive_default_files_expand_packages_manifests() {
     "{\n  \"version\": \"1.0.0\"\n}\n",
   )
   .unwrap();
-  git(&path, &["add", "."]);
-  git(&path, &["commit", "-m", "chore: init"]);
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "chore: init"]);
 
   let mut options = base_options();
   options.recursive = true;
@@ -400,4 +386,66 @@ fn recursive_default_files_expand_packages_manifests() {
     fs::read_to_string(path.join("packages/sub/package.json")).unwrap(),
     "{\n  \"version\": \"2.0.0\"\n}\n"
   );
+}
+
+// ---------------------------------------------------------------------------
+// BumpOptions::from_merged（ADR-0014）：合并配置 → versionBump 输入的转换
+// ---------------------------------------------------------------------------
+
+#[test]
+fn from_merged_maps_config_keys() {
+  let merged = serde_json::json!({
+    "files": ["package.json", "Cargo.toml"],
+    "commit": "chore: custom v",
+    "tag": "release-v",
+    "push": true,
+    "sign": true,
+    "all": true,
+    "noVerify": true,
+    "confirm": false,
+    "ignoreScripts": true,
+    "install": true,
+    "execute": "echo hi",
+    "scripts": { "preversion": "echo pre", "version": "echo v", "postversion": "echo post" },
+    "preid": "alpha",
+    "currentVersion": "1.0.0",
+  });
+  let merged = merged.as_object().unwrap();
+  let options = BumpOptions::from_merged(merged, "2.0.0");
+  assert_eq!(options.release, Some("2.0.0"));
+  assert_eq!(options.files, vec!["package.json", "Cargo.toml"]);
+  assert!(matches!(
+    options.commit,
+    Some(CommitInput::Message("chore: custom v"))
+  ));
+  assert!(matches!(options.tag, Some(TagInput::Name("release-v"))));
+  assert!(options.push && options.sign && options.all && options.no_verify);
+  assert!(!options.confirm);
+  assert!(options.ignore_scripts && options.install);
+  assert_eq!(options.execute, Some("echo hi"));
+  let scripts = options.scripts.unwrap();
+  assert_eq!(scripts.preversion.as_deref(), Some("echo pre"));
+  assert_eq!(scripts.version.as_deref(), Some("echo v"));
+  assert_eq!(scripts.postversion.as_deref(), Some("echo post"));
+  assert_eq!(options.preid, Some("alpha"));
+  assert_eq!(options.current_version, Some("1.0.0"));
+}
+
+#[test]
+fn from_merged_tolerates_missing_and_falsy() {
+  // 空表 → 全默认；commit/tag 空字符串按上游 falsy 语义关闭
+  let empty = serde_json::Map::new();
+  let options = BumpOptions::from_merged(&empty, "1.0.1");
+  assert_eq!(options.release, Some("1.0.1"));
+  assert!(options.files.is_empty());
+  assert!(options.commit.is_none());
+  assert!(options.tag.is_none());
+  assert!(!options.push && !options.sign && !options.install);
+
+  let merged = serde_json::json!({ "commit": "", "tag": "", "files": "not-array" });
+  let merged = merged.as_object().unwrap();
+  let options = BumpOptions::from_merged(merged, "1.0.1");
+  assert!(options.commit.is_none(), "空字符串 commit 关闭");
+  assert!(options.tag.is_none(), "空字符串 tag 关闭");
+  assert!(options.files.is_empty(), "类型不符按缺失处理");
 }

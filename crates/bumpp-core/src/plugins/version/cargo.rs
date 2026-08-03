@@ -25,7 +25,11 @@ use super::super::{read_text, write_text, FilesError, UpdateOutcome};
 pub(crate) fn matches(rel_path: &Path) -> bool {
   rel_path
     .file_name()
-    .map(|n| n.to_string_lossy().trim().eq_ignore_ascii_case("cargo.toml"))
+    .map(|n| {
+      n.to_string_lossy()
+        .trim()
+        .eq_ignore_ascii_case("cargo.toml")
+    })
     .unwrap_or(false)
 }
 

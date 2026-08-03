@@ -1,57 +1,44 @@
-// napi 链路冒烟（COL-40）：全部 changelog 系导出 + 既有导出可调用且返回结构正确
-import { execSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+// napi 链路冒烟（ADR-0014 收缩后的导出面）：新编排/Release/token 导出可调用，
+// 旧 parity 面不再导出
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  generateChangelog,
-  getCurrentGitBranch,
-  getGitDiff,
-  getLastGitTag,
-  loadBumpConfig,
-  resolveRepoConfig,
-  versionBumpInfo,
-  versionFileManifestGlobs,
+  bumpVersion,
+  createGitcodeRelease,
+  createGiteeRelease,
+  createGithubRelease,
+  createGitlabRelease,
+  tokenList,
+  tokenRemove,
+  tokenSet,
 } from './index.js'
 
 const dir = mkdtempSync(join(tmpdir(), 'bumpp-smoke-'))
-const git = (args) => execSync(`git ${args}`, { cwd: dir, encoding: 'utf8' }).trim()
-git('init -b main')
-git('config user.email t@e.com')
-git('config user.name T')
-git('config commit.gpgsign false')
-writeFileSync(
-  join(dir, 'package.json'),
-  JSON.stringify({ version: '1.0.0', repository: 'https://github.com/owner/repo.git' }),
-)
-git('add .')
-git('commit -m "chore: init"')
-git('tag v1.0.0')
-writeFileSync(join(dir, 'f.txt'), 'x')
-git('add .')
-git('commit -m "feat: add x (#1)"')
+// token 存储指向临时路径，不碰真实 ~/.vbumpp
+process.env.VBUMPP_TOKEN_STORE = join(dir, 'tokens.bin')
 
 const checks = [
-  ['versionBumpInfo 导出存在', typeof versionBumpInfo === 'function'],
-  ['loadBumpConfig 内建默认', loadBumpConfig().commit === true],
-  ['getLastGitTag 真实 tag 名', getLastGitTag(dir) === 'v1.0.0'],
-  // 须在 generateChangelog 前——后者会新增一条 changelog 提交
-  ['getGitDiff 范围提交', getGitDiff('v1.0.0', undefined, dir).length === 1],
-  [
-    'generateChangelog 端到端',
-    generateChangelog({ from: 'v1.0.0', to: '1.1.0' }, dir).markdown.startsWith('## v1.1.0'),
-  ],
-  ['getCurrentGitBranch', getCurrentGitBranch(dir) === 'main'],
-  ['resolveRepoConfig 结构', resolveRepoConfig(dir).repo === 'owner/repo'],
-  [
-    'versionFileManifestGlobs 插件底座链',
-    versionFileManifestGlobs().includes('**/Cargo.toml'),
-  ],
-  [
-    'changelogMD 写盘一致',
-    readFileSync(join(dir, 'CHANGELOG.md'), 'utf8').includes('Add x'),
-  ],
+  ['bumpVersion 导出存在', typeof bumpVersion === 'function'],
+  ['createGithubRelease 导出存在', typeof createGithubRelease === 'function'],
+  ['createGitlabRelease 导出存在', typeof createGitlabRelease === 'function'],
+  ['createGiteeRelease 导出存在', typeof createGiteeRelease === 'function'],
+  ['createGitcodeRelease 导出存在', typeof createGitcodeRelease === 'function'],
+  ['tokenSet 导出存在', typeof tokenSet === 'function'],
+  ['tokenList 空存储返回空表', Array.isArray(tokenList()) && tokenList().length === 0],
+  ['tokenRemove 空存储返回 false', tokenRemove('github') === false],
 ]
+
+// provider 校验在编排入口同步失败（不经网络/交互）
+try {
+  await bumpVersion({}, 'bogus', dir)
+  checks.push(['bumpVersion 未知 provider 报错', false])
+} catch (error) {
+  checks.push([
+    'bumpVersion 未知 provider 报错',
+    String(error).includes('未知 provider: bogus'),
+  ])
+}
 
 let failed = 0
 for (const [name, ok] of checks) {

@@ -1,16 +1,13 @@
 #![deny(clippy::all)]
 
+//! napi 导出面（ADR-0014 收缩后）：编排 `bumpVersion`、平台 Release 四导出、
+//! token 三件套（CLI 路由用）。上游 parity 面（versionBump 系、loadBumpConfig）
+//! 与 changelog 系函数已收归 Rust 内部，不再导出。
+
 use std::path::PathBuf;
 
 use napi_derive::napi;
 use serde_json::{Map, Value};
-
-/// Scaffold smoke-test export: proves the Rust → napi → JS link works end to end.
-/// Real bumpp APIs land in later tickets (COL-8+).
-#[napi]
-pub fn plus_100(input: u32) -> u32 {
-  input + 100
-}
 
 fn resolve_cwd(cwd: Option<String>) -> napi::Result<PathBuf> {
   match cwd {
@@ -23,147 +20,63 @@ fn to_napi_err(e: impl std::fmt::Display) -> napi::Error {
   napi::Error::from_reason(e.to_string())
 }
 
-/// 加载并合并 bumpp 配置（仅 JSON 配置文件），语义对齐上游 bumpp v11 的 `loadBumpConfig`。
+// ---------------------------------------------------------------------------
+// token 三件套（ADR-0014：存储与交互全在 Rust，CLI 仅路由）
+// ---------------------------------------------------------------------------
+
+/// token list：存储中全部平台名
 #[napi]
-pub fn load_bump_config(
-  overrides: Option<Map<String, Value>>,
-  cwd: Option<String>,
-) -> napi::Result<Map<String, Value>> {
-  bumpp_core::config::load_bump_config(overrides, &resolve_cwd(cwd)?).map_err(to_napi_err)
+pub fn token_list() -> napi::Result<Vec<String>> {
+  Ok(
+    bumpp_core::token::read_token_store()
+      .map_err(to_napi_err)?
+      .into_keys()
+      .collect(),
+  )
 }
 
-/// 文件版本更新结果（对齐上游 operation.state 的 updatedFiles / skippedFiles）
-#[napi(object)]
-pub struct UpdateFilesOutcome {
-  #[napi(js_name = "updatedFiles")]
-  pub updated_files: Vec<String>,
-  #[napi(js_name = "skippedFiles")]
-  pub skipped_files: Vec<String>,
-}
-
-/// 更新文件中的版本号（manifest 保格式更新 + 文本模板替换），对齐上游 `updateFiles`。
+/// token remove：删除指定平台 token；返回是否实际删除
 #[napi]
-pub fn update_files(
-  files: Vec<String>,
-  cwd: Option<String>,
-  current_version: String,
-  new_version: String,
-) -> napi::Result<UpdateFilesOutcome> {
-  let cwd = resolve_cwd(cwd)?;
-  bumpp_core::plugins::update_files(&files, &cwd, &current_version, &new_version)
-    .map(|o| UpdateFilesOutcome {
-      updated_files: o.updated_files().iter().map(|s| s.to_string()).collect(),
-      skipped_files: o.skipped_files().iter().map(|s| s.to_string()).collect(),
-    })
-    .map_err(to_napi_err)
+pub fn token_remove(name: String) -> napi::Result<bool> {
+  bumpp_core::token::remove_token(&name).map_err(to_napi_err)
 }
 
-/// 各生态清单的 recursive 收集模式表（core 插件链聚合，ADR-0003 opt-in）：
-/// CLI 的 `-r` 以此展开整树收集，未来生态在 core 链上落插件即自动纳入。
+pub struct TokenSetTask {
+  name: String,
+}
+
 #[napi]
-pub fn version_file_manifest_globs() -> Vec<String> {
-  bumpp_core::plugins::recursive_manifest_globs()
+impl napi::Task for TokenSetTask {
+  type Output = bool;
+  type JsValue = bool;
+
+  fn compute(&mut self) -> napi::Result<Self::Output> {
+    // Rust 侧渲染密码 prompt（dialoguer）；空输入报错、取消返回 false
+    match bumpp_core::token::prompt_token(&self.name).map_err(to_napi_err)? {
+      Some(token) => {
+        bumpp_core::token::save_token(&self.name, &token).map_err(to_napi_err)?;
+        Ok(true)
+      }
+      None => Ok(false),
+    }
+  }
+
+  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+    Ok(output)
+  }
 }
 
-#[napi(object)]
-pub struct CommitSpec {
-  #[napi(js_name = "updatedFiles")]
-  pub updated_files: Vec<String>,
-  pub all: bool,
-  #[napi(js_name = "noVerify")]
-  pub no_verify: bool,
-  pub sign: bool,
-  pub message: String,
-  #[napi(js_name = "newVersion")]
-  pub new_version: String,
-}
-
-#[napi(object)]
-pub struct TagSpec {
-  pub name: String,
-  pub message: String,
-  pub sign: bool,
-  #[napi(js_name = "newVersion")]
-  pub new_version: String,
-}
-
-#[napi(object)]
-pub struct GitCommitOutcome {
-  pub event: String,
-  #[napi(js_name = "commitMessage")]
-  pub commit_message: String,
-}
-
-#[napi(object)]
-pub struct GitTagOutcome {
-  pub event: String,
-  #[napi(js_name = "tagName")]
-  pub tag_name: String,
-}
-
-#[napi(object)]
-pub struct GitPushOutcome {
-  pub event: String,
-}
-
-/// git commit（shell out 到 git 二进制），对齐上游 `gitCommit`。
+/// token set：Rust 侧交互录入并加密保存（返回是否实际保存——用户取消为 false）
 #[napi]
-pub fn git_commit(cwd: Option<String>, spec: CommitSpec) -> napi::Result<GitCommitOutcome> {
-  let core_spec = bumpp_core::git::CommitSpec {
-    updated_files: &spec.updated_files,
-    all: spec.all,
-    no_verify: spec.no_verify,
-    sign: spec.sign,
-    message: &spec.message,
-    new_version: &spec.new_version,
-  };
-  bumpp_core::git::git_commit(&resolve_cwd(cwd)?, &core_spec)
-    .map(|(e, m)| GitCommitOutcome {
-      event: e.as_str().to_string(),
-      commit_message: m,
-    })
-    .map_err(to_napi_err)
+pub fn token_set(name: String) -> napi::bindgen_prelude::AsyncTask<TokenSetTask> {
+  napi::bindgen_prelude::AsyncTask::new(TokenSetTask { name })
 }
 
-/// git tag（附注），对齐上游 `gitTag`。
-#[napi]
-pub fn git_tag(cwd: Option<String>, spec: TagSpec) -> napi::Result<GitTagOutcome> {
-  let core_spec = bumpp_core::git::TagSpec {
-    name: &spec.name,
-    message: &spec.message,
-    sign: spec.sign,
-    new_version: &spec.new_version,
-  };
-  bumpp_core::git::git_tag(&resolve_cwd(cwd)?, &core_spec)
-    .map(|(e, n)| GitTagOutcome {
-      event: e.as_str().to_string(),
-      tag_name: n,
-    })
-    .map_err(to_napi_err)
-}
+// ---------------------------------------------------------------------------
+// bumpVersion 编排（ADR-0014：JS bump.ts 的 Rust 收编）
+// ---------------------------------------------------------------------------
 
-/// git push（withTags 时追加 `git push --tags`），对齐上游 `gitPush`。
-#[napi]
-pub fn git_push(cwd: Option<String>, with_tags: bool) -> napi::Result<GitPushOutcome> {
-  bumpp_core::git::git_push(&resolve_cwd(cwd)?, with_tags)
-    .map(|e| GitPushOutcome {
-      event: e.as_str().to_string(),
-    })
-    .map_err(to_napi_err)
-}
-
-#[napi(object)]
-#[derive(Default)]
-pub struct BumpInfoArg {
-  pub release: Option<String>,
-  pub files: Option<Vec<String>>,
-  pub cwd: Option<String>,
-  pub preid: Option<String>,
-  #[napi(js_name = "currentVersion")]
-  pub current_version: Option<String>,
-}
-
-/// 上游 operation.state 的形状
+/// 上游 `operation.state` 的形状
 #[napi(object)]
 pub struct BumpState {
   pub release: Option<String>,
@@ -198,210 +111,58 @@ impl From<bumpp_core::info::BumpState> for BumpState {
   }
 }
 
-/// 上游 versionBumpInfo 的返回形状：{ state }
+/// changelog 生成结果
 #[napi(object)]
-pub struct VersionBumpInfo {
-  pub state: BumpState,
+pub struct GenerateChangelogResult {
+  pub markdown: String,
+  #[napi(js_name = "changelogMD")]
+  pub changelog_md: String,
 }
 
-pub struct VersionBumpInfoTask {
-  arg: Option<napi::Either<String, BumpInfoArg>>,
-}
-
-#[napi]
-impl napi::Task for VersionBumpInfoTask {
-  type Output = VersionBumpInfo;
-  type JsValue = VersionBumpInfo;
-
-  fn compute(&mut self) -> napi::Result<Self::Output> {
-    let arg = match self.arg.take() {
-      // 上游：字符串入参等价于 { release: arg }
-      Some(napi::Either::A(release)) => BumpInfoArg {
-        release: Some(release),
-        ..Default::default()
-      },
-      Some(napi::Either::B(a)) => a,
-      None => BumpInfoArg::default(),
-    };
-    let cwd = resolve_cwd(arg.cwd)?;
-    let files = arg.files.unwrap_or_default();
-    let options = bumpp_core::info::BumpInfoOptions {
-      release: arg.release.as_deref(),
-      files: &files,
-      current_version: arg.current_version.as_deref(),
-      preid: arg.preid.as_deref(),
-    };
-    bumpp_core::info::version_bump_info(&options, &cwd)
-      .map(|s| VersionBumpInfo { state: s.into() })
-      .map_err(to_napi_err)
-  }
-
-  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-    Ok(output)
-  }
-}
-
-/// 计算 bump 信息（当前版本 + 新版本），必要时在 Rust 侧渲染交互 prompt。
-/// 对齐上游 bumpp v11 的 `versionBumpInfo`。
-#[napi]
-pub fn version_bump_info(
-  arg: Option<napi::Either<String, BumpInfoArg>>,
-) -> napi::bindgen_prelude::AsyncTask<VersionBumpInfoTask> {
-  napi::bindgen_prelude::AsyncTask::new(VersionBumpInfoTask { arg })
-}
-
-/// 配置声明的脚本命令（ADR-0011）：三时序槽位各自的 shell 命令串
+/// `bumpVersion` 返回（ADR-0014 收缩后的 `BumpVersion` 形状）
 #[napi(object)]
-#[derive(Default, Clone)]
-pub struct Scripts {
-  pub preversion: Option<String>,
-  pub version: Option<String>,
-  pub postversion: Option<String>,
+pub struct BumpVersionResult {
+  pub bumpp: BumpState,
+  pub changelog: Option<GenerateChangelogResult>,
 }
 
-#[napi(object)]
-#[derive(Default)]
-pub struct VersionBumpOptions {
-  pub release: Option<String>,
-  pub files: Option<Vec<String>>,
-  pub cwd: Option<String>,
-  pub commit: Option<napi::Either<bool, String>>,
-  pub tag: Option<napi::Either<bool, String>>,
-  pub push: Option<bool>,
-  pub sign: Option<bool>,
-  pub all: Option<bool>,
-  #[napi(js_name = "noVerify")]
-  pub no_verify: Option<bool>,
-  pub confirm: Option<bool>,
-  #[napi(js_name = "ignoreScripts")]
-  pub ignore_scripts: Option<bool>,
-  pub install: Option<bool>,
-  pub execute: Option<String>,
-  pub scripts: Option<Scripts>,
-  pub preid: Option<String>,
-  #[napi(js_name = "currentVersion")]
-  pub current_version: Option<String>,
-  pub recursive: Option<bool>,
-}
-
-/// 上游 `operation.results`
-#[napi(object)]
-pub struct VersionBumpResults {
-  pub release: Option<String>,
-  #[napi(js_name = "currentVersion")]
-  pub current_version: String,
-  #[napi(js_name = "newVersion")]
-  pub new_version: String,
-  pub commit: napi::Either<String, bool>,
-  pub tag: napi::Either<String, bool>,
-  #[napi(js_name = "updatedFiles")]
-  pub updated_files: Vec<String>,
-  #[napi(js_name = "skippedFiles")]
-  pub skipped_files: Vec<String>,
-}
-
-/// versionBump 的纯数据输入（无 JS 回调，天然跨线程安全）
-pub struct BumpTaskData {
-  release: Option<String>,
-  files: Vec<String>,
+pub struct BumpVersionTask {
+  overrides: Option<Map<String, Value>>,
+  provider: Option<String>,
   cwd: Option<String>,
-  commit: Option<napi::Either<bool, String>>,
-  tag: Option<napi::Either<bool, String>>,
-  push: bool,
-  sign: bool,
-  all: bool,
-  no_verify: bool,
-  confirm: bool,
-  ignore_scripts: bool,
-  install: bool,
-  execute: Option<String>,
-  scripts: Option<Scripts>,
-  preid: Option<String>,
-  current_version: Option<String>,
-  recursive: bool,
-}
-
-pub struct VersionBumpTask {
-  data: BumpTaskData,
-}
-
-impl From<VersionBumpOptions> for BumpTaskData {
-  fn from(o: VersionBumpOptions) -> Self {
-    Self {
-      release: o.release,
-      files: o.files.unwrap_or_default(),
-      cwd: o.cwd,
-      commit: o.commit,
-      tag: o.tag,
-      push: o.push.unwrap_or(false),
-      sign: o.sign.unwrap_or(false),
-      all: o.all.unwrap_or(false),
-      no_verify: o.no_verify.unwrap_or(false),
-      confirm: o.confirm.unwrap_or(false),
-      ignore_scripts: o.ignore_scripts.unwrap_or(false),
-      install: o.install.unwrap_or(false),
-      execute: o.execute,
-      scripts: o.scripts,
-      preid: o.preid,
-      current_version: o.current_version,
-      recursive: o.recursive.unwrap_or(false),
-    }
-  }
 }
 
 #[napi]
-impl napi::Task for VersionBumpTask {
-  type Output = VersionBumpResults;
-  type JsValue = VersionBumpResults;
+impl napi::Task for BumpVersionTask {
+  type Output = BumpVersionResult;
+  type JsValue = BumpVersionResult;
 
   fn compute(&mut self) -> napi::Result<Self::Output> {
-    let options = &self.data;
-    let cwd = resolve_cwd(options.cwd.clone())?;
-    let core_options = bumpp_core::bump::BumpOptions {
-      release: options.release.as_deref(),
-      files: options.files.clone(),
-      recursive: options.recursive,
-      commit: options.commit.as_ref().map(|c| match c {
-        napi::Either::A(b) => bumpp_core::bump::CommitInput::Bool(*b),
-        napi::Either::B(s) => bumpp_core::bump::CommitInput::Message(s.as_str()),
-      }),
-      tag: options.tag.as_ref().map(|t| match t {
-        napi::Either::A(b) => bumpp_core::bump::TagInput::Bool(*b),
-        napi::Either::B(s) => bumpp_core::bump::TagInput::Name(s.as_str()),
-      }),
-      push: options.push,
-      sign: options.sign,
-      all: options.all,
-      no_verify: options.no_verify,
-      confirm: options.confirm,
-      ignore_scripts: options.ignore_scripts,
-      install: options.install,
-      execute: options.execute.as_deref(),
-      scripts: options.scripts.clone().map(|s| bumpp_core::bump::Scripts {
-        preversion: s.preversion,
-        version: s.version,
-        postversion: s.postversion,
-      }),
-      preid: options.preid.as_deref(),
-      current_version: options.current_version.as_deref(),
-    };
-    let mut noop = |_: &bumpp_core::bump::Progress| {};
-    let results =
-      bumpp_core::bump::version_bump(&core_options, &cwd, &mut noop).map_err(to_napi_err)?;
-    Ok(VersionBumpResults {
-      release: results.release,
-      current_version: results.current_version,
-      new_version: results.new_version,
-      commit: match results.commit {
-        Some(m) => napi::Either::A(m),
-        None => napi::Either::B(false),
+    let provider = self
+      .provider
+      .as_deref()
+      .map(|p| {
+        bumpp_core::release::Provider::parse(p).ok_or_else(|| {
+          napi::Error::from_reason(format!(
+            "未知 provider: {p}（可用 github / gitlab / gitee / gitcode）"
+          ))
+        })
+      })
+      .transpose()?;
+    let outcome = bumpp_core::orchestrate::bump_version(
+      &bumpp_core::orchestrate::BumpVersionOptions {
+        overrides: self.overrides.take(),
+        provider,
       },
-      tag: match results.tag {
-        Some(t) => napi::Either::A(t),
-        None => napi::Either::B(false),
-      },
-      updated_files: results.updated_files,
-      skipped_files: results.skipped_files,
+      &resolve_cwd(self.cwd.take())?,
+    )
+    .map_err(to_napi_err)?;
+    Ok(BumpVersionResult {
+      bumpp: outcome.state.into(),
+      changelog: outcome.changelog.map(|c| GenerateChangelogResult {
+        markdown: c.markdown,
+        changelog_md: c.changelog_md,
+      }),
     })
   }
 
@@ -410,162 +171,122 @@ impl napi::Task for VersionBumpTask {
   }
 }
 
-/// 完整 bump 流程：文件更新 + 配置声明的脚本（ADR-0011）+ git commit/tag/push。
-/// 进度由 Rust 内置打印（ADR-0002），不再回传 JS。对齐上游 `versionBump`。
+/// 完整 bump 编排：统一配置解析 → 交互选版本 → changelog → 文件/脚本/git →
+/// 可选平台 Release（`provider` 传 'github' | 'gitlab' | 'gitee' | 'gitcode' 时）
 #[napi]
-pub fn version_bump(
-  options: VersionBumpOptions,
-) -> napi::bindgen_prelude::AsyncTask<VersionBumpTask> {
-  napi::bindgen_prelude::AsyncTask::new(VersionBumpTask {
-    data: options.into(),
+pub fn bump_version(
+  overrides: Option<Map<String, Value>>,
+  provider: Option<String>,
+  cwd: Option<String>,
+) -> napi::bindgen_prelude::AsyncTask<BumpVersionTask> {
+  napi::bindgen_prelude::AsyncTask::new(BumpVersionTask {
+    overrides,
+    provider,
+    cwd,
   })
 }
 
-/// changelogen `RawCommit` 的 author 字段（ADR-0012）
+// ---------------------------------------------------------------------------
+// 平台 Release 四导出（ADR-0014：per-provider 1:1 parity；共享实现在 Rust 内部）
+// ---------------------------------------------------------------------------
+
+/// `createXRelease` 入参的 `bumpp` 槽（TS 结构类型：完整 BumpState 可赋值）
 #[napi(object)]
-pub struct GitAuthor {
-  pub name: String,
-  pub email: String,
+pub struct CreateReleaseBump {
+  #[napi(js_name = "newVersion")]
+  pub new_version: String,
 }
 
-/// changelogen `RawCommit`（`getGitDiff` 的元素）
+/// `createXRelease` 入参的 `changelog` 槽
 #[napi(object)]
-pub struct RawCommit {
-  pub message: String,
-  #[napi(js_name = "shortHash")]
-  pub short_hash: String,
-  pub author: GitAuthor,
-  pub body: String,
+pub struct CreateReleaseChangelog {
+  pub markdown: Option<String>,
 }
 
-impl From<bumpp_core::git::RawCommit> for RawCommit {
-  fn from(c: bumpp_core::git::RawCommit) -> Self {
-    Self {
-      message: c.message,
-      short_hash: c.short_hash,
-      author: GitAuthor {
-        name: c.author.name,
-        email: c.author.email,
-      },
-      body: c.body,
-    }
+/// `createXRelease` 入参（ADR-0014 收缩后的 `BumpVersion` 形状）：
+/// token / repo / host 由 Rust 内部解析，不经 JS 传入
+#[napi(object)]
+pub struct CreateReleaseOptions {
+  pub bumpp: CreateReleaseBump,
+  pub changelog: Option<CreateReleaseChangelog>,
+}
+
+pub struct CreateReleaseTask {
+  provider: bumpp_core::release::Provider,
+  new_version: String,
+  markdown: String,
+  cwd: Option<String>,
+}
+
+#[napi]
+impl napi::Task for CreateReleaseTask {
+  type Output = ();
+  type JsValue = ();
+
+  fn compute(&mut self) -> napi::Result<Self::Output> {
+    bumpp_core::release::create_release(
+      self.provider,
+      &self.new_version,
+      &self.markdown,
+      &resolve_cwd(self.cwd.take())?,
+      None,
+    )
+    .map_err(to_napi_err)
+  }
+
+  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+    Ok(output)
   }
 }
 
-/// changelogen `RepoConfig`：provider / domain / repo 三元组，各字段可为空
-#[napi(object)]
-pub struct RepoConfig {
-  pub provider: Option<String>,
-  pub domain: Option<String>,
-  pub repo: Option<String>,
-}
-
-impl From<bumpp_core::git::RepoConfig> for RepoConfig {
-  fn from(r: bumpp_core::git::RepoConfig) -> Self {
-    Self {
-      provider: r.provider,
-      domain: r.domain,
-      repo: r.repo,
-    }
-  }
-}
-
-/// changelogen `getLastGitTag`：最近 tag 名；无 tag / 非 git 仓库返回 null（软失败）
-#[napi]
-pub fn get_last_git_tag(cwd: Option<String>) -> napi::Result<Option<String>> {
-  bumpp_core::git::get_last_git_tag(&resolve_cwd(cwd)?).map_err(to_napi_err)
-}
-
-/// changelogen `getCurrentGitBranch`：当前分支名；非 git 仓库报错
-#[napi]
-pub fn get_current_git_branch(cwd: Option<String>) -> napi::Result<String> {
-  bumpp_core::git::get_current_git_branch(&resolve_cwd(cwd)?).map_err(to_napi_err)
-}
-
-/// changelogen `getGitDiff`：`from...to`（三点对称差，to 缺省 HEAD）范围内提交（新→旧）
-#[napi]
-pub fn get_git_diff(
-  from: String,
-  to: Option<String>,
+fn create_release_task(
+  provider: bumpp_core::release::Provider,
+  options: CreateReleaseOptions,
   cwd: Option<String>,
-) -> napi::Result<Vec<RawCommit>> {
-  let commits =
-    bumpp_core::git::get_git_diff(&resolve_cwd(cwd)?, &from, to.as_deref()).map_err(to_napi_err)?;
-  Ok(commits.into_iter().map(RawCommit::from).collect())
-}
-
-/// changelogen `resolveRepoConfig`：package.json `repository` 优先、git remote 兜底；
-/// 两源皆无返回 null
-#[napi]
-pub fn resolve_repo_config(cwd: Option<String>) -> napi::Result<Option<RepoConfig>> {
-  Ok(bumpp_core::git::resolve_repo_config(&resolve_cwd(cwd)?).map(RepoConfig::from))
-}
-
-/// changelog 段 `templates`（ADR-0012：仅 `tagBody` 一键）
-#[napi(object)]
-pub struct ChangelogTemplates {
-  #[napi(js_name = "tagBody")]
-  pub tag_body: Option<String>,
-}
-
-/// changelog 段单个 type 分组（`{ title }`）
-#[napi(object)]
-pub struct ChangelogTypeEntry {
-  pub title: String,
-}
-
-/// changelog 段配置（ADR-0013 支持键集，全可选；`types` 值 `{title} | false`）
-#[napi(object)]
-pub struct ChangelogOptions {
-  pub output: Option<String>,
-  pub types: Option<std::collections::HashMap<String, napi::Either<ChangelogTypeEntry, bool>>>,
-  pub repo: Option<napi::Either<String, RepoConfig>>,
-  #[napi(js_name = "scopeMap")]
-  pub scope_map: Option<std::collections::HashMap<String, String>>,
-  #[napi(js_name = "noAuthors")]
-  pub no_authors: Option<bool>,
-  #[napi(js_name = "hideAuthorEmail")]
-  pub hide_author_email: Option<bool>,
-  pub exclude_authors: Option<Vec<String>>,
-  pub templates: Option<ChangelogTemplates>,
-  #[napi(js_name = "commitMessage")]
-  pub commit_message: Option<String>,
-}
-
-/// `generateChangelog` 入参（ADR-0012）：`from` 为真实 tag 名（`getLastGitTag`），
-/// `to` 为新版本号；`overrides` 为扁平全量配置覆盖（bumpp 键 + `changelog`
-/// 键，与 `.vbumpprc.json` 同形；`changelog` 键的形状见 `ChangelogOptions`）
-#[napi(object)]
-pub struct GenerateChangelogArg {
-  pub overrides: Option<Map<String, Value>>,
-  pub from: String,
-  pub to: String,
-}
-
-/// `generateChangelog` 返回（对齐原 JS `ChangelogResult`）
-#[napi(object)]
-pub struct GenerateChangelogResult {
-  pub markdown: String,
-  #[napi(js_name = "changelogMD")]
-  pub changelog_md: String,
-}
-
-/// `generateChangelog`：端到端生成并写盘（ADR-0012），按统一配置 commit 开关提交
-#[napi]
-pub fn generate_changelog(
-  arg: GenerateChangelogArg,
-  cwd: Option<String>,
-) -> napi::Result<GenerateChangelogResult> {
-  let overrides = arg.overrides.unwrap_or_default();
-  let options = bumpp_core::changelog::GenerateChangelogOptions {
-    overrides: (!overrides.is_empty()).then_some(overrides),
-    from: arg.from,
-    to: arg.to,
-  };
-  let outcome =
-    bumpp_core::changelog::generate_changelog(&options, &resolve_cwd(cwd)?).map_err(to_napi_err)?;
-  Ok(GenerateChangelogResult {
-    markdown: outcome.markdown,
-    changelog_md: outcome.changelog_md,
+) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
+  napi::bindgen_prelude::AsyncTask::new(CreateReleaseTask {
+    provider,
+    new_version: options.bumpp.new_version,
+    markdown: options
+      .changelog
+      .and_then(|c| c.markdown)
+      .unwrap_or_default(),
+    cwd,
   })
+}
+
+/// 创建 GitHub release（token 链：存储 → GH_TOKEN → GITHUB_TOKEN → gh CLI）
+#[napi]
+pub fn create_github_release(
+  options: CreateReleaseOptions,
+  cwd: Option<String>,
+) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
+  create_release_task(bumpp_core::release::Provider::Github, options, cwd)
+}
+
+/// 创建 GitLab release（token 链：存储 → GITLAB_TOKEN；host 经配置 gitlab.host）
+#[napi]
+pub fn create_gitlab_release(
+  options: CreateReleaseOptions,
+  cwd: Option<String>,
+) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
+  create_release_task(bumpp_core::release::Provider::Gitlab, options, cwd)
+}
+
+/// 创建 Gitee release（token 链：存储 → GITEE_TOKEN）
+#[napi]
+pub fn create_gitee_release(
+  options: CreateReleaseOptions,
+  cwd: Option<String>,
+) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
+  create_release_task(bumpp_core::release::Provider::Gitee, options, cwd)
+}
+
+/// 创建 GitCode release（token 链：存储 → GITCODE_TOKEN）
+#[napi]
+pub fn create_gitcode_release(
+  options: CreateReleaseOptions,
+  cwd: Option<String>,
+) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
+  create_release_task(bumpp_core::release::Provider::Gitcode, options, cwd)
 }

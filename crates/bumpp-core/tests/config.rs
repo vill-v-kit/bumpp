@@ -1,5 +1,8 @@
 //! loadBumpConfig 合并矩阵——对齐上游 antfu/bumpp v11 的浅展开语义：
 //! `bumpConfigDefaults` ← 配置文件 ← overrides（undefined/null 剥离）。
+//! 多格式与并存探测见本文件后段；全局层合并见 config_global.rs（ADR-0015）。
+
+mod common;
 
 use std::fs;
 
@@ -16,6 +19,7 @@ fn overrides(v: Value) -> Option<Map<String, Value>> {
 }
 
 fn load(dir: &TempDir, o: Option<Map<String, Value>>) -> Map<String, Value> {
+  common::isolate_global_home();
   load_bump_config(o, dir.path()).unwrap()
 }
 
@@ -153,6 +157,7 @@ fn nested_objects_are_replaced_not_deep_merged() {
 
 #[test]
 fn custom_version_in_file_errors() {
+  common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   write(&dir, ".vbumpprc.json", r#"{ "customVersion": "1.2.3" }"#);
   let err = load_bump_config(None, dir.path()).unwrap_err();
@@ -180,6 +185,7 @@ fn config_file_path_loads_exact_file() {
 
 #[test]
 fn config_file_path_to_ts_errors() {
+  common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   write(&dir, "custom.ts", "export default {}");
   let err = load_bump_config(
@@ -187,11 +193,20 @@ fn config_file_path_to_ts_errors() {
     dir.path(),
   )
   .unwrap_err();
-  assert!(matches!(err, LoadConfigError::UnsupportedConfig { .. }));
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(
+        message.contains(".json / .jsonc / .toml"),
+        "报错应列出支持格式：{message}"
+      );
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
 }
 
 #[test]
 fn malformed_json_reports_path() {
+  common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   write(&dir, ".vbumpprc.json", "{ not json");
   let err = load_bump_config(None, dir.path()).unwrap_err();
@@ -271,4 +286,195 @@ fn files_are_deduped_without_recursive() {
     overrides(json!({ "files": ["a.json", "b.json", "a.json"] })),
   );
   assert_eq!(merged["files"], json!(["a.json", "b.json"]));
+}
+
+// ---------------------------------------------------------------------------
+// 多格式（ADR-0015）：JSONC（.json/.jsonc 同 parser）+ TOML；同级并存报错
+// ---------------------------------------------------------------------------
+
+#[test]
+fn json_config_accepts_comments_and_trailing_commas() {
+  // JSONC：.vbumpprc.json 即享注释与尾逗号（tsconfig 先例）
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.json",
+    "{\n  // 团队约定：不推 tag\n  \"tag\": false,\n  \"preid\": \"rc\",\n}\n",
+  );
+  let merged = load(&dir, None);
+  assert_eq!(merged["tag"], false);
+  assert_eq!(merged["preid"], "rc");
+}
+
+#[test]
+fn jsonc_file_is_detected_as_json_alias() {
+  // .jsonc 别名：照顾编辑器对 .json 内注释报错的团队场景（ADR-0015）
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.jsonc", "// 注释\n{ \"push\": false }");
+  let merged = load(&dir, None);
+  assert_eq!(merged["push"], false);
+}
+
+#[test]
+fn toml_file_is_detected_and_parsed() {
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.toml",
+    "tag = false\npreid = \"beta\"\nfiles = [\"a.json\", \"b.json\"]\n\
+     \n[scripts]\npreversion = \"echo pre\"\n",
+  );
+  let merged = load(&dir, None);
+  assert_eq!(merged["tag"], false);
+  assert_eq!(merged["preid"], "beta");
+  assert_eq!(merged["files"], json!(["a.json", "b.json"]));
+  assert_eq!(merged["scripts"], json!({ "preversion": "echo pre" }));
+}
+
+#[test]
+fn toml_recursive_expands_manifest_globs() {
+  // recursive 语义跨格式一致：merged 为真即展开插件链模式表
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.toml", "recursive = true\n");
+  let merged = load(&dir, None);
+  assert_eq!(merged["files"], json!(EXPECTED_MANIFEST_GLOBS));
+  assert_eq!(merged["recursive"], false);
+}
+
+#[test]
+fn malformed_toml_reports_path() {
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.toml", "tag = \n");
+  let err = load_bump_config(None, dir.path()).unwrap_err();
+  match err {
+    LoadConfigError::Parse { message } => {
+      assert!(
+        message.contains(".vbumpprc.toml"),
+        "报错应含文件路径：{message}"
+      );
+    }
+    other => panic!("应为 Parse，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn toml_datetime_is_rejected() {
+  // TOML datetime 在 JSON 值域无表达——遇到即报错（ADR-0015）
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.toml", "when = 2026-08-03T00:00:00Z\n");
+  assert!(load_bump_config(None, dir.path()).is_err());
+}
+
+#[test]
+fn multiple_project_configs_error_listing_all() {
+  // 同级并存 = 迁移事故：报错并全部列出（ADR-0015）
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.json", r#"{ "tag": false }"#);
+  write(&dir, ".vbumpprc.toml", "tag = false\n");
+  let err = load_bump_config(None, dir.path()).unwrap_err();
+  match err {
+    LoadConfigError::AmbiguousConfig { message } => {
+      assert!(message.contains(".vbumpprc.json"), "{message}");
+      assert!(message.contains(".vbumpprc.toml"), "{message}");
+    }
+    other => panic!("应为 AmbiguousConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn json_and_jsonc_alias_pair_also_errors() {
+  // 别名同属一级：.json + .jsonc 并存同样报错
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.json", "{}");
+  write(&dir, ".vbumpprc.jsonc", "{}");
+  assert!(matches!(
+    load_bump_config(None, dir.path()).unwrap_err(),
+    LoadConfigError::AmbiguousConfig { .. }
+  ));
+}
+
+#[test]
+fn config_file_path_loads_toml() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, "custom.toml", "push = false\n");
+  let merged = load(&dir, overrides(json!({ "configFilePath": "custom.toml" })));
+  assert_eq!(merged["push"], false);
+}
+
+#[test]
+fn config_file_path_loads_jsonc() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, "custom.jsonc", "// c\n{ \"push\": false }");
+  let merged = load(&dir, overrides(json!({ "configFilePath": "custom.jsonc" })));
+  assert_eq!(merged["push"], false);
+}
+
+#[test]
+fn config_file_path_to_yaml_errors_with_supported_formats() {
+  // YAML 不支持（ADR-0015）：报错列出支持格式
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, "custom.yaml", "push: false\n");
+  let err = load_bump_config(
+    overrides(json!({ "configFilePath": "custom.yaml" })),
+    dir.path(),
+  )
+  .unwrap_err();
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(message.contains(".json / .jsonc / .toml"), "{message}");
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn jsonc_rejects_json5_loose_syntax() {
+  // JSONC 仅注释与尾逗号（ADR-0015）：jsonc-parser 默认开启的 JSON5 宽松项全关
+  common::isolate_global_home();
+  for (name, content) in [
+    ("unquoted-keys", "{ tag: false }"),
+    ("single-quotes", "{ 'tag': false }"),
+    ("missing-comma", "{ \"tag\": false \"push\": false }"),
+    ("hex-number", "{ \"port\": 0xFF }"),
+  ] {
+    let dir = TempDir::new().unwrap();
+    write(&dir, ".vbumpprc.json", content);
+    assert!(
+      load_bump_config(None, dir.path()).is_err(),
+      "{name} 应被拒绝"
+    );
+  }
+}
+
+#[test]
+fn gitlab_section_validated_at_load_regardless_of_provider() {
+  // gitlab 段严格 schema 随文件加载生效（ADR-0014）：不经 gitlab release 路径也报错
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.toml", "[gitlab]\nhsot = \"https://typo.example\"\n");
+  let err = load_bump_config(None, dir.path()).unwrap_err();
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(message.contains("hsot"), "应报出 typo 键名：{message}");
+      assert!(message.contains(".vbumpprc.toml"), "应含文件路径：{message}");
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn gitlab_host_loads_from_config_file() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.json", r#"{ "gitlab": { "host": "https://gitlab.internal" } }"#);
+  let merged = load(&dir, None);
+  assert_eq!(
+    merged["gitlab"],
+    json!({ "host": "https://gitlab.internal" }),
+    "gitlab 段合法时原样进入合并配置"
+  );
 }

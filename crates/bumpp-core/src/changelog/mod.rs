@@ -53,13 +53,15 @@ pub struct GenerateChangelogOptions {
   pub to: String,
 }
 
-/// `generateChangelog` 返回（对齐原 JS `ChangelogResult`）
+/// `generateChangelog` 返回（对齐原 JS `ChangelogResult`，附带解析后的输出路径供编排打印）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenerateChangelogOutcome {
   /// 当前发版的 markdown 信息
   pub markdown: String,
   /// changelog 文件的全部信息
   pub changelog_md: String,
+  /// 解析后的输出文件路径（配置 `changelog.output`，编排的进度打印取此而非重推）
+  pub output: String,
 }
 
 #[derive(Debug)]
@@ -165,6 +167,7 @@ pub fn generate_changelog(
   Ok(GenerateChangelogOutcome {
     markdown,
     changelog_md,
+    output: config.output,
   })
 }
 

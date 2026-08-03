@@ -1,6 +1,3 @@
 export * from './bump'
-declare module '@vill-v/bumpp' {
-  interface Accesstokens {
-    gitcode: string
-  }
-}
+export { createGitcodeRelease } from '@vill-v/bumpp-core'
+export type { CreateReleaseOptions } from '@vill-v/bumpp-core'

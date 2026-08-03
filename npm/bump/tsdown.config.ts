@@ -4,7 +4,6 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     cli: 'src/cli.ts',
-    changelog: 'src/changelog.ts',
   },
   dts: true,
   target: 'node20',

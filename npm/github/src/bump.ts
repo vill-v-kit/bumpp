@@ -1,5 +1,8 @@
-import { type Config, bumpVersionWithBaseRelease } from '@vill-v/bumpp'
-import { createGithubRelease } from './createRelease'
+import { bumpVersion as coreBumpVersion } from '@vill-v/bumpp-core'
+import type { BumpVersion, Config } from '@vill-v/bumpp'
 
-export const bumpVersion = async (option: Config = {}): Promise<void> =>
-  bumpVersionWithBaseRelease(option, (info) => createGithubRelease(info), 'Github')
+/**
+ * 更新版本并创建 Github release（编排与 release 全在 Rust Core，ADR-0014）
+ */
+export const bumpVersion = (option: Config = {}): Promise<BumpVersion> =>
+  coreBumpVersion({ ...option }, 'github')

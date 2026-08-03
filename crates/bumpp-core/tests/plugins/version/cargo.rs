@@ -303,10 +303,7 @@ fn unparseable_lock_is_an_error() {
 use bumpp_core::plugins::dispatch_read_version;
 
 fn read_version_of(dir: &TempDir) -> Option<String> {
-  dispatch_read_version(
-    Path::new("Cargo.toml"),
-    &dir.path().join("Cargo.toml"),
-  )
+  dispatch_read_version(Path::new("Cargo.toml"), &dir.path().join("Cargo.toml"))
 }
 
 #[test]

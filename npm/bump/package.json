@@ -22,7 +22,6 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./changelog": "./dist/changelog.js",
     "./cli": "./dist/cli.js",
     "./package.json": "./package.json"
   },
@@ -33,11 +32,9 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@inquirer/password": "catalog:",
     "@vill-v/bumpp-core": "workspace:*",
     "cac": "catalog:",
-    "consola": "catalog:",
-    "picospinner": "catalog:"
+    "consola": "catalog:"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

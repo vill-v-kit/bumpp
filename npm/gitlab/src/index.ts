@@ -1,13 +1,3 @@
 export * from './bump'
-export * from './createRelease'
-declare module '@vill-v/bumpp' {
-  interface Accesstokens {
-    gitlab: string
-  }
-  interface Config {
-    gitlab?: { host?: string }
-  }
-  interface ResolveConfig {
-    gitlab?: { host?: string }
-  }
-}
+export { createGitlabRelease } from '@vill-v/bumpp-core'
+export type { CreateReleaseOptions } from '@vill-v/bumpp-core'

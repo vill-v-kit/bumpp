@@ -65,6 +65,77 @@ pub struct BumpOptions<'a> {
   pub current_version: Option<&'a str>,
 }
 
+impl<'a> BumpOptions<'a> {
+  /// 自合并配置（`load_bump_config` 产物）构造（ADR-0014 编排用）：
+  /// release 槽固定为交互选定的新版本。bumpp 键无严格 schema（上游 parity），
+  /// 类型不符的键按缺失处理回落默认
+  pub fn from_merged(
+    merged: &'a serde_json::Map<String, serde_json::Value>,
+    new_version: &'a str,
+  ) -> Self {
+    use serde_json::Value;
+    let bool_of = |key: &str| merged.get(key).and_then(Value::as_bool).unwrap_or(false);
+    let str_of = |key: &str| {
+      merged
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())
+    };
+    let files = merged
+      .get("files")
+      .and_then(Value::as_array)
+      .map(|a| {
+        a.iter()
+          .filter_map(Value::as_str)
+          .map(str::to_owned)
+          .collect()
+      })
+      .unwrap_or_default();
+    let commit = match merged.get("commit") {
+      Some(Value::Bool(b)) => Some(CommitInput::Bool(*b)),
+      Some(Value::String(s)) if !s.is_empty() => Some(CommitInput::Message(s)),
+      _ => None,
+    };
+    let tag = match merged.get("tag") {
+      Some(Value::Bool(b)) => Some(TagInput::Bool(*b)),
+      Some(Value::String(s)) if !s.is_empty() => Some(TagInput::Name(s)),
+      _ => None,
+    };
+    let scripts = merged
+      .get("scripts")
+      .and_then(Value::as_object)
+      .map(|s| Scripts {
+        preversion: s
+          .get("preversion")
+          .and_then(Value::as_str)
+          .map(str::to_owned),
+        version: s.get("version").and_then(Value::as_str).map(str::to_owned),
+        postversion: s
+          .get("postversion")
+          .and_then(Value::as_str)
+          .map(str::to_owned),
+      });
+    Self {
+      release: Some(new_version),
+      files,
+      recursive: bool_of("recursive"),
+      commit,
+      tag,
+      push: bool_of("push"),
+      sign: bool_of("sign"),
+      all: bool_of("all"),
+      no_verify: bool_of("noVerify"),
+      confirm: bool_of("confirm"),
+      ignore_scripts: bool_of("ignoreScripts"),
+      install: bool_of("install"),
+      execute: str_of("execute"),
+      scripts,
+      preid: str_of("preid"),
+      current_version: str_of("currentVersion"),
+    }
+  }
+}
+
 /// 一次进度事件的负载快照（上游 `{ event, script, ...operation.results }`）
 #[derive(Debug)]
 pub struct Progress<'a> {

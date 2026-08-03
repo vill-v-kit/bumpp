@@ -1,5 +1,7 @@
 # 配置文件统一为 .vbumpprc.json
 
+> **部分取代说明**：「JSON-only」「非 .json 扩展名报错」「单一文件层级」三条由 ADR-0015 取代（扩展为 JSONC + TOML 与项目/全局两级）；其余决策（单一解析路径、严格 schema、merge 语义、`configFilePath` override、旧名不探测）维持不变。
+
 三个配置源并存：Rust 加载的 `bump.config.json`、esconf 加载的 `vbumpp.config.{ts,js,mjs,cjs}` / `vbumpp.json`、c12 加载的 `changelog.config.*`（另含 package.json `changelog` 键与 `.env` 两个隐蔽源），由 `resolveConfig` 以 defu 三层缝合。决策：单一文件 `.vbumpprc.json`，加载全权收归 Rust，JSON-only（暂不执行 TS/JS 配置）。
 
 ## Decisions

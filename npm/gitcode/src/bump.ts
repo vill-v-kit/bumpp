@@ -1,24 +1,8 @@
-import { type BumpVersion, type Config, bumpVersionWithBaseRelease } from '@vill-v/bumpp'
-import { type ICreateGithubLikeRelease, createGithubLikeRelease } from '@vill-v/bumpp-github'
-import consola from 'consola'
+import { bumpVersion as coreBumpVersion } from '@vill-v/bumpp-core'
+import type { BumpVersion, Config } from '@vill-v/bumpp'
 
-const createGitcodeRelease: ICreateGithubLikeRelease = async (options: BumpVersion) => {
-  const access_token = options.config.accesstoken?.gitcode
-  if (!access_token) {
-    throw new Error('未检测到 GitCode token，请执行 vbumpp token set gitcode 录入')
-  }
-  const createRelease = await createGithubLikeRelease({
-    baseURL: 'https://api.gitcode.com/api/v5',
-    onRequest(context) {
-      context.options.query = { ...context.options.query, access_token }
-    },
-    async onResponseError({ response }) {
-      consola.error('gitcode [open api] error :', response._data?.message || '')
-    },
-  })
-
-  await createRelease(options)
-}
-
-export const bumpVersion = async (option: Config = {}): Promise<void> =>
-  bumpVersionWithBaseRelease(option, createGitcodeRelease, 'GitCode')
+/**
+ * 更新版本并创建 GitCode release（编排与 release 全在 Rust Core，ADR-0014）
+ */
+export const bumpVersion = (option: Config = {}): Promise<BumpVersion> =>
+  coreBumpVersion({ ...option }, 'gitcode')

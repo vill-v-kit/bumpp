@@ -33,8 +33,7 @@
   },
   "dependencies": {
     "@vill-v/bumpp": "workspace:*",
-    "consola": "catalog:",
-    "ofetch": "catalog:"
+    "@vill-v/bumpp-core": "workspace:*"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

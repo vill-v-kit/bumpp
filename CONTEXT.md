@@ -16,12 +16,24 @@ _Avoid_: bump type、version type
 预发行标识符（如 `1.0.0-beta.1` 中的 `beta`）。计算候选版本时沿用当前版本的预发行标识，否则用入参（上游 normalizeOptions 缺省为 `'beta'`）；预发行号从 1 开始（上游的 `0→1` 修正）。
 
 **Scripts**:
-bump 流程三时序槽位（`preversion` / `version` / `postversion`）的通用 shell 命令，声明于 `.vbumpprc.json` 的 `scripts` 字段（ADR-0011）。
+bump 流程三时序槽位（`preversion` / `version` / `postversion`）的通用 shell 命令，声明于配置文件的 `scripts` 字段（ADR-0011）。
 _Avoid_: npm scripts（上游旧义——从 package.json scripts 读取经 `npm run`，通道已移除）
 
-**配置文件 (`.vbumpprc.json`)**:
-工具单一配置文件，JSON-only，加载全权归 Rust（overrides > 文件 > 内建默认，ADR-0013）：bumpp 键居顶层，`changelog` 段与 `scripts` 字段并列；全项目仅这一条解析路径，解析结果不向 JS 导出。loader 只认此文件名（及 `configFilePath` override），旧名不探测、静默失效。
-_Avoid_: bump.config.json（旧名）、vbumpp.config（esconf 旧制，已移除）
+**配置文件**:
+工具配置的两级文件——项目级 `.vbumpprc.{json,jsonc,toml}` 与全局级 `~/.vbumpp/config.{json,jsonc,toml}`（ADR-0015；`.jsonc` 为 `.json` 的别名，同走 JSONC 解析，注释与尾逗号均可用）。加载全权归 Rust，四层合并：overrides > 项目 > 全局 > 内建默认；bumpp 键居顶层，`changelog` 段、`scripts` 字段、`gitlab` 段并列；全项目仅这一条解析路径，解析结果不向 JS 导出。同级探测到多个配置文件即报错并全部列出；旧名不探测、静默失效（ADR-0013）。
+_Avoid_: bump.config.json（旧名）、vbumpp.config（esconf 旧制，已移除）、YAML 配置（不支持，ADR-0015）
+
+**全局配置目录 (`~/.vbumpp/`)**:
+用户级数据的家——全局配置文件与 Token 存储同放此目录。`VBUMPP_HOME` 覆盖整个目录；`VBUMPP_TOKEN_STORE` 仅覆盖 token 存储文件路径（兼容保留，优先级高于 `VBUMPP_HOME`）。
+_Avoid_: XDG 目录（不引入）
+
+**Token 存储 (Token store)**:
+平台 access token 的加密凭证存储（`tokens.bin` + 同目录 `key.bin`），VBTK v1 二进制格式（magic + version + iv + authTag + AES-256-GCM 密文），Rust 全权管理且与 JS 时代逐字节兼容（ADR-0014）。防护级别为「防明文落盘」（非高安全保险柜）；明文 token 不跨 napi 边界进入 JS。
+_Avoid_: 凭证库（语义过强）
+
+**平台 Release**:
+向 git 托管平台（github / gitlab / gitee / gitcode）创建 release 的动作，Rust 内按 provider 适配（gitee / gitcode 复用 github-like 实现；gitlab 多一步项目 id 直查，自建实例经 `gitlab` 段的 `host` 配置，ADR-0014）。token 解析链统一为：Token 存储 → 各家环境变量（`GH_TOKEN` → `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`）→ 仅 github 追加 `gh auth token` 兜底。
+_Avoid_: publish
 
 **内部机制包 (Internal machinery package)**:
 虽然发布到 npm、但设计上就不是给用户直接使用的包——判别问句："用户会直接 npm install 它吗？"不会即归 `napi/` 目录（ADR-0005，与是否发布无关）。成员：Core（napi 绑定本体）、Platform package（平台二进制分发包）；它们发布仅因 npm 不支持 workspace 协议与 optionalDependencies 按平台分发的机制需要。
@@ -40,7 +52,7 @@ _Avoid_: files 插件链（ADR-0007 时代的旧称）
 _Avoid_: 版本文件（过宽——还含 text 通道的任意文本文件，如 README、.env）
 
 **Core**:
-纯 Rust + napi-rs 实现的版本与 changelog 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。对外 API 两组：与上游 bumpp v11 兼容的 `versionBump` / `versionBumpInfo` / `loadBumpConfig`；changelog 系 `generateChangelog` / `getLastGitTag` / `getGitDiff` / `getCurrentGitBranch` / `resolveRepoConfig`（changelogen 使用面的 Rust 重写，ADR-0012）。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
+纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面（ADR-0014 收缩后）：编排 `bumpVersion(options, provider?)`、平台 Release 四导出（`createGithubRelease` / `createGitlabRelease` / `createGiteeRelease` / `createGitcodeRelease`）、token 三件套（供 CLI 路由）；上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:

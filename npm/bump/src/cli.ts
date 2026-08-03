@@ -1,8 +1,7 @@
-import password from '@inquirer/password'
+import { tokenList, tokenRemove, tokenSet } from '@vill-v/bumpp-core'
 import { cac } from 'cac'
 import { consola } from 'consola'
 import { version as __version__ } from '../package.json'
-import { readTokenStore, removeToken, saveToken } from './accesstoken'
 import { bumpVersion } from './bump'
 import type { Config } from './types'
 
@@ -40,25 +39,22 @@ export const createBaseCli = (
             process.exitCode = 1
             return
           }
-          let input: string
           try {
-            input = (await password({ message: `请输入 ${name} 的 access_token: ` })).trim()
-          } catch {
-            // 用户取消（Ctrl+C）或输入流被关闭
-            consola.warn('已取消录入')
-            return
-          }
-          if (!input) {
-            consola.error('token 不能为空')
+            // 密码交互在 Rust 侧（dialoguer，ADR-0014）
+            const saved = await tokenSet(name)
+            if (saved) {
+              consola.success(`${name} token 已加密保存`)
+            } else {
+              consola.warn('已取消录入')
+            }
+          } catch (error) {
+            consola.error((error as Error).message)
             process.exitCode = 1
-            return
           }
-          await saveToken(name, input)
-          consola.success(`${name} token 已加密保存`)
           break
         }
         case 'list': {
-          const tokens = Object.keys(await readTokenStore())
+          const tokens = tokenList()
           if (!tokens.length) {
             consola.info('尚未配置任何 token')
             return
@@ -74,7 +70,7 @@ export const createBaseCli = (
             process.exitCode = 1
             return
           }
-          if (await removeToken(name)) {
+          if (tokenRemove(name)) {
             consola.success(`${name} token 已删除`)
           } else {
             consola.warn(`未找到 ${name} 的 token`)

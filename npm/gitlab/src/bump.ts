@@ -1,6 +1,9 @@
-import { type Config, bumpVersionWithBaseRelease } from '@vill-v/bumpp'
-import { createGitlabRelease } from './createRelease'
+import { bumpVersion as coreBumpVersion } from '@vill-v/bumpp-core'
+import type { BumpVersion, Config } from '@vill-v/bumpp'
 
-/// 2f
-export const bumpVersion = async (option: Config = {}): Promise<void> =>
-  bumpVersionWithBaseRelease(option, createGitlabRelease, 'Gitlab')
+/**
+ * 更新版本并创建 Gitlab release（编排与 release 全在 Rust Core，ADR-0014；
+ * 自建实例经配置 `gitlab.host` 段）
+ */
+export const bumpVersion = (option: Config = {}): Promise<BumpVersion> =>
+  coreBumpVersion({ ...option }, 'gitlab')
