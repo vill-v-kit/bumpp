@@ -96,14 +96,15 @@ pub fn get_current_git_branch(cwd: &Path) -> Result<String, ExecError> {
 }
 
 /// changelogen `RawCommit` 的 author 字段
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
 pub struct GitAuthor {
   pub name: String,
   pub email: String,
 }
 
 /// changelogen `RawCommit`（`getGitDiff` 的元素）
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RawCommit {
   pub message: String,
   pub short_hash: String,
@@ -163,7 +164,7 @@ fn parse_git_log(stdout: &str) -> Vec<RawCommit> {
 
 /// changelogen `RepoConfig`：远程仓库解析结果（provider / domain / repo 三元组，
 /// 各字段视解析形态可为 None）
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
 pub struct RepoConfig {
   pub provider: Option<String>,
   pub domain: Option<String>,

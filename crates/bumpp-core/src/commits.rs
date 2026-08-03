@@ -1,12 +1,15 @@
 //! conventional 提交解析与获取：对齐上游 tiny-conventional-commits-parser 正则与
-//! bumpp v11 的 `getRecentCommits` / `determineSemverChange`。
+//! bumpp v11 的 `getRecentCommits` / `determineSemverChange`；展示层解析
+//! （`parse_display_commit`）对齐 changelogen 0.6.2 `parseGitCommit`（ADR-0012）。
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
 use std::sync::LazyLock;
 
 use regex::Regex;
 
+use crate::git::RawCommit;
 use crate::version::ReleaseType;
 
 /// 上游 `ConventionalCommitRegex`：未锚定、`/i`（type 保留原样大小写）、
@@ -142,4 +145,98 @@ fn parse_raw_commit(chunk: &str) -> CommitInfo {
     .collect::<Vec<_>>()
     .join("\n");
   parse_commit(short_hash, message, &body)
+}
+
+// ---------------------------------------------------------------------------
+// 展示层（changelogen `parseGitCommit`，ADR-0012）
+// 「authors / references 属展示层」的遗留口子在此补全；
+// co-authored-by 收集在使用面（generateMarkDown）是死代码，不移植
+// ---------------------------------------------------------------------------
+
+/// changelogen 展示层 body breaking 判定（区别于上游 tiny-conventional 的
+/// `breaking[ -]changes?:`）：`(?i)breaking change:` 纯文本匹配
+static DISPLAY_BREAKING_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(?i)breaking change:").unwrap());
+
+/// changelogen `PullRequestRE`（`\([ a-z]*(#\d+)\s*\)`，小写字母/空格前缀）
+static PULL_REQUEST_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\([ a-z]*(#\d+)\s*\)").unwrap());
+
+/// changelogen `IssueRE`
+static ISSUE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(#\d+)").unwrap());
+
+/// 展示层引用类型（changelogen `GitCommitReference` 的 type）
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReferenceType {
+  PullRequest,
+  Issue,
+  Hash,
+}
+
+/// 展示层引用（changelogen `GitCommitReference`）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommitReference {
+  pub ref_type: ReferenceType,
+  pub value: String,
+}
+
+/// 展示层解析结果（changelogen `GitCommit` 的 markdown 使用面）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisplayCommit {
+  pub short_hash: String,
+  pub author: crate::git::GitAuthor,
+  pub commit_type: String,
+  /// scopeMap 已在解析时应用（changelogen 同位）
+  pub scope: String,
+  /// PR 引用已剥离并 trim；issue 引用保留
+  pub description: String,
+  pub is_breaking: bool,
+  /// PR → issue（按 value 去重）→ hash（恒在末尾）
+  pub references: Vec<CommitReference>,
+}
+
+/// changelogen `parseGitCommit`：非 conventional 返回 None
+pub fn parse_display_commit(
+  raw: &RawCommit,
+  scope_map: &HashMap<String, String>,
+) -> Option<DisplayCommit> {
+  let m = CONVENTIONAL_RE.captures(&raw.message)?;
+  let group = |n: usize| m.get(n).map(|g| g.as_str());
+  let scope = group(3).unwrap_or("");
+  let scope = scope_map.get(scope).map(String::as_str).unwrap_or(scope);
+  let is_breaking = m.get(4).is_some() || DISPLAY_BREAKING_RE.is_match(&raw.body);
+  let description = group(5).unwrap_or("");
+  let mut references: Vec<CommitReference> = PULL_REQUEST_RE
+    .captures_iter(description)
+    .map(|c| CommitReference {
+      ref_type: ReferenceType::PullRequest,
+      value: c.get(1).unwrap().as_str().to_owned(),
+    })
+    .collect();
+  for c in ISSUE_RE.captures_iter(description) {
+    let value = c.get(1).unwrap().as_str();
+    if !references.iter().any(|r| r.value == value) {
+      references.push(CommitReference {
+        ref_type: ReferenceType::Issue,
+        value: value.to_owned(),
+      });
+    }
+  }
+  references.push(CommitReference {
+    ref_type: ReferenceType::Hash,
+    value: raw.short_hash.clone(),
+  });
+  let description = PULL_REQUEST_RE
+    .replace_all(description, "")
+    .trim()
+    .to_owned();
+  Some(DisplayCommit {
+    short_hash: raw.short_hash.clone(),
+    author: raw.author.clone(),
+    commit_type: group(1).unwrap_or("").to_owned(),
+    scope: scope.to_owned(),
+    description,
+    is_breaking,
+    references,
+  })
 }

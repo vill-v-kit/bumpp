@@ -12,10 +12,11 @@ npm/bump 依赖 changelogen@0.6.2 的 7 函数 2 类型：git 历史读取（`ge
   - **C1 tag 格式脱节**：`from`/`to` 硬编码 `v` 前缀，与 `templates.tagBody` 渲染的实际 tag 名脱节，非 v 前缀项目 `getGitDiff` 找不到 ref。修复：`from` 取 `getLastGitTag` 的真实 tag 名；compare 链接的 `to` 用 tagBody 渲染值。
   - **C2 提交不听从开关**：无条件 `git commit`。修复：changelog 的提交跟随统一配置中的 bumpp `commit` 开关——`false` 时只写文件，不 add 不 commit。
   - **C3 提交信息无配置位**：changelog 段新增 `commitMessage` 键，默认 `chore: update {{output}}`（`{{output}}` 占位符替换为 output 路径）。
-- **输出结构逐节对齐 changelogen 0.6.2**：`config.types` 声明序分组、组内 reverse（旧→新）、compare 链接（github/gitlab/bitbucket 三 provider，其余纯文本）、引用链接、`## ` 头经 `templates.tagBody`（默认 `v{{newVersion}}`，仅此一键纳入支持面）渲染、`^###?\s+` 插入逻辑。申报三处有意偏差：① 中文节标题直生（breaking 节取 `types.BreakingChange.title`，贡献者头硬编码 `### ❤️ 贡献者`，JS replace hack 删除）；② 无 `@username` 链接；③ `chore(deps)` 过滤内置 Rust（行为不变只挪位置）。
+- **输出结构逐节对齐 changelogen 0.6.2**：`config.types` 声明序分组、组内 reverse（旧→新）、compare 链接（任意 provider 恒出链接，bitbucket 走 `branches/compare` 特判——引用链接才限 github/gitlab/bitbucket 三 provider 出链，其余纯文本）、引用链接、`## ` 头经 `templates.tagBody`（默认 `v{{newVersion}}`，仅此一键纳入支持面）渲染、`^###?\s+` 插入逻辑。申报三处有意偏差：① 中文节标题直生（breaking 节取 `types.BreakingChange.title`，贡献者头硬编码 `### ❤️ 贡献者`，JS replace hack 删除）；② 无 `@username` 链接；③ `chore(deps)` 过滤内置 Rust（行为不变只挪位置）。
 - **ungh.cc 网络解析不移植**：非确定性（release 工件不应随网络环境漂移）、隐私（贡献者邮箱明文发第三方，用户无感知）、依赖成本（纯 Rust crate 零网络依赖，HTTP+TLS 栈换装饰性链接）、平台错位（面向四平台，GitHub 用户名解析对其余三家基本错误）。
 - **`hideAuthorEmail` 默认翻转为 `true`**（changelogen 默认 `false`）：邮箱不进公开归档（爬虫饲料；changelogen 还特意跳过 noreply 优先暴露真实邮箱）；配合网络杀除，贡献者行默认为纯 `- 名字`。
-- **gitmoji**：convert-gitmoji 的 77 条静态映射原样内建 `changelog/gitmoji.rs`（`:code:` → emoji + 尾随空格，大小写不敏感），依赖删除。
+- **gitmoji**：convert-gitmoji 的 74 条静态映射原样内建 `changelog/gitmoji.rs`（`:code:` → emoji + 尾随空格，大小写不敏感），依赖删除。
+- **申报偏差④**：gitmoji 键名按字面量转义匹配（原实现未转义拼正则，`+` 等字符沦为量词——对真实输入行为一致，病理输入不再误中）；**非偏差补注**：上游 CLI 编排层的 type `toLowerCase()` 不在使用面函数（`parseGitCommit` / `generateMarkDown`）内，现行生产 JS 亦无此步，`Feat:` 大小写敏感丢弃行为与今日产出保持一致。
 - **TS 类型**：`#[napi(object)]` 结构体生成 d.ts，单一事实源在 Rust（沿用 `VersionBumpOptions` 先例）；公开面为 `ChangelogOptions`（入参键集）与 `GenerateChangelogResult`（`markdown` / `changelogMD`）——`ResolvedChangelogConfig` 不导出（解析不跨语言边界），原 changelogen 类型 import 删除。`types` 值 `{title} | false`（false = 深合并删除哨兵）。
 - **测试**：Rust 单测为主体（tempfile 合成 git 仓库，仓库已有先例）；golden fixtures 钉住 parity——真 changelogen 0.6.2 在合成仓库的产出经三处申报偏差等效变换后固化于 `crates/bumpp-core/tests/fixtures/`（头注释记录出处与变换清单，生成脚本 dev-only 留档）；JS 侧仅 napi 链路冒烟。原 `config.test.ts` 删除，recursive 用例随功能移植 Rust（ADR-0013）。
 

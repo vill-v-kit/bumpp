@@ -1,0 +1,21 @@
+{
+  "rawCommits": [
+    {
+      "message": "feat: initial feature",
+      "shortHash": "780ee58",
+      "author": {
+        "name": "Alice Dev",
+        "email": "alice@example.com"
+      },
+      "body": "\n\nM\tf.txt"
+    }
+  ],
+  "from": "v0.1.0",
+  "to": "v0.2.0",
+  "newVersion": "0.2.0",
+  "repo": {
+    "provider": "github",
+    "domain": "github.com",
+    "repo": "owner/repo"
+  }
+}

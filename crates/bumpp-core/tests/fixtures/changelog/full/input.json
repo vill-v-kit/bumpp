@@ -1,0 +1,93 @@
+{
+  "rawCommits": [
+    {
+      "message": "chore: housekeeping",
+      "shortHash": "d5f0ea0",
+      "author": {
+        "name": "Alice Dev",
+        "email": "alice@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "feat: add :tada: celebrations",
+      "shortHash": "6fdc65a",
+      "author": {
+        "name": "Alice Dev",
+        "email": "alice@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "random non-conventional message",
+      "shortHash": "9dafbf3",
+      "author": {
+        "name": "dave",
+        "email": "dave@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "docs: update guide",
+      "shortHash": "89263ec",
+      "author": {
+        "name": "carol",
+        "email": "carol@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "chore(deps)!: bump tokio",
+      "shortHash": "44d57bc",
+      "author": {
+        "name": "Alice Dev",
+        "email": "alice@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "chore(deps): bump serde from 1 to 2",
+      "shortHash": "1e06eb4",
+      "author": {
+        "name": "dependabot[bot]",
+        "email": "bot@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "feat!: drop legacy api",
+      "shortHash": "d0ceeb5",
+      "author": {
+        "name": "Alice Dev",
+        "email": "alice@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "fix: repair crash #45",
+      "shortHash": "6d111d7",
+      "author": {
+        "name": "bob smith",
+        "email": "bob@example.com"
+      },
+      "body": "\n\nM\tf.txt\n"
+    },
+    {
+      "message": "feat(ui): add dashboard (#123)",
+      "shortHash": "dc88d96",
+      "author": {
+        "name": "Alice Dev",
+        "email": "alice@example.com"
+      },
+      "body": "\n\nM\tf.txt"
+    }
+  ],
+  "from": "v1.0.0",
+  "to": "v1.2.0",
+  "newVersion": "1.2.0",
+  "repo": {
+    "provider": "github",
+    "domain": "github.com",
+    "repo": "owner/repo"
+  }
+}
