@@ -1,8 +1,12 @@
 //! 平台 Release（ADR-0014）：github / gitlab / gitee / gitcode 的 release 创建。
-//! 共享 github-like 实现为 Rust 内部细节（gitee 请求体带 token、gitcode query 带
-//! token、github Bearer 头）；gitlab 特化——`PRIVATE-TOKEN` 头 + 项目 id 直查
-//! （`GET /api/v4/projects/<url编码的 owner/repo>`，替代 JS 时代的搜索 + 后缀
-//! 匹配两步法），自建实例经配置 `gitlab.host` 段（严格 schema：仅 host 一键）。
+//! 布局（ADR-0018）：每 provider 单文件——github / gitee / gitcode 为薄文件
+//! （各持 base_url 与 token 注入形态：Bearer 头 / 请求体字段 / query 参数），
+//! 请求体语义的单一事实源在 github_like.rs；gitlab.rs 全特化（`PRIVATE-TOKEN`
+//! 头 + 项目 id 直查 + `gitlab.host` 解析随文件，自建实例严格 schema 仅 host 一键）。
+//!
+//! 本文件持：Provider 词汇（跨模块：CLI 入参、napi 边界、token 存储键）、
+//! ReleaseError、token 解析链与 create_release 分发；四家共用的仓库信息解析与
+//! HTTP 原语在 http.rs。
 //!
 //! token 解析链统一为：Token 存储 → 各家环境变量 →（仅 github）`gh auth token`
 //! 兜底。明文 token 不出本模块（ADR-0014：不跨 napi 边界）。
@@ -11,11 +15,17 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
 use std::path::Path;
-use std::sync::LazyLock;
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 use crate::git::RepoConfig;
+
+pub mod github;
+pub mod gitee;
+pub mod gitcode;
+pub mod gitlab;
+mod github_like;
+mod http;
 
 /// 四家托管平台
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,37 +142,10 @@ pub fn create_release(
     );
   }
   match provider {
-    Provider::Github => create_github_like_release(
-      provider,
-      "https://api.github.com",
-      &token,
-      new_version,
-      markdown,
-      cwd,
-    ),
-    Provider::Gitee => create_github_like_release(
-      provider,
-      "https://gitee.com/api/v5",
-      &token,
-      new_version,
-      markdown,
-      cwd,
-    ),
-    Provider::Gitcode => create_github_like_release(
-      provider,
-      "https://api.gitcode.com/api/v5",
-      &token,
-      new_version,
-      markdown,
-      cwd,
-    ),
-    Provider::Gitlab => {
-      let document =
-        crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
-      let host = resolve_gitlab_host(document.as_ref(), overrides)?
-        .unwrap_or_else(|| "https://gitlab.com".to_owned());
-      create_gitlab_release(&host, &token, new_version, markdown, cwd)
-    }
+    Provider::Github => github::create(&token, new_version, markdown, cwd),
+    Provider::Gitee => gitee::create(&token, new_version, markdown, cwd),
+    Provider::Gitcode => gitcode::create(&token, new_version, markdown, cwd),
+    Provider::Gitlab => gitlab::create(&token, new_version, markdown, cwd, overrides),
   }
 }
 
@@ -225,198 +208,4 @@ fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<String, ReleaseE
       provider.name()
     ),
   })
-}
-
-// ---------------------------------------------------------------------------
-// gitlab 配置段（严格 schema：仅 host 一键，ADR-0014）
-// ---------------------------------------------------------------------------
-
-/// `gitlab.host` 解析：四层语义——overrides 段 > 文件段（文件段已含全局←项目合并）
-#[doc(hidden)]
-pub fn resolve_gitlab_host(
-  document: Option<&Map<String, Value>>,
-  overrides: Option<&Map<String, Value>>,
-) -> Result<Option<String>, ReleaseError> {
-  // 校验与提取收归 config::gitlab_host_of（文件层在 read_config 已先验过一次）
-  let mut host = None;
-  for source in [document, overrides].into_iter().flatten() {
-    if let Some(h) = crate::config::gitlab_host_of(source)? {
-      host = Some(h);
-    }
-  }
-  Ok(host)
-}
-
-// ---------------------------------------------------------------------------
-// 仓库信息与 HTTP 原语
-// ---------------------------------------------------------------------------
-
-/// `owner/repo` 解析（package.json `repository` 优先、git remote 兜底）
-fn resolve_owner_repo(cwd: &Path) -> Result<(String, String), ReleaseError> {
-  let repo = crate::git::resolve_repo_config(cwd)
-    .and_then(|r| r.repo)
-    .ok_or_else(|| ReleaseError::Git {
-      message: "cannot resolve the remote repository".into(),
-    })?;
-  repo
-    .split_once('/')
-    .map(|(o, r)| (o.to_owned(), r.to_owned()))
-    .ok_or_else(|| ReleaseError::Git {
-      message: "cannot resolve the remote repository".into(),
-    })
-}
-
-/// 共享 Agent：30s 全局超时；状态码不当异常（手动检查以提取服务端错误信息）
-fn agent() -> ureq::Agent {
-  ureq::Agent::config_builder()
-    .timeout_global(Some(std::time::Duration::from_secs(30)))
-    .http_status_as_error(false)
-    .build()
-    .into()
-}
-
-/// 非 2xx 报错：提取服务端 `message` 字段（gitlab/gitee 错误体形态），
-/// 无法解析时回落原始响应体
-fn check_status(
-  resp: &mut ureq::http::Response<ureq::Body>,
-  provider: Provider,
-) -> Result<(), ReleaseError> {
-  let status = resp.status().as_u16();
-  if (200..300).contains(&status) {
-    return Ok(());
-  }
-  let body = resp.body_mut().read_to_string().unwrap_or_default();
-  let server_message = serde_json::from_str::<Value>(&body)
-    .ok()
-    .and_then(|v| v.get("message").and_then(Value::as_str).map(str::to_owned))
-    .filter(|m| !m.is_empty())
-    .unwrap_or_else(|| {
-      if body.is_empty() {
-        "Unknown error".into()
-      } else {
-        body
-      }
-    });
-  Err(ReleaseError::Http {
-    message: format!(
-      "{} [open api] error : [{status}] {server_message}",
-      provider.display()
-    ),
-  })
-}
-
-fn post_json(
-  agent: &ureq::Agent,
-  url: &str,
-  headers: &[(&str, String)],
-  body: &Value,
-  provider: Provider,
-) -> Result<(), ReleaseError> {
-  let mut request = agent.post(url);
-  for (name, value) in headers {
-    request = request.header(*name, value);
-  }
-  let mut resp = request.send_json(body).map_err(|e| ReleaseError::Http {
-    message: format!("{} [open api] error : {e}", provider.display()),
-  })?;
-  check_status(&mut resp, provider)
-}
-
-// ---------------------------------------------------------------------------
-// github-like（github / gitee / gitcode 共享实现，差异仅在 token 注入方式）
-// ---------------------------------------------------------------------------
-
-static PRERELEASE_RE: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new(r"(beta|alpha)").unwrap());
-
-/// base_url 可注入（测试指向本地 mock）；生产经 `create_release` 传各家真实地址
-#[doc(hidden)]
-pub fn create_github_like_release(
-  provider: Provider,
-  base_url: &str,
-  token: &str,
-  new_version: &str,
-  markdown: &str,
-  cwd: &Path,
-) -> Result<(), ReleaseError> {
-  debug_assert!(matches!(
-    provider,
-    Provider::Github | Provider::Gitee | Provider::Gitcode
-  ));
-  let (owner, repo) = resolve_owner_repo(cwd)?;
-  let branch = crate::git::get_current_git_branch(cwd)?;
-  let mut body = json!({
-    "name": new_version,
-    "tag_name": format!("v{new_version}"),
-    "body": markdown,
-    "target_commitish": branch,
-    "prerelease": PRERELEASE_RE.is_match(new_version),
-  });
-  let mut url = format!("{base_url}/repos/{owner}/{repo}/releases");
-  let mut headers: Vec<(&str, String)> = vec![];
-  match provider {
-    Provider::Github => {
-      headers.push(("x-github-api-version", "2022-11-28".to_owned()));
-      headers.push(("authorization", format!("Bearer {token}")));
-    }
-    Provider::Gitee => {
-      body["access_token"] = Value::String(token.to_owned());
-    }
-    Provider::Gitcode => {
-      let encoded: String = url::form_urlencoded::byte_serialize(token.as_bytes()).collect();
-      url = format!("{url}?access_token={encoded}");
-    }
-    Provider::Gitlab => unreachable!("gitlab does not use the github-like path"),
-  }
-  post_json(&agent(), &url, &headers, &body, provider)
-}
-
-// ---------------------------------------------------------------------------
-// gitlab（PRIVATE-TOKEN + 项目 id 直查）
-// ---------------------------------------------------------------------------
-
-/// host 可注入（测试指向本地 mock）；生产经 `create_release` 解析 `gitlab.host`
-#[doc(hidden)]
-pub fn create_gitlab_release(
-  host: &str,
-  token: &str,
-  new_version: &str,
-  markdown: &str,
-  cwd: &Path,
-) -> Result<(), ReleaseError> {
-  let (owner, repo) = resolve_owner_repo(cwd)?;
-  let encoded_path: String =
-    url::form_urlencoded::byte_serialize(format!("{owner}/{repo}").as_bytes()).collect();
-  let agent = agent();
-  let mut resp = agent
-    .get(&format!("{host}/api/v4/projects/{encoded_path}"))
-    .header("PRIVATE-TOKEN", token)
-    .call()
-    .map_err(|e| ReleaseError::Http {
-      message: format!("gitlab [open api] error : {e}"),
-    })?;
-  check_status(&mut resp, Provider::Gitlab)?;
-  let project: Value = resp
-    .body_mut()
-    .read_json()
-    .map_err(|e| ReleaseError::Http {
-      message: format!("gitlab [open api] error : failed to parse project info: {e}"),
-    })?;
-  let id = project
-    .get("id")
-    .and_then(Value::as_u64)
-    .ok_or_else(|| ReleaseError::Http {
-      message: "cannot resolve the gitlab project id".into(),
-    })?;
-  post_json(
-    &agent,
-    &format!("{host}/api/v4/projects/{id}/releases"),
-    &[("PRIVATE-TOKEN", token.to_owned())],
-    &json!({
-      "name": new_version,
-      "tag_name": format!("v{new_version}"),
-      "description": markdown,
-    }),
-    Provider::Gitlab,
-  )
 }
