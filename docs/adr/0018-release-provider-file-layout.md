@@ -18,4 +18,4 @@
 
 - 新增 provider 的落点：加 `<provider>.rs`（薄文件或特化）+ `Provider` 枚举注册 + napi 薄导出（ADR-0016 形态）+ `tests/release/<provider>.rs`。
 - github-like 请求体语义变更只动 `github_like.rs` 一处，三家同步生效；某家 API 与 github 分叉时，将该家从共享核迁出为全特化文件即可（薄文件边界已为这一天留好）。
-- napi 四个导出、CLI、`Provider::parse` 签名与编排调用面不变——外部零感知。
+- napi 四个导出、CLI、`Provider::parse` 签名与编排调用面不变——外部零感知。（注：napi 四个导出后由 ADR-0019 移除，独立 release 迁移至 CLI `vbumpp release` 子命令。）
