@@ -21,11 +21,11 @@ use serde_json::{Map, Value};
 
 use crate::git::RepoConfig;
 
-pub mod github;
-pub mod gitee;
 pub mod gitcode;
-pub mod gitlab;
+pub mod gitee;
+pub mod github;
 mod github_like;
+pub mod gitlab;
 mod http;
 
 /// 四家托管平台
