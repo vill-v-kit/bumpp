@@ -20,8 +20,8 @@ pub(crate) fn create(
 ) -> Result<(), ReleaseError> {
   let document =
     crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
-  let host =
-    resolve_gitlab_host(document.as_ref(), overrides)?.unwrap_or_else(|| "https://gitlab.com".to_owned());
+  let host = resolve_gitlab_host(document.as_ref(), overrides)?
+    .unwrap_or_else(|| "https://gitlab.com".to_owned());
   create_with_host(&host, token, new_version, markdown, cwd)
 }
 

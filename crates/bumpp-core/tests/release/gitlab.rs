@@ -37,7 +37,10 @@ fn gitlab_section_strict_schema() {
   use bumpp_core::release::gitlab::resolve_gitlab_host;
   let unknown = doc(json!({ "gitlab": { "token": "x" } }));
   let err = resolve_gitlab_host(Some(&unknown), None).unwrap_err();
-  assert!(err.to_string().contains("unsupported key \"token\""), "{err}");
+  assert!(
+    err.to_string().contains("unsupported key \"token\""),
+    "{err}"
+  );
 
   let not_object = doc(json!({ "gitlab": "https://x" }));
   assert!(resolve_gitlab_host(Some(&not_object), None).is_err());

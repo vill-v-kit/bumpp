@@ -57,7 +57,9 @@ pub fn store_path() -> Result<PathBuf, TokenError> {
   Ok(
     crate::home::vbumpp_home()
       .ok_or_else(|| TokenError::HomeDir {
-        message: "cannot resolve the home directory (neither VBUMPP_HOME nor the system home is available)".into(),
+        message:
+          "cannot resolve the home directory (neither VBUMPP_HOME nor the system home is available)"
+            .into(),
       })?
       .join("tokens.bin"),
   )
@@ -83,7 +85,10 @@ pub fn read_token_store_at(store: &Path) -> Result<BTreeMap<String, String>, Tok
   let key = get_key(store)?;
   let plain = decrypt(&blob, &key)?;
   serde_json::from_slice(&plain).map_err(|e| TokenError::Format {
-    message: format!("token store file {} is not valid JSON: {e}", store.display()),
+    message: format!(
+      "token store file {} is not valid JSON: {e}",
+      store.display()
+    ),
   })
 }
 
@@ -229,7 +234,10 @@ fn ensure_dir(dir: &Path) -> Result<(), TokenError> {
   {
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(dir, fs::Permissions::from_mode(0o700)).map_err(|e| TokenError::Io {
-      message: format!("failed to set permissions on directory {}: {e}", dir.display()),
+      message: format!(
+        "failed to set permissions on directory {}: {e}",
+        dir.display()
+      ),
     })?;
   }
   Ok(())

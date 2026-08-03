@@ -6,9 +6,9 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod github;
 mod gitcode;
 mod gitee;
+mod github;
 mod gitlab;
 mod token;
 

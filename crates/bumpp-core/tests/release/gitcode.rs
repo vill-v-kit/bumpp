@@ -46,6 +46,9 @@ fn gitcode_error_never_leaks_token() {
   .unwrap_err();
   let msg = err.to_string();
   assert!(!msg.contains("gitcode token+"), "原始形态泄漏：{msg}");
-  assert!(!msg.contains("gitcode+token%2B"), "form 编码形态泄漏：{msg}");
+  assert!(
+    !msg.contains("gitcode+token%2B"),
+    "form 编码形态泄漏：{msg}"
+  );
   assert!(msg.contains("[redacted]"), "掩码应在场：{msg}");
 }

@@ -360,7 +360,9 @@ pub(crate) fn gitlab_host_of(
           }
           _ => {
             return Err(LoadConfigError::UnsupportedConfig {
-              message: format!("gitlab section contains unsupported key \"{key}\": only host is supported"),
+              message: format!(
+                "gitlab section contains unsupported key \"{key}\": only host is supported"
+              ),
             })
           }
         }
