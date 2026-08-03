@@ -456,12 +456,19 @@ fn gitlab_section_validated_at_load_regardless_of_provider() {
   // gitlab 段严格 schema 随文件加载生效（ADR-0014）：不经 gitlab release 路径也报错
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
-  write(&dir, ".vbumpprc.toml", "[gitlab]\nhsot = \"https://typo.example\"\n");
+  write(
+    &dir,
+    ".vbumpprc.toml",
+    "[gitlab]\nhsot = \"https://typo.example\"\n",
+  );
   let err = load_bump_config(None, dir.path()).unwrap_err();
   match err {
     LoadConfigError::UnsupportedConfig { message } => {
       assert!(message.contains("hsot"), "应报出 typo 键名：{message}");
-      assert!(message.contains(".vbumpprc.toml"), "应含文件路径：{message}");
+      assert!(
+        message.contains(".vbumpprc.toml"),
+        "应含文件路径：{message}"
+      );
     }
     other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
   }
@@ -470,7 +477,11 @@ fn gitlab_section_validated_at_load_regardless_of_provider() {
 #[test]
 fn gitlab_host_loads_from_config_file() {
   let dir = TempDir::new().unwrap();
-  write(&dir, ".vbumpprc.json", r#"{ "gitlab": { "host": "https://gitlab.internal" } }"#);
+  write(
+    &dir,
+    ".vbumpprc.json",
+    r#"{ "gitlab": { "host": "https://gitlab.internal" } }"#,
+  );
   let merged = load(&dir, None);
   assert_eq!(
     merged["gitlab"],
