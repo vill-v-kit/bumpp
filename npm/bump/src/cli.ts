@@ -17,10 +17,10 @@ export const createBaseCli = (
     .option('-r,--recursive', 'recursively', { default: false })
     .action(async (files, options) => {
       await bumpVersion({
-        bumpp: {
-          files,
-          recursive: options.recursive,
-        },
+        // 空 files 省略——避免 overrides 整体替换掉配置文件的 files
+        //（ADR-0013 浅合并语义；旧 defu 为数组拼接）
+        ...(files.length ? { files } : {}),
+        recursive: options.recursive,
         changelog: {
           output: options.output,
         },

@@ -22,7 +22,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./changelogen": "./dist/changelogen.js",
+    "./changelog": "./dist/changelog.js",
     "./cli": "./dist/cli.js",
     "./package.json": "./package.json"
   },
@@ -33,17 +33,11 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@esconf/core": "catalog:",
-    "@esconf/preset-mini": "catalog:",
     "@inquirer/password": "catalog:",
     "@vill-v/bumpp-core": "workspace:*",
     "cac": "catalog:",
-    "changelogen": "catalog:",
     "consola": "catalog:",
-    "defu": "catalog:",
-    "picospinner": "catalog:",
-    "tinyexec": "catalog:",
-    "tinyglobby": "catalog:"
+    "picospinner": "catalog:"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

@@ -1,96 +1,19 @@
 /**
- * 改写自 unjs/changelogen
- * @link https://github.com/unjs/changelogen
- * @licence https://github.com/unjs/changelogen/blob/main/LICENSE
+ * changelog 系符号（changelogen 使用面的 Rust 重写，ADR-0012）——
+ * 实现统一在 @vill-v/bumpp-core，本文件仅显式收窄再导出
+ * （原子路径 @vill-v/bumpp/changelog，专供兄弟包）
  */
-
-import { existsSync } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
-import {
-  type ResolvedChangelogConfig,
-  generateMarkDown,
+export {
+  generateChangelog,
+  getCurrentGitBranch,
   getGitDiff,
   getLastGitTag,
-  parseCommits,
-} from 'changelogen'
-import { x } from 'tinyexec'
-
-/**
- * 获取远程仓库的最新tag
- * @returns
- */
-export const getTag = async (): Promise<string> => {
-  try {
-    return await getLastGitTag()
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (e) {
-    return ''
-  }
-}
-
-/**
- * 生成changelog
- * @param rawConfig
- */
-export const changelog = async (
-  rawConfig: ResolvedChangelogConfig
-): Promise<{
-  markdown: string
-  changelogMD: string
-}> => {
-  const config = {
-    ...rawConfig,
-    newVersion: rawConfig.to,
-    to: `v${rawConfig.to}`,
-    from: `v${rawConfig.from}`,
-  } as ResolvedChangelogConfig
-
-  // 获取当前最新提交与上个版本的所有提交信息
-  const rawCommits = await getGitDiff(config.from)
-
-  // 格式化所有提交信息
-  const commits = parseCommits(rawCommits, config).filter(
-    (c) => config.types[c.type] && !(c.type === 'chore' && c.scope === 'deps' && !c.isBreaking)
-  )
-
-  // 提交信息生成 markdown
-  let markdown = await generateMarkDown(commits, config)
-
-  const breakingChange = config.types.BreakingChange
-  const breakingChangeTitle =
-    typeof breakingChange === 'object' ? breakingChange.title : '⚠️ Breaking Changes'
-
-  markdown = markdown
-    .replace('#### ⚠️ Breaking Changes', '#### ' + breakingChangeTitle)
-    .replace('### ❤️ Contributors', '### ' + '❤️ 贡献者')
-
-  // Update changelog file (only when bumping or releasing or when --output is specified as a file)
-  let changelogMD: string
-  if (existsSync(config.output as string)) {
-    changelogMD = await readFile(config.output as string, 'utf8')
-  } else {
-    changelogMD = '# Changelog\n\n'
-  }
-
-  const lastEntry = changelogMD.match(/^###?\s+.*$/m)
-
-  if (lastEntry) {
-    changelogMD =
-      changelogMD.slice(0, lastEntry.index) + markdown + '\n\n' + changelogMD.slice(lastEntry.index)
-  } else {
-    changelogMD += '\n' + markdown + '\n\n'
-  }
-
-  // 更新 changelog
-  await writeFile(config.output as string, changelogMD)
-  // 将changelog 文件和 package.json 提供给 git暂存
-  await x('git', ['add', config.output as string, 'package.json'])
-  // 添加 changelog 提交信息
-  await x('git', ['commit', '-m', `chore: update ${config.output as string}`])
-  return {
-    // 当前发版的markdown信息
-    markdown,
-    // changelog 所有的信息
-    changelogMD,
-  }
-}
+  resolveRepoConfig,
+} from '@vill-v/bumpp-core'
+export type {
+  ChangelogOptions,
+  GenerateChangelogResult,
+  GitAuthor,
+  RawCommit,
+  RepoConfig,
+} from '@vill-v/bumpp-core'
