@@ -2,10 +2,6 @@ packages:
   - napi/*
   - npm/*
 
-catalog:
-  cac: ^7.0.0
-  consola: ^3.4.2
-
 catalogs:
   dev:
     '@napi-rs/cli': ^3.8.2

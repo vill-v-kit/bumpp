@@ -1,8 +1,8 @@
 #![deny(clippy::all)]
 
-//! napi 导出面（ADR-0014 收缩后）：编排 `bumpVersion`、平台 Release 四导出、
-//! token 三件套（CLI 路由用）。上游 parity 面（versionBump 系、loadBumpConfig）
-//! 与 changelog 系函数已收归 Rust 内部，不再导出。
+//! napi 导出面（ADR-0014 收缩、ADR-0016 再收缩后）：编排 `bumpVersion`、平台
+//! Release 四导出、CLI 单入口 `cliRun`。上游 parity 面（versionBump 系、
+//! loadBumpConfig）与 changelog 系函数已收归 Rust 内部，不再导出。
 
 use std::path::PathBuf;
 
@@ -21,44 +21,24 @@ fn to_napi_err(e: impl std::fmt::Display) -> napi::Error {
 }
 
 // ---------------------------------------------------------------------------
-// token 三件套（ADR-0014：存储与交互全在 Rust，CLI 仅路由）
+// CLI 单入口（ADR-0016：argv 语法唯一归属 Rust，Node 仅 argv 透传）
 // ---------------------------------------------------------------------------
 
-/// token list：存储中全部平台名
-#[napi]
-pub fn token_list() -> napi::Result<Vec<String>> {
-  Ok(
-    bumpp_core::token::read_token_store()
-      .map_err(to_napi_err)?
-      .into_keys()
-      .collect(),
-  )
-}
-
-/// token remove：删除指定平台 token；返回是否实际删除
-#[napi]
-pub fn token_remove(name: String) -> napi::Result<bool> {
-  bumpp_core::token::remove_token(&name).map_err(to_napi_err)
-}
-
-pub struct TokenSetTask {
-  name: String,
+pub struct CliRunTask {
+  argv: Vec<String>,
+  provider: Option<String>,
 }
 
 #[napi]
-impl napi::Task for TokenSetTask {
-  type Output = bool;
-  type JsValue = bool;
+impl napi::Task for CliRunTask {
+  type Output = i32;
+  type JsValue = i32;
 
   fn compute(&mut self) -> napi::Result<Self::Output> {
-    // Rust 侧渲染密码 prompt（dialoguer）；空输入报错、取消返回 false
-    match bumpp_core::token::prompt_token(&self.name).map_err(to_napi_err)? {
-      Some(token) => {
-        bumpp_core::token::save_token(&self.name, &token).map_err(to_napi_err)?;
-        Ok(true)
-      }
-      None => Ok(false),
-    }
+    Ok(bumpp_core::cli::run_from_argv(
+      &self.argv,
+      self.provider.as_deref(),
+    ))
   }
 
   fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
@@ -66,10 +46,14 @@ impl napi::Task for TokenSetTask {
   }
 }
 
-/// token set：Rust 侧交互录入并加密保存（返回是否实际保存——用户取消为 false）
+/// CLI：argv 全权交 Rust 解析执行，返回退出码由调用壳回写 `process.exitCode`；
+/// `provider` 为平台变体身份（`@vill-v/bumpp-github` 等变体 bin 经位置参数注入）
 #[napi]
-pub fn token_set(name: String) -> napi::bindgen_prelude::AsyncTask<TokenSetTask> {
-  napi::bindgen_prelude::AsyncTask::new(TokenSetTask { name })
+pub fn cli_run(
+  argv: Vec<String>,
+  provider: Option<String>,
+) -> napi::bindgen_prelude::AsyncTask<CliRunTask> {
+  napi::bindgen_prelude::AsyncTask::new(CliRunTask { argv, provider })
 }
 
 // ---------------------------------------------------------------------------

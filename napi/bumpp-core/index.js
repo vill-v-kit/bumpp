@@ -83,21 +83,17 @@ const nativeBinding = requireNative()
 
 const {
   bumpVersion,
+  cliRun,
   createGitcodeRelease,
   createGiteeRelease,
   createGithubRelease,
   createGitlabRelease,
-  tokenList,
-  tokenRemove,
-  tokenSet,
 } = nativeBinding
 export {
   bumpVersion,
+  cliRun,
   createGitcodeRelease,
   createGiteeRelease,
   createGithubRelease,
   createGitlabRelease,
-  tokenList,
-  tokenRemove,
-  tokenSet,
 }

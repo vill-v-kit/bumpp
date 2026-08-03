@@ -22,7 +22,6 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./cli": "./dist/cli.js",
     "./package.json": "./package.json"
   },
   "publishConfig": {

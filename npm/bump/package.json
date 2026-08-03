@@ -22,7 +22,6 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./cli": "./dist/cli.js",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -32,9 +31,7 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@vill-v/bumpp-core": "workspace:*",
-    "cac": "catalog:",
-    "consola": "catalog:"
+    "@vill-v/bumpp-core": "workspace:*"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

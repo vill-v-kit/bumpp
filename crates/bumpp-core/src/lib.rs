@@ -3,6 +3,7 @@
 
 pub mod bump;
 pub mod changelog;
+pub mod cli;
 pub mod commits;
 pub mod config;
 pub mod exec;
