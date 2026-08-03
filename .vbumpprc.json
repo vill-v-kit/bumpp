@@ -1,6 +1,0 @@
-{
-  "files": ["crates/bumpp-core/Cargo.toml", "napi/bumpp-core/Cargo.toml"],
-  "changelog": {
-    "excludeAuthors": []
-  }
-}

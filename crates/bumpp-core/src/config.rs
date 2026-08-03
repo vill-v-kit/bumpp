@@ -185,13 +185,13 @@ fn probe_config(dir: &Path, names: &[&str]) -> Result<Option<Map<String, Value>>
     1 => Ok(Some(read_config(&found[0])?)),
     _ => Err(LoadConfigError::AmbiguousConfig {
       message: format!(
-        "{} 下存在多个配置文件：{}——请只保留一个（支持 {}）",
+        "multiple config files found in {}: {} — keep only one (supported: {})",
         dir.display(),
         found
           .iter()
           .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
           .collect::<Vec<_>>()
-          .join("、"),
+          .join(", "),
         names.join(" / ")
       ),
     }),
@@ -276,24 +276,24 @@ impl ConfigFormat {
 
 fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
   let content = fs::read_to_string(path).map_err(|e| LoadConfigError::Io {
-    message: format!("读取配置文件 {} 失败：{e}", path.display()),
+    message: format!("failed to read config file {}: {e}", path.display()),
   })?;
   let value: Value = match ConfigFormat::of(path) {
     Some(ConfigFormat::Jsonc) => {
       jsonc_parser::parse_to_serde_value(&content, &CONFIG_JSONC_OPTIONS).map_err(|e| {
         LoadConfigError::Parse {
-          message: format!("解析配置文件 {} 失败：{e}", path.display()),
+          message: format!("failed to parse config file {}: {e}", path.display()),
         }
       })?
     }
     Some(ConfigFormat::Toml) => {
       let toml_value: toml::Value =
         toml::from_str(&content).map_err(|e| LoadConfigError::Parse {
-          message: format!("解析配置文件 {} 失败：{e}", path.display()),
+          message: format!("failed to parse config file {}: {e}", path.display()),
         })?;
       reject_toml_datetimes(&toml_value, path)?;
       serde_json::to_value(toml_value).map_err(|e| LoadConfigError::Parse {
-        message: format!("解析配置文件 {} 失败：{e}", path.display()),
+        message: format!("failed to parse config file {}: {e}", path.display()),
       })?
     }
     None => return Err(unsupported_config(path)),
@@ -303,8 +303,8 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
       if map.contains_key("customVersion") {
         return Err(LoadConfigError::UnsupportedConfig {
           message: format!(
-            "配置文件 {} 包含 customVersion 选项：配置文件无法承载函数，\
-             该选项已随本重写移除，请删除该键。",
+            "config file {} contains the customVersion option: config files cannot carry \
+             functions; this option was removed in the rewrite — delete the key.",
             path.display()
           ),
         });
@@ -312,14 +312,14 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
       // gitlab 段严格 schema（ADR-0014）：随文件加载即校验，与 provider 无关
       if let Some(message) = gitlab_section_error(&map) {
         return Err(LoadConfigError::UnsupportedConfig {
-          message: format!("配置文件 {} {message}", path.display()),
+          message: format!("config file {}: {message}", path.display()),
         });
       }
       Ok(map)
     }
     // 上游 `{...非对象}` 的行为（数组展开为索引键等）属于病理用法，明确拒绝
     _ => Err(LoadConfigError::Parse {
-      message: format!("配置文件 {} 必须是对象", path.display()),
+      message: format!("config file {} must be an object", path.display()),
     }),
   }
 }
@@ -354,13 +354,13 @@ pub(crate) fn gitlab_host_of(
           "host" => {
             host = Some(value.as_str().map(str::to_owned).ok_or_else(|| {
               LoadConfigError::UnsupportedConfig {
-                message: "的 gitlab 段 \"host\" 必须是 string".into(),
+                message: "gitlab section \"host\" must be a string".into(),
               }
             })?);
           }
           _ => {
             return Err(LoadConfigError::UnsupportedConfig {
-              message: format!("的 gitlab 段包含未支持的键 \"{key}\"：仅支持 host"),
+              message: format!("gitlab section contains unsupported key \"{key}\": only host is supported"),
             })
           }
         }
@@ -368,7 +368,7 @@ pub(crate) fn gitlab_host_of(
       Ok(host)
     }
     Some(_) => Err(LoadConfigError::UnsupportedConfig {
-      message: "的 gitlab 段必须是对象".into(),
+      message: "gitlab section must be an object".into(),
     }),
   }
 }
@@ -384,7 +384,8 @@ fn reject_toml_datetimes(value: &toml::Value, path: &Path) -> Result<(), LoadCon
   match value {
     toml::Value::Datetime(dt) => Err(LoadConfigError::Parse {
       message: format!(
-        "配置文件 {} 包含 TOML datetime 值（{dt}）：JSON 值域无法表达，请改用字符串",
+        "config file {} contains a TOML datetime value ({dt}): not expressible in the \
+         JSON value domain — use a string instead",
         path.display()
       ),
     }),
@@ -401,8 +402,9 @@ fn reject_toml_datetimes(value: &toml::Value, path: &Path) -> Result<(), LoadCon
 fn unsupported_config(path: &Path) -> LoadConfigError {
   LoadConfigError::UnsupportedConfig {
     message: format!(
-      "支持的配置文件格式：.json / .jsonc / .toml（.vbumpprc.* 或 configFilePath \
-       指向的文件）；指定的配置文件 {} 不在支持之列，本实现不执行 TS/JS 配置。",
+      "supported config file formats: .json / .jsonc / .toml (.vbumpprc.* or the file \
+       configFilePath points to); the given config file {} is not supported — this \
+       implementation does not execute TS/JS config.",
       path.display()
     ),
   }

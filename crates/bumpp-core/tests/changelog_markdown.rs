@@ -298,7 +298,7 @@ fn markdown_contributors_default_hides_email() {
     display("fix", "", "fix y", ("alice", "alice@example.com")),
   ];
   let md = generate_markdown(&commits, &config, &range());
-  assert!(md.contains("### ❤️ 贡献者"), "{md}");
+  assert!(md.contains("### ❤️ Contributors"), "{md}");
   assert!(
     md.ends_with("- Alice"),
     "默认隐邮箱且 formatName 规范化：{md}"
@@ -342,7 +342,7 @@ fn markdown_contributors_exclude_bot_and_noauthors() {
 
   config.no_authors = true;
   let md = generate_markdown(&commits, &config, &range());
-  assert!(!md.contains("贡献者"), "noAuthors 整节不出");
+  assert!(!md.contains("Contributors"), "noAuthors 整节不出");
 }
 
 #[test]
@@ -378,7 +378,8 @@ fn render_applies_gitmoji_and_uppercase() {
 
 // ---------------------------------------------------------------------------
 // golden fixtures：真 changelogen 0.6.2 产出经申报偏差变换（见 NOTES.md 与
-// tests/fixtures/changelog-gen.mjs 头注释），逐字节比对
+// tests/fixtures/changelog-gen.mjs 头注释；节标题中文化偏差已随 ADR-0017 移除），
+// 逐字节比对
 // ---------------------------------------------------------------------------
 
 #[derive(serde::Deserialize)]

@@ -21,7 +21,8 @@ fn defaults_when_no_document_no_overrides() {
   assert_eq!(config.tag_body, "v{{newVersion}}");
   assert_eq!(config.commit_message, "chore: update {{output}}");
   assert_eq!(config.repo, None);
-  // 内建 types：原 JS getDefaultsChangeLogConfig 的 10 组 + BreakingChange，声明序
+  // 内建 types：原 JS getDefaultsChangeLogConfig 的键集 + BreakingChange，声明序；
+  // title 为 changelogen 英文措辞（ADR-0017，中文定制移至项目级配置）
   let types: Vec<(&str, &str)> = config
     .types
     .iter()
@@ -30,17 +31,17 @@ fn defaults_when_no_document_no_overrides() {
   assert_eq!(
     types,
     [
-      ("feat", "🚀 特性"),
-      ("perf", "🔥 性能优化"),
-      ("fix", "🩹 修复"),
-      ("refactor", "💅 重构"),
-      ("examples", "🏀 示例"),
-      ("docs", "📖 文档"),
-      ("chore", "🏡 框架"),
-      ("build", "📦 打包"),
-      ("test", "✅ 测试"),
-      ("BreakingChange", "🚨 破坏性改动"),
-      ("style", "🎨 样式"),
+      ("feat", "🚀 Enhancements"),
+      ("perf", "🔥 Performance"),
+      ("fix", "🩹 Fixes"),
+      ("refactor", "💅 Refactors"),
+      ("examples", "🏀 Examples"),
+      ("docs", "📖 Documentation"),
+      ("chore", "🏡 Chore"),
+      ("build", "📦 Build"),
+      ("test", "✅ Tests"),
+      ("BreakingChange", "🚨 Breaking Changes"),
+      ("style", "🎨 Styles"),
     ]
   );
 }
@@ -70,7 +71,7 @@ fn types_empty_object_is_deep_merge_noop() {
   let overrides = map(json!({ "types": { "feat": {}, "newtype": {} } }));
   let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
   assert_eq!(config.types.len(), 11);
-  assert_eq!(config.types[0].1.title, "🚀 特性");
+  assert_eq!(config.types[0].1.title, "🚀 Enhancements");
 }
 
 #[test]
@@ -177,7 +178,7 @@ fn unknown_key_errors_with_name() {
   // cwd 非运行时特判——按未知键报错（changelogen 的 cwd 迁移者同样得到指引）
   let overrides = map(json!({ "cwd": "/tmp" }));
   let err = resolve_changelog_config(None, Some(&overrides)).unwrap_err();
-  assert!(err.to_string().contains("未支持的键"), "{err}");
+  assert!(err.to_string().contains("unsupported key"), "{err}");
 }
 
 #[test]
@@ -192,7 +193,7 @@ fn legacy_keys_error() {
     let overrides = map(bad);
     let err = resolve_changelog_config(None, Some(&overrides)).unwrap_err();
     assert!(
-      err.to_string().contains("移除") || err.to_string().contains("未支持"),
+      err.to_string().contains("removed") || err.to_string().contains("unsupported"),
       "遗产/未知键报错：{err}"
     );
   }
@@ -228,7 +229,7 @@ fn changelog_section_null_is_absent() {
 fn changelog_section_must_be_object() {
   let doc = map(json!({ "changelog": "x" }));
   let err = resolve_changelog_config(Some(&doc), None).unwrap_err();
-  assert!(err.to_string().contains("必须是对象"), "{err}");
+  assert!(err.to_string().contains("must be an object"), "{err}");
 }
 
 #[test]

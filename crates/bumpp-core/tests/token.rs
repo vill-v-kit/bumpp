@@ -94,7 +94,7 @@ fn wrong_key_fails_decrypt() {
   // 换掉密钥（模拟「设备或用户已变更」场景）——GCM tag 校验必须失败
   fs::write(store.with_file_name("key.bin"), [0xAAu8; 32]).unwrap();
   let err = read_token_store_at(&store).unwrap_err();
-  assert!(err.to_string().contains("解密失败"), "{err}");
+  assert!(err.to_string().contains("failed to decrypt"), "{err}");
 }
 
 #[test]
@@ -105,7 +105,7 @@ fn bad_magic_and_unknown_version_error() {
   assert!(read_token_store_at(&bad_magic)
     .unwrap_err()
     .to_string()
-    .contains("格式不正确"));
+    .contains("invalid format"));
 
   // 合法 magic + 未知版本号：翻版 fixture 字节的 version 位
   let mut blob = fs::read(fixture_dir().join("tokens.bin")).unwrap();
@@ -117,7 +117,7 @@ fn bad_magic_and_unknown_version_error() {
   assert!(read_token_store_at(&bad_version)
     .unwrap_err()
     .to_string()
-    .contains("不支持的 token 存储版本: 99"));
+    .contains("unsupported token store version: 99"));
 }
 
 #[test]

@@ -280,7 +280,7 @@ fn invalid_toml_is_an_error_and_file_stays_untouched() {
   write(&dir, "Cargo.toml", original);
   let err = bump(&dir).unwrap_err();
   assert!(
-    err.to_string().starts_with("解析 Cargo.toml 失败："),
+    err.to_string().starts_with("failed to parse Cargo.toml: "),
     "错误应点名相对路径，实际：{}",
     err
   );

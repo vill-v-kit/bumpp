@@ -43,7 +43,7 @@ pub fn capture(program: &str, args: &[String], cwd: &Path) -> Result<Output, Exe
   } else {
     Err(ExecError::Failed {
       message: format!(
-        "{display} 退出码 {}：\n{}",
+        "{display} exited with code {}:\n{}",
         output.status.code().unwrap_or(-1),
         String::from_utf8_lossy(&output.stderr).trim()
       ),
@@ -57,7 +57,7 @@ fn spawn(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError
     .current_dir(cwd)
     .output()
     .map_err(|e| ExecError::Spawn {
-      message: format!("执行 {program} {} 失败：{e}", args.join(" ")),
+      message: format!("failed to execute {program} {}: {e}", args.join(" ")),
     })
 }
 

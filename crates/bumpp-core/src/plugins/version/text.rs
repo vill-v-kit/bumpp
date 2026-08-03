@@ -24,7 +24,7 @@ pub(crate) fn update(
   }
   // 上游 sanitizedVersion 转义全部 \W 字符；regex::escape 语义等价
   let pattern = format!("((?-u:\\b)|v){}(?-u:\\b)", regex::escape(current));
-  let re = regex::Regex::new(&pattern).expect("版本号转义后必为合法正则");
+  let re = regex::Regex::new(&pattern).expect("an escaped version is always a valid regex");
   let new_text = re.replace_all(&text, |caps: &regex::Captures| format!("{}{new}", &caps[1]));
   write_text(path, rel_path, &new_text)?;
   Ok(UpdateOutcome::Updated)

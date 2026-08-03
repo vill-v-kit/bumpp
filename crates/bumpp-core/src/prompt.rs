@@ -50,7 +50,7 @@ pub fn prompt_new_version(
   let initial = choices
     .iter()
     .position(|(v, _)| v == "next")
-    .expect("next 选项恒存在");
+    .expect("the next choice always exists");
 
   let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
     .with_prompt(format!(
@@ -61,7 +61,7 @@ pub fn prompt_new_version(
     .default(initial)
     .interact()
     .map_err(|e| InfoError::Prompt {
-      message: format!("交互选择失败：{e}"),
+      message: format!("interactive selection failed: {e}"),
     })?;
 
   let value = choices[selection].0.as_str();
@@ -81,13 +81,13 @@ pub fn prompt_new_version(
         })
         .interact_text()
         .map_err(|e| InfoError::Prompt {
-          message: format!("读取自定义版本失败：{e}"),
+          message: format!("failed to read custom version: {e}"),
         })?;
       // 上游 clean(answers.custom)：校验已过，解析即格式化
       let cleaned = Version::parse(input.trim())
         .map(|v| v.to_string())
         .map_err(|_| InfoError::InvalidVersion {
-          message: format!("无效的版本号：{input}"),
+          message: format!("invalid version: {input}"),
         })?;
       Ok((None, cleaned))
     }
@@ -95,7 +95,7 @@ pub fn prompt_new_version(
     "conventional" => Ok((None, next.conventional.clone())),
     other => {
       // major / minor / patch / pre*：上游 state.release 记录选择值
-      let release = ReleaseType::parse(other).expect("选项值集合固定");
+      let release = ReleaseType::parse(other).expect("the choice value set is fixed");
       Ok((Some(other.to_string()), next.get(release).to_string()))
     }
   }

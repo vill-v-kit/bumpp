@@ -283,12 +283,12 @@ pub fn version_bump(
       .default(true)
       .interact()
       .map_err(|e| BumpError::Cancelled {
-        message: format!("确认交互失败：{e}"),
+        message: format!("confirmation prompt failed: {e}"),
       })?;
     if !yes {
       // 上游 process.exit(1)；库实现改为可读错误，由调用方决定退出码
       return Err(BumpError::Cancelled {
-        message: "用户取消了本次 bump".to_string(),
+        message: "bump canceled by user".to_string(),
       });
     }
   }
@@ -360,10 +360,10 @@ pub fn version_bump(
   if let Some(execute) = options.execute {
     // 上游 tokenizeArgs 后无 shell 执行
     let parts = shell_words::split(execute).map_err(|e| BumpError::Exec {
-      message: format!("解析 execute 命令失败：{e}"),
+      message: format!("failed to parse execute command: {e}"),
     })?;
     let (program, args) = parts.split_first().ok_or_else(|| BumpError::Exec {
-      message: "execute 命令为空".to_string(),
+      message: "execute command is empty".to_string(),
     })?;
     run(program, args, cwd)?;
   }

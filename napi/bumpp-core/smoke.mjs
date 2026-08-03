@@ -19,38 +19,38 @@ process.env.VBUMPP_TOKEN_STORE = join(dir, 'tokens.bin')
 process.env.VBUMPP_HOME = join(dir, 'home')
 
 const checks = [
-  ['bumpVersion 导出存在', typeof bumpVersion === 'function'],
-  ['cliRun 导出存在', typeof cliRun === 'function'],
-  ['createGithubRelease 导出存在', typeof createGithubRelease === 'function'],
-  ['createGitlabRelease 导出存在', typeof createGitlabRelease === 'function'],
-  ['createGiteeRelease 导出存在', typeof createGiteeRelease === 'function'],
-  ['createGitcodeRelease 导出存在', typeof createGitcodeRelease === 'function'],
+  ['bumpVersion export exists', typeof bumpVersion === 'function'],
+  ['cliRun export exists', typeof cliRun === 'function'],
+  ['createGithubRelease export exists', typeof createGithubRelease === 'function'],
+  ['createGitlabRelease export exists', typeof createGitlabRelease === 'function'],
+  ['createGiteeRelease export exists', typeof createGiteeRelease === 'function'],
+  ['createGitcodeRelease export exists', typeof createGitcodeRelease === 'function'],
 ]
 
 // provider 校验在编排入口同步失败（不经网络/交互）
 try {
   await bumpVersion({}, 'bogus', dir)
-  checks.push(['bumpVersion 未知 provider 报错', false])
+  checks.push(['bumpVersion rejects unknown provider', false])
 } catch (error) {
   checks.push([
-    'bumpVersion 未知 provider 报错',
-    String(error).includes('未知 provider: bogus'),
+    'bumpVersion rejects unknown provider',
+    String(error).includes('unknown provider: bogus'),
   ])
 }
 
 // CLI 通路（ADR-0016：argv 全权归 Rust，返回退出码）
-checks.push(['cliRun --version 退出码 0', (await cliRun(['--version'])) === 0])
-checks.push(['cliRun --help 退出码 0', (await cliRun(['--help'])) === 0])
-checks.push(['cliRun token list 空存储退出码 0', (await cliRun(['token', 'list'])) === 0])
-checks.push(['cliRun token remove 未找到退出码 0', (await cliRun(['token', 'remove', 'github'])) === 0])
-checks.push(['cliRun token 未知 action 退出码 1', (await cliRun(['token', 'peek'])) === 1])
-checks.push(['cliRun 未知选项退出码 1', (await cliRun(['--wat'])) === 1])
+checks.push(['cliRun --version exits 0', (await cliRun(['--version'])) === 0])
+checks.push(['cliRun --help exits 0', (await cliRun(['--help'])) === 0])
+checks.push(['cliRun token list on empty store exits 0', (await cliRun(['token', 'list'])) === 0])
+checks.push(['cliRun token remove (absent) exits 0', (await cliRun(['token', 'remove', 'github'])) === 0])
+checks.push(['cliRun token unknown action exits 1', (await cliRun(['token', 'peek'])) === 1])
+checks.push(['cliRun unknown option exits 1', (await cliRun(['--wat'])) === 1])
 
 // bump 通路：空目录直达编排层首错（临时 cwd，不经交互）
 const cwd = process.cwd()
 process.chdir(dir)
-checks.push(['cliRun bump 空目录退出码 1', (await cliRun([])) === 1])
-checks.push(['cliRun bump 未知 provider 退出码 1', (await cliRun([], 'bogus')) === 1])
+checks.push(['cliRun bump in empty dir exits 1', (await cliRun([])) === 1])
+checks.push(['cliRun bump with unknown provider exits 1', (await cliRun([], 'bogus')) === 1])
 process.chdir(cwd)
 
 // 四个平台变体 bin 的 provider 注入锚定：空目录跑 bin，退出码 1 且 stderr
@@ -68,8 +68,8 @@ for (const provider of variantBins) {
     encoding: 'utf8',
   })
   checks.push([
-    `变体 bin（${provider}）provider 注入生效`,
-    result.status === 1 && !result.stderr.includes('未知 provider'),
+    `variant bin (${provider}) injects its provider`,
+    result.status === 1 && !result.stderr.includes('unknown provider'),
   ])
 }
 

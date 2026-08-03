@@ -125,7 +125,7 @@ pub fn create_release(
   }) = crate::git::resolve_repo_config(cwd)
   {
     println!(
-      "{} repo: domain {}（{provider}）",
+      "{} repo: domain {} ({provider})",
       dialoguer::console::style("ℹ").blue(),
       domain.unwrap_or_else(|| "unknown".into()),
       provider = provider.display(),
@@ -207,7 +207,7 @@ fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<String, ReleaseE
     Ok(tokens) => tokens,
     Err(e) => {
       eprintln!(
-        "{} token 存储文件读取失败（{e}），请重新执行 vbumpp token set <name>",
+        "{} failed to read token store file ({e}); run vbumpp token set <name> again",
         dialoguer::console::style("⚠").yellow(),
       );
       BTreeMap::new()
@@ -220,7 +220,7 @@ fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<String, ReleaseE
   })
   .ok_or_else(|| ReleaseError::Token {
     message: format!(
-      "未检测到 {} token，请执行 vbumpp token set {} 录入",
+      "no {} token detected; run vbumpp token set {} to add one",
       provider.display(),
       provider.name()
     ),
@@ -256,13 +256,13 @@ fn resolve_owner_repo(cwd: &Path) -> Result<(String, String), ReleaseError> {
   let repo = crate::git::resolve_repo_config(cwd)
     .and_then(|r| r.repo)
     .ok_or_else(|| ReleaseError::Git {
-      message: "无法获取远程仓库信息".into(),
+      message: "cannot resolve the remote repository".into(),
     })?;
   repo
     .split_once('/')
     .map(|(o, r)| (o.to_owned(), r.to_owned()))
     .ok_or_else(|| ReleaseError::Git {
-      message: "无法获取远程仓库信息".into(),
+      message: "cannot resolve the remote repository".into(),
     })
 }
 
@@ -366,7 +366,7 @@ pub fn create_github_like_release(
       let encoded: String = url::form_urlencoded::byte_serialize(token.as_bytes()).collect();
       url = format!("{url}?access_token={encoded}");
     }
-    Provider::Gitlab => unreachable!("gitlab 不走 github-like 通道"),
+    Provider::Gitlab => unreachable!("gitlab does not use the github-like path"),
   }
   post_json(&agent(), &url, &headers, &body, provider)
 }
@@ -400,13 +400,13 @@ pub fn create_gitlab_release(
     .body_mut()
     .read_json()
     .map_err(|e| ReleaseError::Http {
-      message: format!("gitlab [open api] error : 项目信息解析失败：{e}"),
+      message: format!("gitlab [open api] error : failed to parse project info: {e}"),
     })?;
   let id = project
     .get("id")
     .and_then(Value::as_u64)
     .ok_or_else(|| ReleaseError::Http {
-      message: "无法获取项目对应 gitlab 项目 id".into(),
+      message: "cannot resolve the gitlab project id".into(),
     })?;
   post_json(
     &agent,

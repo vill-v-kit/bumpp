@@ -101,7 +101,7 @@ pub fn convert_gitmoji(content: &str) -> String {
         .iter()
         .find(|(k, _)| *k == code)
         .map(|(_, v)| v)
-        .expect("正则命中的键必在表内");
+        .expect("a regex-matched key is always in the table");
       format!("{emoji} ")
     })
     .into_owned()

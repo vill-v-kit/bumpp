@@ -124,7 +124,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
       "-r" | "--recursive" => args.recursive = true,
       "-o" | "--output" => {
         let Some(value) = argv.get(i) else {
-          return Err(format!("选项 {arg} 缺少值"));
+          return Err(format!("option {arg} requires a value"));
         };
         args.output = value.clone();
         i += 1;
@@ -133,7 +133,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
         Some(("--output", value)) => args.output = value.to_string(),
         // 布尔 flag 带值按 mri 惯例视为 truthy（--recursive=false 亦开启）
         Some(("--recursive", _)) => args.recursive = true,
-        _ => return Err(format!("未知选项: {arg}")),
+        _ => return Err(format!("unknown option: {arg}")),
       },
       _ if arg.starts_with('-') && arg.len() > 1 => {
         // 短 flag 簇（mri 惯例可合并，如 `-ro out.md`）
@@ -151,14 +151,14 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
                 args.output = rest.to_string();
               } else {
                 let Some(value) = argv.get(i) else {
-                  return Err("选项 -o 缺少值".to_string());
+                  return Err("option -o requires a value".to_string());
                 };
                 args.output = value.clone();
                 i += 1;
               }
               break;
             }
-            _ => return Err(format!("未知选项: -{c}")),
+            _ => return Err(format!("unknown option: -{c}")),
           }
           offset += c.len_utf8();
         }
@@ -195,7 +195,7 @@ fn bump_command(
   let provider = match provider
     .map(|p| {
       crate::release::Provider::parse(p)
-        .ok_or_else(|| format!("未知 provider: {p}（可用 github / gitlab / gitee / gitcode）"))
+        .ok_or_else(|| format!("unknown provider: {p} (expected github / gitlab / gitee / gitcode)"))
     })
     .transpose()
   {
@@ -210,7 +210,7 @@ fn bump_command(
     None => match std::env::current_dir() {
       Ok(cwd) => cwd,
       Err(e) => {
-        error_line(err, &format!("无法解析当前目录：{e}"));
+        error_line(err, &format!("cannot resolve current directory: {e}"));
         return 1;
       }
     },
@@ -236,14 +236,14 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
   let Some(action) = args.first() else {
     error_line(
       err,
-      "用法: vbumpp token <action> [name]（action: set / list / remove）",
+      "usage: vbumpp token <action> [name] (action: set / list / remove)",
     );
     return 1;
   };
   match action.as_str() {
     "set" => {
       let Some(name) = positional_name(args.get(1)) else {
-        error_line(err, "用法: vbumpp token set <name>");
+        error_line(err, "usage: vbumpp token set <name>");
         return 1;
       };
       // 密码交互在 Rust 侧（dialoguer，ADR-0014）
@@ -255,7 +255,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
           };
           match token::save_token_at(&store, name, &plaintext) {
             Ok(()) => {
-              success_line(out, &format!("{name} token 已加密保存"));
+              success_line(out, &format!("{name} token saved (encrypted)"));
               0
             }
             Err(e) => {
@@ -265,7 +265,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
           }
         }
         Ok(None) => {
-          warn_line(out, "已取消录入");
+          warn_line(out, "entry canceled");
           0
         }
         Err(e) => {
@@ -280,7 +280,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
       };
       match token::read_token_store_at(&store) {
         Ok(tokens) if tokens.is_empty() => {
-          info_line(out, "尚未配置任何 token");
+          info_line(out, "no tokens configured");
           0
         }
         Ok(tokens) => {
@@ -297,7 +297,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
     }
     "remove" => {
       let Some(name) = positional_name(args.get(1)) else {
-        error_line(err, "用法: vbumpp token remove <name>");
+        error_line(err, "usage: vbumpp token remove <name>");
         return 1;
       };
       let Some(store) = resolve_store(env.store, err) else {
@@ -305,11 +305,11 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
       };
       match token::remove_token_at(&store, name) {
         Ok(true) => {
-          success_line(out, &format!("{name} token 已删除"));
+          success_line(out, &format!("{name} token removed"));
           0
         }
         Ok(false) => {
-          warn_line(out, &format!("未找到 {name} 的 token"));
+          warn_line(out, &format!("no token found for {name}"));
           0
         }
         Err(e) => {
@@ -321,7 +321,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
     other => {
       error_line(
         err,
-        &format!("未知 action: {other}，可用: set / list / remove"),
+        &format!("unknown action: {other} (expected set / list / remove)"),
       );
       1
     }
@@ -359,14 +359,14 @@ fn print_version(out: &mut impl Write) -> i32 {
 fn print_help(out: &mut impl Write) -> i32 {
   let _ = writeln!(
     out,
-    "用法:\n  \
-     vbumpp [...files]                更新版本号并生成 changelog\n  \
-     vbumpp token <action> [name]     管理 token（action: set / list / remove），加密安全存储\n\
-     \n选项:\n  \
-     -o, --output [output]   CHANGELOG.md 生成位置（默认 CHANGELOG.md）\n  \
+    "usage:\n  \
+     vbumpp [...files]                bump version and generate changelog\n  \
+     vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted\n\
+     \noptions:\n  \
+     -o, --output [output]   where CHANGELOG.md is generated (default CHANGELOG.md)\n  \
      -r, --recursive         recursively\n  \
-     -h, --help              显示帮助\n  \
-     -v, --version           显示版本"
+     -h, --help              show help\n  \
+     -v, --version           show version"
   );
   0
 }
@@ -490,11 +490,11 @@ mod tests {
   fn bump_unknown_flags_error() {
     assert_eq!(
       parse(&argv(&["--wat"])).unwrap_err(),
-      "未知选项: --wat".to_string()
+      "unknown option: --wat".to_string()
     );
     assert_eq!(
       parse(&argv(&["-x"])).unwrap_err(),
-      "未知选项: -x".to_string()
+      "unknown option: -x".to_string()
     );
   }
 
@@ -502,11 +502,11 @@ mod tests {
   fn bump_missing_output_value_errors() {
     assert_eq!(
       parse(&argv(&["--output"])).unwrap_err(),
-      "选项 --output 缺少值".to_string()
+      "option --output requires a value".to_string()
     );
     assert_eq!(
       parse(&argv(&["-o"])).unwrap_err(),
-      "选项 -o 缺少值".to_string()
+      "option -o requires a value".to_string()
     );
   }
 

@@ -60,7 +60,7 @@ pub(crate) fn update(
   // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
   // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
   let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
-    message: format!("解析 {} 失败：{e}", rel_path.display()),
+    message: format!("failed to parse {}: {e}", rel_path.display()),
   })?;
 
   let package = doc.get("package").and_then(Item::as_table_like);
@@ -77,7 +77,7 @@ pub(crate) fn update(
       .and_then(Item::as_str)
       .ok_or_else(|| FilesError::Lock {
         message: format!(
-          "{} 的 [package] 缺少 name 字段，无法定向同步 Cargo.lock",
+          "{} has no [package] name field; cannot sync Cargo.lock by crate name",
           rel_path.display()
         ),
       })?
@@ -190,11 +190,11 @@ fn sync_lock_by_name(
     return Err(FilesError::Lock {
       message: match name_seen {
         true => format!(
-          "{} 中 crate \"{name}\" 的版本与 Cargo.toml 当前版本 {current} 不一致（版本漂移）",
+          "{} has crate \"{name}\" at a version other than the Cargo.toml current version {current} (version drift)",
           lock_path.display()
         ),
         false => format!(
-          "{} 中未找到 crate \"{name}\" 的 [[package]] 条目",
+          "{} has no [[package]] entry for crate \"{name}\"",
           lock_path.display()
         ),
       },
@@ -214,7 +214,7 @@ fn sync_lock_workspace_members(
   if swept == 0 {
     return Err(FilesError::Lock {
       message: format!(
-        "{} 中未找到版本为 {current} 的 workspace 成员条目（版本漂移）",
+        "{} has no workspace member entry at version {current} (version drift)",
         lock_path.display()
       ),
     });
@@ -257,7 +257,7 @@ fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, FilesError> {
   match lock {
     Some(sync) => {
       std::fs::write(&sync.path, &sync.content).map_err(|e| FilesError::Lock {
-        message: format!("写入 {} 失败：{e}", sync.path.display()),
+        message: format!("failed to write {}: {e}", sync.path.display()),
       })?;
       Ok(UpdateOutcome::UpdatedWith(vec![sync.path]))
     }
@@ -267,10 +267,10 @@ fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, FilesError> {
 
 fn parse_lock(lock_path: &Path) -> Result<DocumentMut, FilesError> {
   let text = std::fs::read_to_string(lock_path).map_err(|e| FilesError::Lock {
-    message: format!("读取 {} 失败：{e}", lock_path.display()),
+    message: format!("failed to read {}: {e}", lock_path.display()),
   })?;
   text.parse::<DocumentMut>().map_err(|e| FilesError::Lock {
-    message: format!("解析 {} 失败：{e}", lock_path.display()),
+    message: format!("failed to parse {}: {e}", lock_path.display()),
   })
 }
 

@@ -66,3 +66,7 @@ _Avoid_: native package、binary package
 **平台变体包 (Platform variant)**:
 面向用户的 npm 包 `@vill-v/bumpp-{github,gitlab,gitee,gitcode}`——与主包同形，差别仅在 provider 身份注入：bin 经 `cliRun(argv, provider)` 位置参数、编程式 API 经 `bumpVersion(options, provider)` 注入，bump 完成后接该平台 Release（ADR-0016）。
 _Avoid_: 平台包（歧义——兼指 Platform package 二进制分发包）
+
+**用户可见字符串 (User-facing string)**:
+包向终端与调用方暴露的全部文案——错误信息、CLI help/用法、交互 prompt、进度打印、panic 兜底、napi loader 平台报错。唯一语言为英文（ADR-0017）；非英文需求一律走配置定制（如本仓库 `.vbumpprc.toml` 的中文 changelog types 标题），不进代码内建。代码注释不在其列（仓库内部工作语言为中文）。
+_Avoid_: 控制台打印（过窄——错误信息不经打印通路亦属之）、界面文案

@@ -133,7 +133,7 @@ fn parse_loose(raw: &str) -> Result<String, InfoError> {
   Version::parse(&parts.join("."))
     .map(|v| v.to_string())
     .map_err(|_| InfoError::InvalidVersion {
-      message: format!("无效的版本号：{raw}"),
+      message: format!("invalid version: {raw}"),
     })
 }
 

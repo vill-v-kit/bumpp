@@ -90,10 +90,11 @@ pub enum VersionError {
 impl fmt::Display for VersionError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::InvalidVersion(v) => write!(f, "无效的版本号：{v}"),
+      Self::InvalidVersion(v) => write!(f, "invalid version: {v}"),
       Self::InvalidPreid(p) => write!(
         f,
-        "无效的 preid：{p:?}（须为单个标识符，[0-9A-Za-z-] 组成，数字段不得有前导零）"
+        "invalid preid: {p:?} (must be a single identifier of [0-9A-Za-z-]; \
+         numeric parts must not have leading zeros)"
       ),
     }
   }
@@ -267,7 +268,7 @@ fn inc(
       inc_pre(&mut pre, preid);
     }
     ReleaseType::Next | ReleaseType::Conventional => {
-      unreachable!("next/conventional 在调用处解析为具体类型")
+      unreachable!("next/conventional are resolved to concrete types at the call site")
     }
   }
 

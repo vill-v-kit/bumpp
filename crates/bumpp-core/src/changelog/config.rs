@@ -52,21 +52,22 @@ impl fmt::Display for ChangelogConfigError {
 
 impl Error for ChangelogConfigError {}
 
-/// 内建默认（ADR-0013）：types 自原 JS `getDefaultsChangeLogConfig` 迁入（声明序），
+/// 内建默认（ADR-0013）：types 键集/声明序自原 JS `getDefaultsChangeLogConfig` 迁入，
+/// title 为 changelogen 英文措辞（ADR-0017：中文标题定制移出为项目级配置）；
 /// `hideAuthorEmail` 默认翻转 changelogen（ADR-0012）
 fn defaults() -> ChangelogConfig {
   let types = [
-    ("feat", "🚀 特性"),
-    ("perf", "🔥 性能优化"),
-    ("fix", "🩹 修复"),
-    ("refactor", "💅 重构"),
-    ("examples", "🏀 示例"),
-    ("docs", "📖 文档"),
-    ("chore", "🏡 框架"),
-    ("build", "📦 打包"),
-    ("test", "✅ 测试"),
-    ("BreakingChange", "🚨 破坏性改动"),
-    ("style", "🎨 样式"),
+    ("feat", "🚀 Enhancements"),
+    ("perf", "🔥 Performance"),
+    ("fix", "🩹 Fixes"),
+    ("refactor", "💅 Refactors"),
+    ("examples", "🏀 Examples"),
+    ("docs", "📖 Documentation"),
+    ("chore", "🏡 Chore"),
+    ("build", "📦 Build"),
+    ("test", "✅ Tests"),
+    ("BreakingChange", "🚨 Breaking Changes"),
+    ("style", "🎨 Styles"),
   ]
   .into_iter()
   .map(|(name, title)| {
@@ -105,7 +106,7 @@ pub fn resolve_changelog_config(
     Some(Value::Object(map)) => Some(map),
     Some(_) => {
       return Err(ChangelogConfigError::Schema {
-        message: "配置文件的 changelog 段必须是对象".to_owned(),
+        message: "the changelog section in the config file must be an object".to_owned(),
       })
     }
   };
@@ -152,16 +153,18 @@ fn apply_section(
         apply_types(config, value)?;
       }
       "from" | "to" | "newVersion" => {
-        return Err(schema(&format!("\"{key}\" 是运行时入参，不应写入配置文件")));
+        return Err(schema(&format!(
+          "\"{key}\" is a runtime argument and must not be written to the config file"
+        )));
       }
       "tokens" | "publish" => {
         return Err(schema(&format!(
-          "包含 changelogen 遗产键 \"{key}\"：已随 Rust 重写移除，请删除"
+          "contains changelogen legacy key \"{key}\": removed in the Rust rewrite — delete it"
         )));
       }
       _ => {
         return Err(schema(&format!(
-          "包含未支持的键 \"{key}\"：支持键集为 output / types / repo / \
+          "contains unsupported key \"{key}\": supported keys are output / types / repo / \
            scopeMap / noAuthors / hideAuthorEmail / excludeAuthors / templates.tagBody / \
            commitMessage"
         )));
@@ -176,7 +179,7 @@ fn apply_templates(
   value: &Value,
 ) -> Result<(), ChangelogConfigError> {
   let Value::Object(map) = value else {
-    return Err(schema("\"templates\" 必须是对象"));
+    return Err(schema("\"templates\" must be an object"));
   };
   for (key, value) in map {
     if value.is_null() {
@@ -188,13 +191,14 @@ fn apply_templates(
       }
       "commitMessage" | "tagMessage" => {
         return Err(schema(&format!(
-          "templates.{key} 已随重写移除（changelogen 自家 bump 专用；\
-           本实现的提交信息键为 changelog 段顶层 commitMessage）"
+          "templates.{key} was removed in the rewrite (changelogen's own bump-specific \
+           key; this implementation's commit message key is the changelog section's \
+           top-level commitMessage)"
         )));
       }
       _ => {
         return Err(schema(&format!(
-          "templates 包含未支持的键 \"{key}\"：仅支持 tagBody"
+          "templates contains unsupported key \"{key}\": only tagBody is supported"
         )));
       }
     }
@@ -206,7 +210,7 @@ fn apply_templates(
 /// `false` 禁用该组（删除既有键）；其余值形态报错
 fn apply_types(config: &mut ChangelogConfig, value: &Value) -> Result<(), ChangelogConfigError> {
   let Value::Object(map) = value else {
-    return Err(schema("\"types\" 必须是对象"));
+    return Err(schema("\"types\" must be an object"));
   };
   for (name, value) in map {
     if value.is_null() {
@@ -223,7 +227,7 @@ fn apply_types(config: &mut ChangelogConfig, value: &Value) -> Result<(), Change
             "title" => title = Some(expect_string(&format!("types.{name}.title"), value)?),
             _ => {
               return Err(schema(&format!(
-                "types.{name} 包含未支持的键 \"{key}\"：仅支持 title"
+                "types.{name} contains unsupported key \"{key}\": only title is supported"
               )));
             }
           }
@@ -242,7 +246,7 @@ fn apply_types(config: &mut ChangelogConfig, value: &Value) -> Result<(), Change
       }
       _ => {
         return Err(schema(&format!(
-          "types.{name} 的值必须是 {{ \"title\": string }} 或 false"
+          "types.{name} must be {{ \"title\": string }} or false"
         )));
       }
     }
@@ -272,32 +276,33 @@ fn parse_repo(value: &Value) -> Result<RepoConfig, ChangelogConfigError> {
           "repo" => repo.repo = Some(field),
           _ => {
             return Err(schema(&format!(
-              "repo 包含未支持的键 \"{key}\"：仅支持 provider / domain / repo"
+              "repo contains unsupported key \"{key}\": only provider / domain / repo \
+               are supported"
             )));
           }
         }
       }
       Ok(repo)
     }
-    _ => Err(schema("\"repo\" 必须是 string 或对象")),
+    _ => Err(schema("\"repo\" must be a string or an object")),
   }
 }
 
 fn expect_string<'a>(key: &str, value: &'a Value) -> Result<&'a str, ChangelogConfigError> {
   value
     .as_str()
-    .ok_or_else(|| schema(&format!("的 \"{key}\" 必须是 string")))
+    .ok_or_else(|| schema(&format!("\"{key}\" must be a string")))
 }
 
 fn expect_bool(key: &str, value: &Value) -> Result<bool, ChangelogConfigError> {
   value
     .as_bool()
-    .ok_or_else(|| schema(&format!("的 \"{key}\" 必须是 boolean")))
+    .ok_or_else(|| schema(&format!("\"{key}\" must be a boolean")))
 }
 
 fn expect_string_array(key: &str, value: &Value) -> Result<Vec<String>, ChangelogConfigError> {
   let Some(items) = value.as_array() else {
-    return Err(schema(&format!("的 \"{key}\" 必须是数组")));
+    return Err(schema(&format!("\"{key}\" must be an array")));
   };
   items
     .iter()
@@ -305,7 +310,7 @@ fn expect_string_array(key: &str, value: &Value) -> Result<Vec<String>, Changelo
       item
         .as_str()
         .map(str::to_owned)
-        .ok_or_else(|| schema(&format!("的 \"{key}\" 数组元素必须是 string")))
+        .ok_or_else(|| schema(&format!("\"{key}\" array items must be strings")))
     })
     .collect()
 }
@@ -315,20 +320,20 @@ fn expect_string_map(
   value: &Value,
 ) -> Result<HashMap<String, String>, ChangelogConfigError> {
   let Value::Object(map) = value else {
-    return Err(schema(&format!("的 \"{key}\" 必须是对象")));
+    return Err(schema(&format!("\"{key}\" must be an object")));
   };
   map
     .iter()
     .map(|(k, v)| {
       v.as_str()
         .map(|s| (k.clone(), s.to_owned()))
-        .ok_or_else(|| schema(&format!("的 \"{key}.{k}\" 必须是 string")))
+        .ok_or_else(|| schema(&format!("\"{key}.{k}\" must be a string")))
     })
     .collect()
 }
 
 fn schema(message: &str) -> ChangelogConfigError {
   ChangelogConfigError::Schema {
-    message: format!("changelog 配置：{message}"),
+    message: format!("changelog config: {message}"),
   }
 }

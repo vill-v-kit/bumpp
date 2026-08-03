@@ -53,7 +53,7 @@ function requireNative() {
       const bindingVersion = require(`${packageName}/package.json`).version
       if (bindingVersion !== pkg.version) {
         throw new Error(
-          `平台包 ${packageName} 版本不匹配：期望 ${pkg.version}，实际 ${bindingVersion}，请重新安装依赖`,
+          `platform package ${packageName} version mismatch: expected ${pkg.version}, got ${bindingVersion} — reinstall dependencies`,
         )
       }
       return binding
@@ -69,11 +69,11 @@ function requireNative() {
   const current = `${process.platform}-${process.arch}${isMusl() ? '-musl' : ''}`
   const supported = SUPPORTED_TARGETS.map((t) => t.triple).join(', ')
   const error = new Error(
-    `@vill-v/bumpp-core 无法在当前平台（${current}）加载原生绑定。\n` +
-      `已支持平台：${supported}。\n` +
-      '若当前平台在支持列表内，多为 optionalDependencies 安装缺陷' +
-      '（https://github.com/npm/cli/issues/4828），' +
-      '请删除 pnpm-lock.yaml 与 node_modules 后重装。',
+    `@vill-v/bumpp-core cannot load the native binding on the current platform (${current}).\n` +
+      `Supported platforms: ${supported}.\n` +
+      'If the current platform is listed, this is most likely the optionalDependencies ' +
+      'install flaw (https://github.com/npm/cli/issues/4828) — ' +
+      'delete pnpm-lock.yaml and node_modules, then reinstall.',
   )
   error.cause = errors[errors.length - 1]
   throw error

@@ -1,0 +1,43 @@
+# 本仓库（vill-v/bump）的项目级配置。changelog types 的中文分组标题是
+# 本仓库的定制——内建默认为英文（ADR-0017），中文经此处项目级配置注入，
+# 保证本仓库 CHANGELOG 产出与历史归档一致。
+# 版本字面量唯一维护点是根 [workspace.package].version（成员一律
+# version.workspace = true 继承），发版清单只列根 Cargo.toml——成员清单
+# 列入也只会被 CargoTomlPlugin 按继承形态跳过（ADR-0003）
+files = ["Cargo.toml"]
+
+[changelog]
+excludeAuthors = []
+
+[changelog.types.feat]
+title = "🚀 特性"
+
+[changelog.types.perf]
+title = "🔥 性能优化"
+
+[changelog.types.fix]
+title = "🩹 修复"
+
+[changelog.types.refactor]
+title = "💅 重构"
+
+[changelog.types.examples]
+title = "🏀 示例"
+
+[changelog.types.docs]
+title = "📖 文档"
+
+[changelog.types.chore]
+title = "🏡 框架"
+
+[changelog.types.build]
+title = "📦 打包"
+
+[changelog.types.test]
+title = "✅ 测试"
+
+[changelog.types.BreakingChange]
+title = "🚨 破坏性改动"
+
+[changelog.types.style]
+title = "🎨 样式"

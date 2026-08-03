@@ -57,7 +57,7 @@ pub fn store_path() -> Result<PathBuf, TokenError> {
   Ok(
     crate::home::vbumpp_home()
       .ok_or_else(|| TokenError::HomeDir {
-        message: "无法解析 home 目录（VBUMPP_HOME 与系统 home 均不可用）".into(),
+        message: "cannot resolve the home directory (neither VBUMPP_HOME nor the system home is available)".into(),
       })?
       .join("tokens.bin"),
   )
@@ -78,12 +78,12 @@ pub fn read_token_store_at(store: &Path) -> Result<BTreeMap<String, String>, Tok
     return Ok(BTreeMap::new());
   }
   let blob = fs::read(store).map_err(|e| TokenError::Io {
-    message: format!("读取 token 存储文件 {} 失败：{e}", store.display()),
+    message: format!("failed to read token store file {}: {e}", store.display()),
   })?;
   let key = get_key(store)?;
   let plain = decrypt(&blob, &key)?;
   serde_json::from_slice(&plain).map_err(|e| TokenError::Format {
-    message: format!("token 存储文件 {} 内容不是合法 JSON：{e}", store.display()),
+    message: format!("token store file {} is not valid JSON: {e}", store.display()),
   })
 }
 
@@ -114,7 +114,7 @@ pub fn remove_token_at(store: &Path, name: &str) -> Result<bool, TokenError> {
       Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
       Err(e) => {
         return Err(TokenError::Io {
-          message: format!("删除 token 存储文件 {} 失败：{e}", store.display()),
+          message: format!("failed to delete token store file {}: {e}", store.display()),
         })
       }
     }
@@ -128,14 +128,14 @@ pub fn remove_token_at(store: &Path, name: &str) -> Result<bool, TokenError> {
 /// Ok(None)）。trim 后为空报错——对齐 JS cli 的「token 不能为空」
 pub fn prompt_token(name: &str) -> Result<Option<String>, TokenError> {
   match dialoguer::Password::new()
-    .with_prompt(format!("请输入 {name} 的 access_token"))
+    .with_prompt(format!("Enter the access_token for {name}"))
     .interact()
   {
     Ok(input) => {
       let trimmed = input.trim();
       if trimmed.is_empty() {
         Err(TokenError::Prompt {
-          message: "token 不能为空".into(),
+          message: "token must not be empty".into(),
         })
       } else {
         Ok(Some(trimmed.to_owned()))
@@ -150,10 +150,10 @@ fn get_key(store: &Path) -> Result<[u8; KEY_LEN], TokenError> {
   let key_file = key_path(store);
   if key_file.is_file() {
     let raw = fs::read(&key_file).map_err(|e| TokenError::Io {
-      message: format!("读取密钥文件 {} 失败：{e}", key_file.display()),
+      message: format!("failed to read key file {}: {e}", key_file.display()),
     })?;
     return <[u8; KEY_LEN]>::try_from(raw.as_slice()).map_err(|_| TokenError::Format {
-      message: format!("密钥文件 {} 长度不为 32 字节", key_file.display()),
+      message: format!("key file {} is not 32 bytes long", key_file.display()),
     });
   }
   let mut key = [0u8; KEY_LEN];
@@ -171,7 +171,7 @@ fn encrypt(plain: &[u8], key: &[u8; KEY_LEN]) -> Vec<u8> {
   rand::rng().fill_bytes(&mut iv);
   let sealed = cipher
     .encrypt(Nonce::from_slice(&iv), plain)
-    .expect("AES-GCM 加密不会失败");
+    .expect("AES-GCM encryption cannot fail");
   let (ct, tag) = sealed.split_at(sealed.len() - TAG_LEN);
   let mut out = Vec::with_capacity(STORE_MAGIC.len() + 1 + IV_LEN + TAG_LEN + ct.len());
   out.extend_from_slice(STORE_MAGIC);
@@ -187,13 +187,13 @@ fn decrypt(blob: &[u8], key: &[u8; KEY_LEN]) -> Result<Vec<u8>, TokenError> {
   let header_len = STORE_MAGIC.len() + 1 + IV_LEN + TAG_LEN;
   if blob.len() < header_len || &blob[..STORE_MAGIC.len()] != STORE_MAGIC {
     return Err(TokenError::Format {
-      message: "token 存储文件格式不正确".into(),
+      message: "token store file has an invalid format".into(),
     });
   }
   let version = blob[STORE_MAGIC.len()];
   if version != STORE_VERSION {
     return Err(TokenError::Format {
-      message: format!("不支持的 token 存储版本: {version}"),
+      message: format!("unsupported token store version: {version}"),
     });
   }
   let iv_start = STORE_MAGIC.len() + 1;
@@ -206,14 +206,14 @@ fn decrypt(blob: &[u8], key: &[u8; KEY_LEN]) -> Result<Vec<u8>, TokenError> {
   Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key))
     .decrypt(Nonce::from_slice(iv), sealed.as_ref())
     .map_err(|_| TokenError::Crypto {
-      message: "token 存储文件解密失败（密钥不匹配或文件损坏）".into(),
+      message: "failed to decrypt token store file (key mismatch or corrupted file)".into(),
     })
 }
 
 /// 全部 token 整体加密写入（JSON 紧凑序列化，对齐 JS `JSON.stringify`）
 fn write_token_store(store: &Path, tokens: &BTreeMap<String, String>) -> Result<(), TokenError> {
   let key = get_key(store)?;
-  let json = serde_json::to_vec(tokens).expect("BTreeMap 序列化不会失败");
+  let json = serde_json::to_vec(tokens).expect("BTreeMap serialization cannot fail");
   if let Some(dir) = store.parent() {
     ensure_dir(dir)?;
   }
@@ -223,13 +223,13 @@ fn write_token_store(store: &Path, tokens: &BTreeMap<String, String>) -> Result<
 /// 目录确保（unix 0700——私有目录，每次写入顺带自愈权限）
 fn ensure_dir(dir: &Path) -> Result<(), TokenError> {
   fs::create_dir_all(dir).map_err(|e| TokenError::Io {
-    message: format!("创建目录 {} 失败：{e}", dir.display()),
+    message: format!("failed to create directory {}: {e}", dir.display()),
   })?;
   #[cfg(unix)]
   {
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(dir, fs::Permissions::from_mode(0o700)).map_err(|e| TokenError::Io {
-      message: format!("设置目录 {} 权限失败：{e}", dir.display()),
+      message: format!("failed to set permissions on directory {}: {e}", dir.display()),
     })?;
   }
   Ok(())
@@ -238,13 +238,13 @@ fn ensure_dir(dir: &Path) -> Result<(), TokenError> {
 /// 私有文件写入（unix 0600）
 fn write_private(path: &Path, data: &[u8]) -> Result<(), TokenError> {
   fs::write(path, data).map_err(|e| TokenError::Io {
-    message: format!("写入 {} 失败：{e}", path.display()),
+    message: format!("failed to write {}: {e}", path.display()),
   })?;
   #[cfg(unix)]
   {
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|e| TokenError::Io {
-      message: format!("设置 {} 权限失败：{e}", path.display()),
+      message: format!("failed to set permissions on {}: {e}", path.display()),
     })?;
   }
   Ok(())

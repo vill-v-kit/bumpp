@@ -45,7 +45,7 @@ it('无匹配平台包与本地产物时，报错明确列出已支持平台', (
   const dir = setupIsolatedDir()
   const result = importIsolated(dir)
   expect(result.status).toBe(1)
-  expect(result.stderr).toMatch(/已支持平台/)
+  expect(result.stderr).toMatch(/Supported platforms/)
   for (const triple of SUPPORTED) {
     expect(result.stderr).toContain(triple)
   }
@@ -61,7 +61,7 @@ it('平台包版本不匹配时报可读错误', () => {
     '{ "name": "@vill-v/bumpp-core-darwin-arm64", "version": "0.0.0", "main": "index.js" }',
   )
   writeFileSync(join(fakePkg, 'index.js'), 'module.exports = {}')
-  const expected = process.platform === 'darwin' && process.arch === 'arm64' ? /版本不匹配/ : /已支持平台/
+  const expected = process.platform === 'darwin' && process.arch === 'arm64' ? /version mismatch/ : /Supported platforms/
   const result = importIsolated(dir)
   expect(result.status).toBe(1)
   expect(result.stderr).toMatch(expected)

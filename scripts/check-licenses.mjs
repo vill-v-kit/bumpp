@@ -24,19 +24,19 @@ for (const scope of ['npm', 'napi']) {
     if (!existsSync(join(pkgDir, 'package.json'))) continue
     const licensePath = join(pkgDir, 'LICENSE')
     if (!existsSync(licensePath)) {
-      drifts.push(`${scope}/${entry.name}: 缺少 LICENSE 副本`)
+      drifts.push(`${scope}/${entry.name}: missing LICENSE copy`)
       continue
     }
     if (readFileSync(licensePath, 'utf8') !== rootLicense) {
-      drifts.push(`${scope}/${entry.name}: LICENSE 与根不一致`)
+      drifts.push(`${scope}/${entry.name}: LICENSE differs from the root one`)
     }
   }
 }
 
 if (drifts.length > 0) {
-  console.error('发版包 LICENSE 漂移：')
+  console.error('package LICENSE drift detected:')
   for (const d of drifts) console.error(`  - ${d}`)
-  console.error('请从根目录复制：cp LICENSE <pkg>/LICENSE')
+  console.error('copy from the repo root: cp LICENSE <pkg>/LICENSE')
   process.exit(1)
 }
 console.log('all package LICENSE files in sync')

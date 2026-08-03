@@ -77,7 +77,7 @@ fn short_help_and_version_flags() {
   let store = store_in(&dir);
   let (out, _, code) = run(&["-h"], &store);
   assert_eq!(code, 0, "-h 退出码");
-  assert!(out.contains("用法"), "{out}");
+  assert!(out.contains("usage"), "{out}");
   let (out, _, code) = run(&["-v"], &store);
   assert_eq!(code, 0, "-v 退出码");
   assert!(out.contains(env!("CARGO_PKG_VERSION")), "{out}");
@@ -88,7 +88,7 @@ fn unknown_flag_errors() {
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["--wat"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("未知选项: --wat"), "{err}");
+  assert!(err.contains("unknown option: --wat"), "{err}");
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn output_flag_missing_value_errors() {
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["--output"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("选项 --output 缺少值"), "{err}");
+  assert!(err.contains("option --output requires a value"), "{err}");
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +128,7 @@ fn bump_rejects_unknown_provider_before_orchestration() {
   );
   assert_eq!(code, 1, "退出码");
   assert!(
-    err.contains("未知 provider: bogus（可用 github / gitlab / gitee / gitcode）"),
+    err.contains("unknown provider: bogus (expected github / gitlab / gitee / gitcode)"),
     "{err}"
   );
 }
@@ -141,7 +141,7 @@ fn bump_accepts_valid_provider_and_reaches_orchestration() {
   let (_out, err, code) = run_full(&[], Some("github"), &store_in(&dir), Some(cwd.path()), None);
   assert_eq!(code, 1, "空目录 bump 必败，退出码");
   assert!(
-    !err.contains("未知 provider"),
+    !err.contains("unknown provider"),
     "合法 provider 应在编排层报错而非解析层：{err}"
   );
 }
@@ -152,7 +152,7 @@ fn token_path_ignores_provider() {
   let store = store_in(&dir);
   let (out, _err, code) = run_full(&["token", "list"], Some("bogus"), &store, None, None);
   assert_eq!(code, 0, "provider 对 token 通路无影响，退出码");
-  assert!(out.contains("尚未配置任何 token"), "{out}");
+  assert!(out.contains("no tokens configured"), "{out}");
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ fn token_bare_errors_usage() {
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["token"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("用法: vbumpp token <action> [name]"), "{err}");
+  assert!(err.contains("usage: vbumpp token <action> [name]"), "{err}");
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn token_unknown_action_errors() {
   let (_out, err, code) = run(&["token", "peek"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
   assert!(
-    err.contains("未知 action: peek，可用: set / list / remove"),
+    err.contains("unknown action: peek (expected set / list / remove)"),
     "{err}"
   );
 }
@@ -183,7 +183,7 @@ fn token_set_without_name_errors() {
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["token", "set"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("用法: vbumpp token set <name>"), "{err}");
+  assert!(err.contains("usage: vbumpp token set <name>"), "{err}");
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn token_set_dash_prefixed_name_errors_usage() {
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["token", "set", "--output"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("用法: vbumpp token set <name>"), "{err}");
+  assert!(err.contains("usage: vbumpp token set <name>"), "{err}");
 }
 
 #[test]
@@ -208,7 +208,7 @@ fn token_set_cancelled_warns_without_writing() {
     Some(&prompt),
   );
   assert_eq!(code, 0, "取消不是失败，退出码");
-  assert!(out.contains("已取消录入"), "{out}");
+  assert!(out.contains("entry canceled"), "{out}");
   assert!(
     read_token_store_at(&store).unwrap().is_empty(),
     "取消不落盘"
@@ -228,7 +228,7 @@ fn token_set_saves_and_reports() {
     Some(&prompt),
   );
   assert_eq!(code, 0, "退出码");
-  assert!(out.contains("github token 已加密保存"), "{out}");
+  assert!(out.contains("github token saved (encrypted)"), "{out}");
   assert_eq!(
     read_token_store_at(&store).unwrap()["github"],
     "secret-token",
@@ -242,7 +242,7 @@ fn token_set_prompt_error_surfaces() {
   let store = store_in(&dir);
   let prompt = |_name: &str| {
     Err(TokenError::Prompt {
-      message: "token 不能为空".to_string(),
+      message: "token must not be empty".to_string(),
     })
   };
   let (_out, err, code) = run_full(
@@ -253,7 +253,7 @@ fn token_set_prompt_error_surfaces() {
     Some(&prompt),
   );
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("token 不能为空"), "{err}");
+  assert!(err.contains("token must not be empty"), "{err}");
 }
 
 #[test]
@@ -261,7 +261,7 @@ fn token_list_empty_store() {
   let dir = TempDir::new().unwrap();
   let (out, _err, code) = run(&["token", "list"], &store_in(&dir));
   assert_eq!(code, 0, "退出码");
-  assert!(out.contains("尚未配置任何 token"), "{out}");
+  assert!(out.contains("no tokens configured"), "{out}");
 }
 
 #[test]
@@ -281,7 +281,7 @@ fn token_remove_without_name_errors() {
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["token", "remove"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("用法: vbumpp token remove <name>"), "{err}");
+  assert!(err.contains("usage: vbumpp token remove <name>"), "{err}");
 }
 
 #[test]
@@ -291,7 +291,7 @@ fn token_remove_absent_warns_and_keeps_store() {
   save_token_at(&store, "gitee", "x").unwrap();
   let (out, _err, code) = run(&["token", "remove", "github"], &store);
   assert_eq!(code, 0, "退出码");
-  assert!(out.contains("未找到 github 的 token"), "{out}");
+  assert!(out.contains("no token found for github"), "{out}");
   assert_eq!(
     read_token_store_at(&store).unwrap().len(),
     1,
@@ -306,7 +306,7 @@ fn token_remove_existing_succeeds() {
   save_token_at(&store, "github", "x").unwrap();
   let (out, _err, code) = run(&["token", "remove", "github"], &store);
   assert_eq!(code, 0, "退出码");
-  assert!(out.contains("github token 已删除"), "{out}");
+  assert!(out.contains("github token removed"), "{out}");
   assert!(
     read_token_store_at(&store).unwrap().is_empty(),
     "删除后存储为空"

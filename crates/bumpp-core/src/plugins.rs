@@ -157,7 +157,7 @@ pub fn dispatch_file(
   PLUGINS
     .iter()
     .find(|p| p.matches(rel_path))
-    .expect("TextPlugin 兜底必命中")
+    .expect("the TextPlugin fallback always matches")
     .update(abs_path, rel_path, current, new)
 }
 
@@ -199,13 +199,13 @@ fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlug
 
 pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {
   std::fs::read_to_string(path).map_err(|e| FilesError::Io {
-    message: format!("读取 {} 失败：{e}", rel_path.display()),
+    message: format!("failed to read {}: {e}", rel_path.display()),
   })
 }
 
 pub(crate) fn write_text(path: &Path, rel_path: &Path, content: &str) -> Result<(), FilesError> {
   std::fs::write(path, content).map_err(|e| FilesError::Io {
-    message: format!("写入 {} 失败：{e}", rel_path.display()),
+    message: format!("failed to write {}: {e}", rel_path.display()),
   })
 }
 

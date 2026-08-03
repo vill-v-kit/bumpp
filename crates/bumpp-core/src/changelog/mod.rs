@@ -179,7 +179,7 @@ fn upsert_changelog(output: &Path, markdown: &str) -> Result<String, ChangelogEr
     Err(e) if e.kind() == std::io::ErrorKind::NotFound => "# Changelog\n\n".to_owned(),
     Err(e) => {
       return Err(ChangelogError::Io {
-        message: format!("读取 {} 失败：{e}", output.display()),
+        message: format!("failed to read {}: {e}", output.display()),
       })
     }
   };
@@ -192,7 +192,7 @@ fn upsert_changelog(output: &Path, markdown: &str) -> Result<String, ChangelogEr
     None => format!("{changelog_md}\n{markdown}\n\n"),
   };
   std::fs::write(output, &changelog_md).map_err(|e| ChangelogError::Io {
-    message: format!("写入 {} 失败：{e}", output.display()),
+    message: format!("failed to write {}: {e}", output.display()),
   })?;
   Ok(changelog_md)
 }

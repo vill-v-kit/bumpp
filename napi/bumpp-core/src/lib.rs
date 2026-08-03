@@ -128,7 +128,7 @@ impl napi::Task for BumpVersionTask {
       .map(|p| {
         bumpp_core::release::Provider::parse(p).ok_or_else(|| {
           napi::Error::from_reason(format!(
-            "未知 provider: {p}（可用 github / gitlab / gitee / gitcode）"
+            "unknown provider: {p} (expected github / gitlab / gitee / gitcode)"
           ))
         })
       })

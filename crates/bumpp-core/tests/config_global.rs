@@ -175,7 +175,7 @@ fn changelog_types_deep_merge_across_global_and_project() {
     "项目层新增键进入默认表：{titles:?}"
   );
   assert!(
-    titles.contains(&("fix", "🩹 修复")),
+    titles.contains(&("fix", "🩹 Fixes")),
     "内建默认表仍在：{titles:?}"
   );
 }

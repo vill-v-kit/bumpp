@@ -81,7 +81,7 @@ fn io_error_message_uses_rel_path() {
   .unwrap_err();
   let message = err.to_string();
   assert!(
-    message.starts_with("读取 sub/ghost.txt 失败："),
+    message.starts_with("failed to read sub/ghost.txt: "),
     "错误消息应以相对路径开头，实际：{message}"
   );
 }

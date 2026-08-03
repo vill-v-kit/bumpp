@@ -1,6 +1,6 @@
 //! markdown 生成（ADR-0012）：结构逐节对齐 changelogen 0.6.2 `generateMarkDown`。
-//! 申报偏差三处：中文节标题直生（无字符串替换）、无 ungh.cc 网络解析、
-//! `chore(deps)` 过滤内置（mod.rs 管线）。
+//! 申报偏差两处：无 ungh.cc 网络解析、`chore(deps)` 过滤内置（mod.rs 管线）；
+//! 原申报偏差①（中文节标题直生）随 ADR-0017 英文默认移除。
 
 use crate::changelog::config::ChangelogConfig;
 use crate::changelog::gitmoji::convert_gitmoji;
@@ -64,7 +64,7 @@ pub fn generate_markdown(
     }
   }
   if !breaking_lines.is_empty() {
-    // 中文节标题直生（申报偏差①，原 JS 字符串替换 hack 的正当形态）；
+    // 节标题直生（原申报偏差①的正当形态保留，标题语言随 ADR-0017 英文默认）；
     // 回退链对齐原 hack：BreakingChange 非对象（被 false 禁用）时回落英文默认
     let title = config
       .types
@@ -78,10 +78,10 @@ pub fn generate_markdown(
     markdown.extend(breaking_lines);
   }
   let authors = collect_authors(commits, config);
-  // 贡献者节头硬编码中文（申报偏差①）；无 ungh.cc 解析（申报偏差②）
+  // 贡献者节头英文（原申报偏差①随 ADR-0017 移除）；无 ungh.cc 解析（申报偏差②）
   if !authors.is_empty() && !config.no_authors {
     markdown.push(String::new());
-    markdown.push("### ❤️ 贡献者".to_owned());
+    markdown.push("### ❤️ Contributors".to_owned());
     markdown.push(String::new());
     for (name, emails) in authors {
       markdown.push(format!("- {name}{}", author_email_part(&emails, config)));
