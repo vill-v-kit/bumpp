@@ -13,8 +13,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:dev",
-    "@types/semver": "catalog:dev",
-    "@vill-v/bumpp-gitee": "workspace:*",
+    "@vill-v/bumpp-github": "workspace:*",
     "@vill-v/tsconfig": "catalog:dev",
     "oxfmt": "catalog:dev",
     "oxlint": "catalog:dev",
@@ -25,5 +24,5 @@
     "unplugin-unused": "catalog:dev",
     "vitest": "catalog:dev"
   },
-  "packageManager": "pnpm@11.15.1"
+  "packageManager": "pnpm@11.19.0"
 }
