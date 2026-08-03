@@ -1,6 +1,6 @@
 # 剩余功能全面 Rust 化与 napi 面收缩
 
-JS 侧残留三块功能——Token 存储（accesstoken.ts）、`bump.ts` 薄编排、四平台包的 release HTTP（ofetch）——且渐进迁移期的垫脚石 napi 导出（`updateFiles` / `gitCommit` 等）已无 JS 消费者。决策：三块全部收归 Rust（CLI 的 cac 参数路由除外），napi 导出面同步收缩。
+JS 侧残留三块功能——Token 存储（accesstoken.ts）、`bump.ts` 薄编排、四平台包的 release HTTP（ofetch）——且渐进迁移期的垫脚石 napi 导出（`updateFiles` / `gitCommit` 等）已无 JS 消费者。决策：三块全部收归 Rust（CLI 的 cac 参数路由除外——该例外后由 ADR-0016 移除），napi 导出面同步收缩。
 
 ## Decisions
 

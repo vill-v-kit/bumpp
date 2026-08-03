@@ -8,6 +8,10 @@
 一次完整的版本发布操作——更新各文件中的版本号、生成 changelog、git commit/tag/push、执行 npm scripts。
 _Avoid_: release（指平台 release 创建）、publish
 
+**CLI**:
+`vbumpp` 命令行——argv 语法（子命令、flag、help 文案、错误提示、退出码）唯一归属 Rust（Core 内的 cli 模块，手写解析器，ADR-0016）。npm bin 与规划中的原生 CLI 二进制为共享同一 `run_from_argv` 的两个薄壳前端；Node 侧零依赖、零逻辑。
+_Avoid_: cac 路由（ADR-0014 时代的旧制，ADR-0016 移除）
+
 **Release type**:
 决定新版本号如何计算的选择项：`major` / `minor` / `patch` / `next` / `conventional` / `premajor` / `preminor` / `prepatch` / `prerelease`，以及 prompt 中的 `none`（保持不变）和 `custom`（手动输入）。
 _Avoid_: bump type、version type
@@ -52,9 +56,13 @@ _Avoid_: files 插件链（ADR-0007 时代的旧称）
 _Avoid_: 版本文件（过宽——还含 text 通道的任意文本文件，如 README、.env）
 
 **Core**:
-纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面（ADR-0014 收缩后）：编排 `bumpVersion(options, provider?)`、平台 Release 四导出（`createGithubRelease` / `createGitlabRelease` / `createGiteeRelease` / `createGitcodeRelease`）、token 三件套（供 CLI 路由）；上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
+纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面（ADR-0014 收缩、ADR-0016 再收缩后）：编排 `bumpVersion(options, provider?)`、平台 Release 四导出（`createGithubRelease` / `createGitlabRelease` / `createGiteeRelease` / `createGitcodeRelease`）、CLI 单入口 `cliRun(argv, provider?)`；token 三件套已删（ADR-0016），上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:
 按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`，`napi/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。
 _Avoid_: native package、binary package
+
+**平台变体包 (Platform variant)**:
+面向用户的 npm 包 `@vill-v/bumpp-{github,gitlab,gitee,gitcode}`——与主包同形，差别仅在 provider 身份注入：bin 经 `cliRun(argv, provider)` 位置参数、编程式 API 经 `bumpVersion(options, provider)` 注入，bump 完成后接该平台 Release（ADR-0016）。
+_Avoid_: 平台包（歧义——兼指 Platform package 二进制分发包）
