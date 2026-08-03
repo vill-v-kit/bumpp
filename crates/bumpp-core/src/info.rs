@@ -151,7 +151,7 @@ pub(crate) fn get_current_version(
   }
   let mut files_to_check: Vec<String> = files.to_vec();
   for probe in crate::plugins::default_file_patterns(false) {
-    if !files_to_check.iter().any(|f| *f == probe) {
+    if !files_to_check.contains(&probe) {
       files_to_check.push(probe);
     }
   }

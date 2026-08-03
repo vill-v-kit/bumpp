@@ -29,21 +29,6 @@ impl ProgressEvent {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn event_strings_match_upstream() {
-    assert_eq!(ProgressEvent::FileUpdated.as_str(), "file updated");
-    assert_eq!(ProgressEvent::FileSkipped.as_str(), "file skipped");
-    assert_eq!(ProgressEvent::GitCommit.as_str(), "git commit");
-    assert_eq!(ProgressEvent::GitTag.as_str(), "git tag");
-    assert_eq!(ProgressEvent::GitPush.as_str(), "git push");
-    assert_eq!(ProgressEvent::Script.as_str(), "script");
-  }
-}
-
 /// 事件 → CLI 输出字符串（仿 consola 样式：success ✔ 绿 / info ℹ 蓝；
 /// 非 TTY 时 console 自动降级为无 ANSI 纯文本）。
 /// `file` 为本次事件对应的文件路径（FileUpdated / FileSkipped 的最后一个）。
@@ -85,4 +70,19 @@ pub(crate) fn print_line(
   file: Option<&str>,
 ) {
   println!("{}", format_line(event, script, new_version, file));
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn event_strings_match_upstream() {
+    assert_eq!(ProgressEvent::FileUpdated.as_str(), "file updated");
+    assert_eq!(ProgressEvent::FileSkipped.as_str(), "file skipped");
+    assert_eq!(ProgressEvent::GitCommit.as_str(), "git commit");
+    assert_eq!(ProgressEvent::GitTag.as_str(), "git tag");
+    assert_eq!(ProgressEvent::GitPush.as_str(), "git push");
+    assert_eq!(ProgressEvent::Script.as_str(), "script");
+  }
 }
