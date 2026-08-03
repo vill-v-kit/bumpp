@@ -62,30 +62,29 @@ pub fn load_bump_config(
   overrides: Option<Map<String, Value>>,
   cwd: &Path,
 ) -> Result<Map<String, Value>, LoadConfigError> {
-  let mut merged = bump_config_defaults();
+  let document = read_document(cwd, custom_config_path(overrides.as_ref()).as_deref())?;
+  Ok(merge_bump_config(overrides, document))
+}
 
-  let custom_path = overrides
-    .as_ref()
+/// `overrides` 中的 `configFilePath`（上游：指定时按给定文件精确加载）
+pub(crate) fn custom_config_path(overrides: Option<&Map<String, Value>>) -> Option<String> {
+  overrides
     .and_then(|o| o.get("configFilePath"))
     .and_then(Value::as_str)
-    .map(str::to_owned);
+    .map(str::to_owned)
+}
 
-  match custom_path {
-    // 上游：指定 configFilePath 时按给定文件精确加载
-    Some(custom) => {
-      let path = cwd.join(custom);
-      if path.extension().is_some_and(|ext| ext != "json") {
-        return Err(unsupported_config(&path));
-      }
-      merge(&mut merged, read_config(&path)?);
-    }
-    None => {
-      // 唯一探测点：`.vbumpprc.json`；旧名不探测、静默失效（ADR-0013）
-      let json_path = cwd.join(CONFIG_FILE);
-      if json_path.is_file() {
-        merge(&mut merged, read_config(&json_path)?);
-      }
-    }
+/// 合并语义（单一实现，ADR-0013）：`bumpConfigDefaults` ← 文档 ← overrides，
+/// 随后 recursive 展开与 files 去重。与 `read_document` 组合即 `load_bump_config`；
+/// changelog 编排持同一份文档另行解析 changelog 段，零二次读取
+pub(crate) fn merge_bump_config(
+  overrides: Option<Map<String, Value>>,
+  document: Option<Map<String, Value>>,
+) -> Map<String, Value> {
+  let mut merged = bump_config_defaults();
+
+  if let Some(document) = document {
+    merge(&mut merged, document);
   }
 
   if let Some(overrides) = overrides {
@@ -107,13 +106,40 @@ pub fn load_bump_config(
     let mut seen = std::collections::HashSet::new();
     files.retain(|f| f.as_str().is_none_or(|s| seen.insert(s.to_owned())));
   }
-  Ok(merged)
+  merged
 }
 
 /// 浅展开：每个键整体替换（数组、嵌套对象均不递归合并），对齐上游 `{...a, ...b}`。
 fn merge(base: &mut Map<String, Value>, overrides: Map<String, Value>) {
   for (k, v) in overrides {
     base.insert(k, v);
+  }
+}
+
+/// 配置文件读取原语（单一解析路径，ADR-0013）：bumpp 键与 changelog 段共享同一份
+/// 文档。`config_file_path` 指定时按给定文件精确加载（非 .json 扩展名报错，文件
+/// 缺失报 Io——上游行为）；否则探测 `.vbumpprc.json`，不存在返回 None
+pub(crate) fn read_document(
+  cwd: &Path,
+  config_file_path: Option<&str>,
+) -> Result<Option<Map<String, Value>>, LoadConfigError> {
+  match config_file_path {
+    Some(custom) => {
+      let path = cwd.join(custom);
+      if path.extension().is_some_and(|ext| ext != "json") {
+        return Err(unsupported_config(&path));
+      }
+      Ok(Some(read_config(&path)?))
+    }
+    None => {
+      // 唯一探测点：`.vbumpprc.json`；旧名不探测、静默失效（ADR-0013）
+      let json_path = cwd.join(CONFIG_FILE);
+      if json_path.is_file() {
+        Ok(Some(read_config(&json_path)?))
+      } else {
+        Ok(None)
+      }
+    }
   }
 }
 

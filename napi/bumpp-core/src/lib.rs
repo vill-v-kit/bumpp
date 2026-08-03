@@ -489,8 +489,8 @@ pub fn get_git_diff(
   to: Option<String>,
   cwd: Option<String>,
 ) -> napi::Result<Vec<RawCommit>> {
-  let commits = bumpp_core::git::get_git_diff(&resolve_cwd(cwd)?, &from, to.as_deref())
-    .map_err(to_napi_err)?;
+  let commits =
+    bumpp_core::git::get_git_diff(&resolve_cwd(cwd)?, &from, to.as_deref()).map_err(to_napi_err)?;
   Ok(commits.into_iter().map(RawCommit::from).collect())
 }
 
@@ -499,4 +499,73 @@ pub fn get_git_diff(
 #[napi]
 pub fn resolve_repo_config(cwd: Option<String>) -> napi::Result<Option<RepoConfig>> {
   Ok(bumpp_core::git::resolve_repo_config(&resolve_cwd(cwd)?).map(RepoConfig::from))
+}
+
+/// changelog 段 `templates`（ADR-0012：仅 `tagBody` 一键）
+#[napi(object)]
+pub struct ChangelogTemplates {
+  #[napi(js_name = "tagBody")]
+  pub tag_body: Option<String>,
+}
+
+/// changelog 段单个 type 分组（`{ title }`）
+#[napi(object)]
+pub struct ChangelogTypeEntry {
+  pub title: String,
+}
+
+/// changelog 段配置（ADR-0013 支持键集，全可选；`types` 值 `{title} | false`）
+#[napi(object)]
+pub struct ChangelogOptions {
+  pub output: Option<String>,
+  pub types: Option<std::collections::HashMap<String, napi::Either<ChangelogTypeEntry, bool>>>,
+  pub repo: Option<napi::Either<String, RepoConfig>>,
+  #[napi(js_name = "scopeMap")]
+  pub scope_map: Option<std::collections::HashMap<String, String>>,
+  #[napi(js_name = "noAuthors")]
+  pub no_authors: Option<bool>,
+  #[napi(js_name = "hideAuthorEmail")]
+  pub hide_author_email: Option<bool>,
+  pub exclude_authors: Option<Vec<String>>,
+  pub templates: Option<ChangelogTemplates>,
+  #[napi(js_name = "commitMessage")]
+  pub commit_message: Option<String>,
+}
+
+/// `generateChangelog` 入参（ADR-0012）：`from` 为真实 tag 名（`getLastGitTag`），
+/// `to` 为新版本号；`overrides` 为扁平全量配置覆盖（bumpp 键 + `changelog`
+/// 键，与 `.vbumpprc.json` 同形；`changelog` 键的形状见 `ChangelogOptions`）
+#[napi(object)]
+pub struct GenerateChangelogArg {
+  pub overrides: Option<Map<String, Value>>,
+  pub from: String,
+  pub to: String,
+}
+
+/// `generateChangelog` 返回（对齐原 JS `ChangelogResult`）
+#[napi(object)]
+pub struct GenerateChangelogResult {
+  pub markdown: String,
+  #[napi(js_name = "changelogMD")]
+  pub changelog_md: String,
+}
+
+/// `generateChangelog`：端到端生成并写盘（ADR-0012），按统一配置 commit 开关提交
+#[napi]
+pub fn generate_changelog(
+  arg: GenerateChangelogArg,
+  cwd: Option<String>,
+) -> napi::Result<GenerateChangelogResult> {
+  let overrides = arg.overrides.unwrap_or_default();
+  let options = bumpp_core::changelog::GenerateChangelogOptions {
+    overrides: (!overrides.is_empty()).then_some(overrides),
+    from: arg.from,
+    to: arg.to,
+  };
+  let outcome =
+    bumpp_core::changelog::generate_changelog(&options, &resolve_cwd(cwd)?).map_err(to_napi_err)?;
+  Ok(GenerateChangelogResult {
+    markdown: outcome.markdown,
+    changelog_md: outcome.changelog_md,
+  })
 }

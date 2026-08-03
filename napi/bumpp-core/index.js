@@ -82,6 +82,7 @@ function requireNative() {
 const nativeBinding = requireNative()
 
 const {
+  generateChangelog,
   getCurrentGitBranch,
   getGitDiff,
   getLastGitTag,
@@ -97,6 +98,7 @@ const {
   versionFileManifestGlobs,
 } = nativeBinding
 export {
+  generateChangelog,
   getCurrentGitBranch,
   getGitDiff,
   getLastGitTag,
