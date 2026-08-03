@@ -31,4 +31,4 @@
 - **workspace 继承**：成员清单（`version.workspace = true` 且本文件无 `[workspace.package]`）跳过——根清单自身作为显式文件项被处理；根 package 继承本文件 `[workspace.package]` 时更新该字段。lock 同步为成员扫描：无 `source` 且 `version == current` 的 `[[package]]` 条目。两条已知边界（单文件插件职责使然）：只列成员而不列根清单时不会代定位根文件——成员以 FileSkipped 事件可见地报出，由显式收集原则保证根清单在清单内；成员扫描以"零匹配报错"为漂移防线，个别成员条目缺失（其余成员仍命中）不可检测。
 - **附带文件事件**：lock 同步产物以 `UpdateOutcome::UpdatedWith` 上抛，编排层紧随主文件补发 `FileUpdated`——`updated_files` 是 git 提交暂存的依据，Cargo.lock 由此进入同一次发版提交。
 - **容错**：清单不可解析 → 立即报错（`FilesError::Parse`，文案沿用相对路径）——显式列入发版清单的文件不可解析即漂移风险，从本 ADR"失败即报错"；与 JsManifest 通道对坏 JSON 的容错是有意的不对称（后者为对齐上游 bumpp v11 `jsonc.parse` 的 parity 要求，TOML 通道无上游约束）。lock 存在但不可解析同样报错（属同步失败）。
-- **本仓配置**：`vbumpp.config.ts` 的 `bumpp.files` 列明 `crates/bumpp-core`、`napi/bumpp-core` 两处 Cargo.toml（与默认 `package.json` / `package-lock.json` 合并去重）。
+- **本仓配置**（2026-08 修订）：两 crate 已改为 `version.workspace = true` 继承根 `[workspace.package].version`，发版清单（`.vbumpprc.toml` 的 files）只列根 `Cargo.toml`——成员清单不再列入（列入也按继承形态跳过），新增 rust crate 亦无需再补 files（随根版本继承）。原描述（`vbumpp.config.ts` 列明两处成员 Cargo.toml）作废，配置文件亦已更名。

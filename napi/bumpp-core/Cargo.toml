@@ -1,6 +1,6 @@
 [package]
 name = "bumpp-core-napi"
-version = "5.1.0"
+version.workspace = true
 edition = "2021"
 license = "MIT"
 publish = false
@@ -12,7 +12,7 @@ repository = "https://github.com/vill-v-kit/bumpp"
 crate-type = ["cdylib"]
 
 [dependencies]
-bumpp-core = { path = "../../crates/bumpp-core" }
+bumpp-core.workspace = true
 napi = { version = "3.12.0", features = ["serde-json", "async"] }
 napi-derive = "3.6.1"
 serde_json = "1.0.151"

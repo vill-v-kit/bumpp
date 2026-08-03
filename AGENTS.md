@@ -13,6 +13,8 @@ Rust 代码按三个顶层目录分层：
 - 根 `Cargo.toml` 是虚拟 workspace；`members` 只声明当前非空的目录 glob（cargo 对零匹配的 glob 报错），新增 `crates/`、`napi/` 目录时同步加入
 - cargo 对 glob 匹配到但没有 `Cargo.toml` 的目录也报错：`npm/`、`napi/` 下所有无 `Cargo.toml` 的包（纯 JS 包、平台二进制包等）必须同步加进根 `Cargo.toml` 的 `exclude`
 - `[profile.*]` 只在根 workspace 清单生效，成员 crate 内不写
+- 成员 crate 之间的引用一律走根 `[workspace.dependencies]` 声明 + 成员内 `xxx.workspace = true` 继承，成员清单里不写 `path`
+- 版本号唯一维护点是根 `[workspace.package].version`，成员 crate 一律 `version.workspace = true` 继承（成员清单不写版本字面量）；发版清单（`.vbumpprc.toml` 的 files）只列根 `Cargo.toml`
 
 ## Agent skills
 
