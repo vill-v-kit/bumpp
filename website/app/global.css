@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* 品牌主题色 #ff6736：primary 与 focus ring 亮暗双主题统一，前景纯白 */
+@theme {
+  --color-fd-primary: #ff6736;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-ring: #ff6736;
+}
+
+.dark {
+  --color-fd-primary: #ff6736;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-ring: #ff6736;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}

@@ -1,0 +1,73 @@
+---
+title: v5 → v6 迁移指南
+description: 升级 v6 前你需要知道和改动的事
+---
+
+v6 是一次大版本升级，底层引擎重写、配置体系统一。好消息是**日常用法不变**（还是那一条 `vbumpp`），大多数项目只需要处理下面的配置文件一节。
+
+## 1. 配置文件要搬家（最重要的改动）
+
+以下旧配置文件 **v6 一律不再读取**（不报错、静默失效）：
+
+- `bump.config.json` 及 `bump.config.{ts,mts,cts,js,mjs,cjs}`
+- `vbumpp.config.{ts,mts,cts,js,mjs,cjs}` / `vbumpp.json`
+- `changelog.config.*`
+- package.json 里的 `changelog` 键
+
+请把配置合并到一个新文件：项目根目录的 `.vbumpprc.json`（也支持 `.jsonc` / `.toml`）。对照关系：
+
+| 旧位置 | 新位置 |
+| --- | --- |
+| `bump.config.json` 顶层键 | `.vbumpprc.json` 顶层键（键名不变） |
+| `vbumpp.config.*` 的 `bumpp` 键 | 顶层（拍平） |
+| `vbumpp.config.*` 的 `changelog` 键 | `changelog` 段 |
+| `changelog.config.*` 全部内容 | `changelog` 段（支持的键有收窄，见[配置文件参考](/docs/configuration)） |
+
+完整示例：
+
+```json
+{
+  "commit": true,
+  "tag": true,
+  "push": true,
+  "scripts": {
+    "preversion": "npm test"
+  },
+  "changelog": {
+    "output": "CHANGELOG.md",
+    "types": {
+      "feat": { "title": "🚀 特性" },
+      "chore": false
+    }
+  }
+}
+```
+
+注意两件事：
+
+- **写错键名会直接报错**（并告诉你是哪个键），不再被静默忽略——搬家时正好清理掉旧配置里无效的键
+- 如果你自定义过 changelog 分组标题：v6 内建标题改为英文，中文标题需要像上面示例一样在 `changelog.types` 里显式声明
+
+## 2. 编程式 API 的变化
+
+如果你只在命令行使用，跳过本节。如果用代码调用 `bumpVersion`：
+
+- **配置对象拍平**：`{ bumpp: {...}, changelog: {...} }` → `{ ...bumpp键, changelog: {...} }`，与配置文件同形
+- **`defineConfig` 删除**：配置就是普通对象，直接写字面量
+- **`@vill-v/bumpp/changelogen` 子路径删除**：`resolveRepoConfig`、`generateChangelog` 等函数不再对外提供
+- **平台变体包的 `createXRelease` 删除**：需要单独创建 Release 时改用命令行 `vbumpp release <version> --provider <平台>`（详见[平台 Release 指南](/docs/release)）
+- **token 相关编程式函数删除**：token 管理统一走命令行 `vbumpp token set / list / remove`（已录入的 token 存储格式兼容，无需重新录入）
+
+## 3. changelog 产出的行为变化
+
+升级后同一份提交历史生成的 changelog 可能略有不同，属于预期：
+
+- **分组标题默认英文**（中文需自行配置，见第 1 节示例）
+- **贡献者行默认不显示邮箱**（恢复显示：`changelog.hideAuthorEmail: false`）
+- **贡献者不再有 `@username` 链接**——生成过程不再请求第三方服务，changelog 产出完全离线、不再随网络环境变化
+- **commit 类型为 `ci` / `types` 的提交不再出现**（需要时可在 `changelog.types` 自行声明）
+- **`commit: false` 时 changelog 文件只写入、不再自动提交**
+
+## 4. 依赖大幅瘦身
+
+`@vill-v/bumpp` 不再传递安装 `changelogen`、`cac`、`consola`、`defu`、`tinyexec` 等一揽子依赖，安装体积和供应链面显著缩小——你不需要做任何事，但如果项目里间接依赖过这些包，升级后请检查。

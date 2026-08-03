@@ -1,0 +1,68 @@
+---
+title: 平台 Release 指南
+description: 在 GitHub / GitLab / Gitee / GitCode 上创建 Release
+---
+
+发版完成后自动（或单独）在代码平台上创建 Release，Release 描述就是对应版本的 changelog 内容。两种使用方式：
+
+1. **随发版自动创建**：安装平台变体包（`@vill-v/bumpp-gitee` 等），或发版时加 `--provider`，bump 完成后自动创建
+2. **单独补发**：`vbumpp release <version>`（见[失败重试](#失败重试)）
+
+## 支持的平台
+
+| 平台 | provider 名 | 说明 |
+| --- | --- | --- |
+| GitHub | `github` | 装了 `gh` CLI 且已登录时可免配置 token |
+| GitLab | `gitlab` | 支持自建实例（见下文） |
+| Gitee | `gitee` | |
+| GitCode | `gitcode` | |
+
+## 配置 token
+
+在平台上创建 Release 需要对应平台的 access token。本机使用录入一次即可（加密保存在 `~/.vbumpp/`，不会明文落盘；输入时不回显）：
+
+```sh
+vbumpp token set gitee
+```
+
+查看和删除：
+
+```sh
+vbumpp token list
+vbumpp token remove gitee
+```
+
+**CI 环境**不用录入，直接给环境变量：
+
+| 平台 | 环境变量（按读取顺序） |
+| --- | --- |
+| GitHub | `GH_TOKEN` → `GITHUB_TOKEN` |
+| GitLab | `GITLAB_TOKEN` |
+| Gitee | `GITEE_TOKEN` |
+| GitCode | `GITCODE_TOKEN` |
+
+GitHub Actions 里直接用内置的 `${{ secrets.GITHUB_TOKEN }}` 即可。token 的优先级：本机录入 > 环境变量 >（仅 GitHub）`gh auth token`。
+
+## 自建 GitLab 实例
+
+在项目配置里指定实例地址：
+
+```toml
+# .vbumpprc.toml
+[gitlab]
+host = "https://gitlab.example.com"
+```
+
+## 失败重试
+
+发版流程中 changelog、commit、tag、push 都成功了，只有创建 Release 失败（网络抖动、token 过期）时，不需要重新发版：
+
+```sh
+# token 过期就先重新录入
+vbumpp token set gitee
+
+# 然后单独补发这个版本的 Release
+vbumpp release 5.1.0 --provider gitee
+```
+
+`release` 命令会从 `CHANGELOG.md` 取出 `5.1.0` 这一节作为 Release 描述。为防误发，它会先检查本地确实存在 `v5.1.0` 的 tag、且 changelog 里确实有这一节，缺任何一样都会拒绝执行。如果平台上已有该版本的 Release，会原样提示平台的错误信息，不会覆盖。

@@ -1,0 +1,116 @@
+---
+title: npm
+icon: Npm
+description: 通过 npm 生态包管理器安装 vbumpp
+---
+
+作为项目的开发依赖安装（要求 Node.js 20.19+ 或 22.12+），用你习惯的包管理器：
+
+<Tabs defaultValue="npm">
+<PMTabsList />
+<Tab value="npm">
+
+```sh
+npm install -D @vill-v/bumpp
+```
+
+</Tab>
+<Tab value="yarn">
+
+```sh
+yarn add -D @vill-v/bumpp
+```
+
+</Tab>
+<Tab value="pnpm">
+
+```sh
+pnpm add -D @vill-v/bumpp
+```
+
+</Tab>
+<Tab value="bun">
+
+```sh
+bun add -D @vill-v/bumpp
+```
+
+</Tab>
+<Tab value="aube">
+
+```sh
+aube add -D @vill-v/bumpp
+```
+
+</Tab>
+<Tab value="nub">
+
+```sh
+nub add -D @vill-v/bumpp
+```
+
+</Tab>
+</Tabs>
+
+如果你的项目托管在某个代码平台上，并希望发版后**自动在该平台创建 Release**，改装对应的平台变体包（用法完全相同）：
+
+| 平台 | 包名 |
+| --- | --- |
+| GitHub | `@vill-v/bumpp-github` |
+| GitLab | `@vill-v/bumpp-gitlab` |
+| Gitee | `@vill-v/bumpp-gitee` |
+| GitCode | `@vill-v/bumpp-gitcode` |
+
+## 运行
+
+装成开发依赖后，通过包管理器运行（也可以在 package.json 的 scripts 里加一条 `"release": "vbumpp"`，之后用 `npm run release` 等方式调用）：
+
+<Tabs defaultValue="npm">
+<PMTabsList />
+<Tab value="npm">
+
+```sh
+npx vbumpp
+```
+
+</Tab>
+<Tab value="yarn">
+
+```sh
+yarn vbumpp
+```
+
+</Tab>
+<Tab value="pnpm">
+
+```sh
+pnpm vbumpp
+```
+
+</Tab>
+<Tab value="bun">
+
+```sh
+bunx vbumpp
+```
+
+</Tab>
+<Tab value="aube">
+
+```sh
+aube x vbumpp
+```
+
+</Tab>
+<Tab value="nub">
+
+```sh
+nubx vbumpp
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="info">
+想全局使用也可以 `npm i -g @vill-v/bumpp`，之后在任何目录直接敲 `vbumpp`。
+</Callout>

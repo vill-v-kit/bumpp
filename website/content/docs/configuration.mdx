@@ -1,0 +1,96 @@
+---
+title: 配置文件参考
+description: 配置文件的位置、合并规则与全部配置项
+---
+
+大多数时候你不需要配置文件——直接在项目根目录跑 `vbumpp` 即可。需要定制时，在根目录放一个 `.vbumpprc` 文件。
+
+## 配置文件放在哪
+
+| 级别 | 文件 | 用途 |
+| --- | --- | --- |
+| 项目级 | `.vbumpprc.{json,jsonc,toml}` | 本项目的发版配置（随仓库提交，推荐） |
+| 全局级 | `~/.vbumpp/config.{json,jsonc,toml}` | 你本机所有项目的公共默认 |
+
+三种后缀任选（`.jsonc` 支持注释和尾逗号；TOML 示例见下文）。同一目录下放多个配置文件会直接报错并全部列出，请只保留一个。
+
+合并规则（高优先级覆盖低优先级）：**命令行 / API 入参 > 项目级 > 全局级 > 内建默认**。其中 `changelog.types` 是逐组合并的——只写你想改的那几组即可，没写的组保持默认；其余配置项整体覆盖。
+
+## 一个常见例子
+
+```toml
+# .vbumpprc.toml
+# monorepo 默认递归更新（免去每次敲 -r）
+recursive = true
+
+# 发版前后跑自己的命令（换成你项目实际的命令即可）
+[scripts]
+preversion = "npm test"
+postversion = "npm run build"
+
+# changelog 分组标题改成中文
+[changelog.types.feat]
+title = "🚀 特性"
+
+[changelog.types.fix]
+title = "🩹 修复"
+
+[changelog.types.chore]
+title = "🏡 框架"
+```
+
+<Callout type="info">
+配置写错键名会直接报错并指出是哪个键——这是故意的，防止配置静默失效。
+</Callout>
+
+## 顶层配置项
+
+| 键 | 默认 | 说明 |
+| --- | --- | --- |
+| `files` | `[]`（自动识别常见版本文件） | 要更新版本号的文件列表 |
+| `commit` | `true` | 是否 git commit；填字符串则作为自定义提交信息 |
+| `tag` | `true` | 是否打 git tag；填字符串则作为自定义 tag 名 |
+| `push` | `true` | 是否 git push |
+| `sign` | `false` | commit/tag 使用 GPG 签名 |
+| `all` | `false` | commit 时 `git add -A`（默认只提交实际更新的文件） |
+| `noVerify` | `false` | commit/tag 时跳过 git hooks |
+| `recursive` | `false` | monorepo 整树递归（等同 `-r`） |
+| `install` | `false` | 版本更新后自动执行包管理器 install（更新 lockfile） |
+| `ignoreScripts` | `false` | 跳过 `scripts` 里的全部命令 |
+| `execute` | — | 版本更新后额外执行的一条命令 |
+| `release` | — | 跳过交互直接指定版本算法（如 `"patch"`）或具体版本号 |
+| `preid` | `"beta"` | 预发布标识（`1.0.0-beta.1` 中的 `beta`） |
+| `currentVersion` | — | 手动指定当前版本（覆盖自动探测） |
+| `confirm` | `true` | 执行前二次确认（命令行交互选定版本后不会再问） |
+| `scripts` | — | 发版脚本，见下节 |
+| `changelog` | — | changelog 配置，见下节 |
+| `gitlab` | — | 自建 GitLab，见[平台 Release 指南](/docs/release) |
+
+## `scripts`：发版脚本
+
+```toml
+[scripts]
+preversion = "npm test"        # 版本更新前
+version = ""                    # 版本文件更新后
+postversion = "npm run build"   # commit/tag 完成后、push 前
+```
+
+三个槽位任意填写，任意 shell 命令均可。
+
+## `changelog`：变更记录
+
+| 键 | 默认 | 说明 |
+| --- | --- | --- |
+| `output` | `"CHANGELOG.md"` | 写入路径 |
+| `types` | 英文分组标题（`🚀 Enhancements` 等） | commit 类型 → changelog 分组；声明顺序即分组顺序；某组填 `false` 则不出现在 changelog |
+| `repo` | 自动从 git remote 推断 | compare 链接用的仓库，`"owner/repo"` 形式 |
+| `scopeMap` | `{}` | commit scope 显示名替换 |
+| `noAuthors` | `false` | 不生成贡献者名单 |
+| `hideAuthorEmail` | `true` | 贡献者行隐藏邮箱 |
+| `excludeAuthors` | `[]` | 按子串排除特定作者（如机器人账号） |
+| `templates.tagBody` | `"v{{newVersion}}"` | changelog 里版本标题的格式 |
+| `commitMessage` | `"chore: update {{output}}"` | changelog 文件的提交信息 |
+
+## 全局目录 `~/.vbumpp/`
+
+全局配置文件和 token 存储都在这个目录。可用环境变量改位置：`VBUMPP_HOME` 改整个目录；`VBUMPP_TOKEN_STORE` 只改 token 存储文件的路径。

@@ -1,0 +1,46 @@
+---
+title: 快速上手
+icon: Rocket
+description: 第一条 vbumpp 命令
+---
+
+<Callout type="info">
+还没安装？先看[安装](/docs/install/npm)（npm 包管理器 / crates.io / cargo 源码编译，任选其一）。
+</Callout>
+
+## 第一条命令
+
+在项目根目录（package.json 或 Cargo.toml 所在处）执行：
+
+```sh
+vbumpp
+```
+
+会出现一个交互菜单让你选择新版本怎么算：
+
+- `patch` / `minor` / `major`：按 semver 递增（修 bug 选 patch，加功能选 minor，破坏性变更选 major）
+- `prepatch` / `preminor` / `premajor` / `prerelease`：发预发布版本（如 `1.1.0-beta.1`）
+- `conventional`：根据自上次发版以来的 conventional commits 自动推断
+- `next`：取当前版本的下一个递增
+- `none`：保持当前版本不变；`custom`：手动输入版本号
+
+选定后，工具会依次自动完成：
+
+1. 根据最近一个 git tag 以来的提交生成变更记录，写入 `CHANGELOG.md`
+2. 更新版本文件中的版本号
+3. 执行你在配置里声明的发版脚本（如有）
+4. git commit → 打 tag → push
+5. （平台变体包）在该平台创建 Release
+
+<Callout type="info">
+第一次使用时如果仓库还没有任何 git tag，会跳过 changelog 生成——先正常发一版，从第二版开始就有变更记录了。
+</Callout>
+
+## 常见用法
+
+```sh
+vbumpp                          # 标准发版
+vbumpp -r                       # monorepo：递归更新整树包的版本
+vbumpp package.json docs/v.txt  # 只更新指定的版本文件
+vbumpp -o HISTORY.md            # changelog 写到别的文件
+```

@@ -1,0 +1,57 @@
+---
+title: CLI 参考
+description: 子命令、flag 与退出码的完整参考
+---
+
+## `vbumpp [...files]`（默认命令）
+
+发版主命令：更新版本号、生成 changelog、git commit / tag / push、执行发版脚本；使用平台变体包或给出 `--provider` 时，完成后自动创建平台 Release。
+
+```sh
+vbumpp                        # 标准发版
+vbumpp package.json Cargo.toml  # 只更新指定的版本文件
+```
+
+| flag | 说明 |
+| --- | --- |
+| `-r`, `--recursive` | 递归更新 monorepo 整树包的版本 |
+| `-o`, `--output <path>` | changelog 写入路径（默认 `CHANGELOG.md`） |
+| `--provider <name>` | 本次发版要创建 Release 的平台：`github` / `gitlab` / `gitee` / `gitcode`（优先级高于平台变体包的默认平台） |
+| `-h`, `--help` | 显示帮助 |
+| `-v`, `--version` | 显示版本号 |
+
+`-o` 的几种写法都可以：`-o OUT.md`、`-oOUT.md`、`--output OUT.md`、`--output=OUT.md`；短 flag 可合并写（如 `-ro OUT.md`）；`--` 之后的参数一律按文件处理。
+
+## `vbumpp release <version> --provider <name>`
+
+**单独创建（补发）平台 Release**。适用场景：发版流程里 changelog、tag、push 都成功了，只有最后创建 Release 一步失败（网络抖动、token 过期），或者你想为历史版本补建 Release。
+
+```sh
+vbumpp release 5.1.0 --provider gitee
+```
+
+它会从 changelog 文件（默认 `CHANGELOG.md`，可用 `-o` 换）里取出 `5.1.0` 这一节的全部内容作为 Release 描述。版本号写 `5.1.0` 或 `v5.1.0` 都行。
+
+执行前会做两项检查，任一不满足都会拒绝执行（不会发出任何内容）：
+
+1. 本地存在 `v5.1.0` 这个 git tag——防止在错误的提交上建 Release
+2. changelog 里能找到 `5.1.0` 这一节——防止发出一个空描述的 Release
+
+如果平台上已存在该版本的 Release，会按平台返回的错误原样提示（不会覆盖已有内容）。
+
+## `vbumpp token <action> [name]`
+
+管理各平台的 access token（详见[平台 Release 指南](/docs/release)）：
+
+```sh
+vbumpp token set gitee      # 录入（密码式输入，不回显）
+vbumpp token list           # 查看已配置了哪些平台
+vbumpp token remove gitee   # 删除
+```
+
+## 退出码
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | 成功 |
+| `1` | 失败：参数用法错误、配置错误、git / 网络 / 平台 API 出错、`release` 前置检查未通过等（具体原因会打印在终端） |

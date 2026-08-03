@@ -6,6 +6,9 @@
     },
     "@vill-v/bumpp-core#build": {
       "outputs": ["index.js", "index.d.ts", "*.node"]
+    },
+    "website#build": {
+      "outputs": ["out/**"]
     }
   }
 }

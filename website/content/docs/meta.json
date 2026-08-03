@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "--- 介绍 ---",
+    "index",
+    "quick-start",
+    "install",
+    "--- 配置 ---",
+    "cli",
+    "configuration",
+    "release",
+    "--- 迁移 ---",
+    "migration-v6",
+    "external:[发布说明](https://github.com/vill-v-kit/bumpp/releases)"
+  ]
+}

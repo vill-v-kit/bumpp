@@ -1,0 +1,29 @@
+---
+title: 介绍
+icon: BookOpen
+description: vbumpp 是什么、能帮你做什么
+---
+
+**vbumpp**（npm 包名 `@vill-v/bumpp`）把「发版本」变成一条命令：算好新版本号、生成 CHANGELOG、更新项目里的版本文件、提交并打 tag 推送，还能直接在你的代码平台（GitHub / GitLab / Gitee / GitCode）上创建 Release。
+
+它解决的是这些日常痛点：
+
+- 手动改版本号、整理变更记录、打 tag，步骤繁琐又容易漏
+- monorepo 里一堆包的版本号要同步更新
+- 发完版还要打开平台网页，手动创建 Release 并粘贴变更内容
+
+## 能力一览
+
+- **一条命令完成发版**：交互选择新版本 → 生成 CHANGELOG → 更新版本文件 → git commit / tag / push
+- **monorepo 支持**：一个 `-r` 递归更新整树包的版本
+- **平台 Release 自动创建**：支持 GitHub / GitLab / Gitee / GitCode；失败（网络抖动、token 过期）后可用一条命令单独重试
+- **token 一次录入**：加密保存在本机，CI 环境也可直接用环境变量
+
+## 下一步
+
+<Cards>
+  <Card title="快速上手" href="/docs/quick-start" />
+  <Card title="CLI 参考" href="/docs/cli" />
+  <Card title="配置文件参考" href="/docs/configuration" />
+  <Card title="平台 Release 指南" href="/docs/release" />
+</Cards>

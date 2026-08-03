@@ -1,6 +1,14 @@
 packages:
   - napi/*
   - npm/*
+  # 文档网站（ADR-0020）：精确名而非 glob——website/ 为单包应用目录
+  - website
+
+# website（fumadocs/Next.js）传递依赖的安装期脚本审批（ADR-0020）：esbuild
+# （二进制链接）与 sharp（预构建二进制校验）；引入文档站前的依赖面无需构建脚本
+allowBuilds:
+  esbuild: true
+  sharp: true
 
 catalogs:
   dev:

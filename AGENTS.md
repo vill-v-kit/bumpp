@@ -8,6 +8,11 @@ Rust 代码按三个顶层目录分层：
 
 **受众规则：`npm/` 与 `napi/` 按受众分流，与是否发布无关。** 内部机制包即使发布到 npm（例：`napi/bumpp-core` 即 `@vill-v/bumpp-core`，以及 5 个平台二进制包）也放 `napi/`——它们发布只是因为 npm 不支持 workspace 协议与 optionalDependencies 分发机制，用户没有直接安装它们的场景。本仓库**没有 `packages/` 目录**。
 
+非 Rust 的顶层目录：
+
+- `website/` — 面向用户的文档网站（fumadocs / Next.js 静态导出，ADR-0020）；与 `docs/` 的工程内部文档（ADR、agent 约定）分离，不进 cargo/pnpm 的既有 glob，pnpm-workspace 以精确名 `website` 加入
+- `docs/` — 工程内部文档（`adr/`、`agents/`、迁移指南源稿）
+
 配套约定：
 
 - 根 `Cargo.toml` 是虚拟 workspace；`members` 只声明当前非空的目录 glob（cargo 对零匹配的 glob 报错），新增 `crates/`、`napi/` 目录时同步加入

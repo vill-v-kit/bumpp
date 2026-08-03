@@ -1,0 +1,15 @@
+---
+title: cargo
+icon: Cargo
+description: 拉取源码自行编译原生 CLI
+---
+
+原生 CLI（纯 Rust 编写，不需要 Node.js 环境，功能与 npm 版完全一致）可以从源码编译安装，需要本机有 Rust 工具链：
+
+```sh
+git clone https://github.com/vill-v-kit/bumpp.git
+cd bumpp && cargo install --path crates/bumpp-cli
+vbumpp --help
+```
+
+适合想跟进最新未发布改动的场景——源码 main 分支领先于一切分发渠道。
