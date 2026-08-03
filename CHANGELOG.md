@@ -88,7 +88,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v4.0.0
 
@@ -343,7 +343,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v1.0.5
 
@@ -355,7 +355,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v1.0.4
 
@@ -367,7 +367,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v1.0.3
 
@@ -379,7 +379,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v1.0.2
 
@@ -396,7 +396,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v1.0.0
 
@@ -423,7 +423,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.4.4
 
@@ -433,7 +433,7 @@
 
 ### ❤️ 贡献者
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.4.3
 
@@ -443,7 +443,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.4.2
 
@@ -453,7 +453,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.4.1
 
@@ -463,7 +463,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.4.0
 
@@ -478,7 +478,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.3.2
 
@@ -492,7 +492,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.3.1
 
@@ -506,7 +506,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.3.0
 
@@ -528,7 +528,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -548,7 +548,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -563,7 +563,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -577,7 +577,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -590,7 +590,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -602,7 +602,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -613,7 +613,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -623,7 +623,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.4
 
@@ -635,7 +635,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.2
 
@@ -645,7 +645,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.1
 
@@ -657,7 +657,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.1
 
@@ -668,7 +668,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.1
 
@@ -679,7 +679,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.1
 
@@ -689,7 +689,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.2.0
 
@@ -701,7 +701,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.1.1
 
@@ -712,7 +712,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.1.0
 
@@ -722,7 +722,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.0.4
 
@@ -733,7 +733,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.0.3
 
@@ -743,7 +743,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.0.2
 
@@ -756,7 +756,7 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
 
 ## v0.0.1
 
@@ -767,4 +767,4 @@
 
 ### ❤️ Contributors
 
-- Whitekite <1075790909@qq.com>
+- Whitekite <xuxjigsaw@qq.com>
