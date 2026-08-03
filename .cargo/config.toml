@@ -1,0 +1,22 @@
+# Xcode 27 工具链规避（macOS 27 dyld 严格校验）
+#
+# 症状：`napi build` 产出的 .node 在本机 dlopen 报
+#   mis-aligned LINKEDIT string pool, fileOffset=0x...
+# 成因：Xcode 27 链接器（ld_prime）为符号量大的 cdylib 排布 Mach-O 符号表时，
+# 串池（LC_SYMTAB.stroff）未按 8 字节对齐（连 Xcode 27 自带的 strip -x 重写的
+# 二进制同样错位——排除 rustc/llvm-objcopy 单一成因）；macOS 27 的 dyld 对
+# LC_BUILD_VERSION sdk ≥ 27 的二进制在 dlopen 时强校验串池 8 对齐，错位即拒载
+# （最小 cdylib 探针恰好对齐故可加载，与本 crate 无关）。
+#
+# 规避：把产物的声明 SDK 版本降为 26.0——dyld 对 sdk < 27 的二进制走旧宽容路径
+# （rustc 1.98 前的 strip 错位产物同理可载）。本 crate 为纯 cdylib、不使用任何
+# macOS 27 API，元数据降级无副作用。注意：环境变量 RUSTFLAGS 会整体覆盖本文件
+# 的 target rustflags（cargo 语义），排查问题时勿混用。
+#
+# 移除条件（满足其一）：Apple 修复 ld_prime/dyld 对齐问题；或 Rust 的 Mach-O
+# rust-lld 稳定可切换（lld 会正确 padding）。
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-args=-Wl,-platform_version,macos,11.0,26.0"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-args=-Wl,-platform_version,macos,10.12,26.0"]
