@@ -1,4 +1,4 @@
-import { resolveRepoConfig as _resolveRepoConfig } from '@vill-v/bumpp/changelogen'
+import { resolveRepoConfig as _resolveRepoConfig } from '@vill-v/bumpp/changelog'
 import consola from 'consola'
 import { colors } from 'consola/utils'
 import type { $Fetch } from 'ofetch'

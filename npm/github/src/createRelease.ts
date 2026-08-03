@@ -1,5 +1,5 @@
 import type { BumpVersion } from '@vill-v/bumpp'
-import { getCurrentGitBranch } from '@vill-v/bumpp/changelogen'
+import { getCurrentGitBranch } from '@vill-v/bumpp/changelog'
 import { type FetchOptions, ofetch } from 'ofetch'
 import consola from 'consola'
 import { x } from 'tinyexec'
