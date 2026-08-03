@@ -260,7 +260,11 @@ fn resolve_repo_prefers_package_json_repository_string() {
   .unwrap();
   assert_eq!(
     resolve_repo_config(&path),
-    Some(repo_config(Some("github"), Some("github.com"), Some("owner/repo")))
+    Some(repo_config(
+      Some("github"),
+      Some("github.com"),
+      Some("owner/repo")
+    ))
   );
 }
 
@@ -275,7 +279,11 @@ fn resolve_repo_reads_repository_object_url() {
   .unwrap();
   assert_eq!(
     resolve_repo_config(&path),
-    Some(repo_config(Some("gitlab"), Some("gitlab.com"), Some("owner/repo")))
+    Some(repo_config(
+      Some("gitlab"),
+      Some("gitlab.com"),
+      Some("owner/repo")
+    ))
   );
 }
 
@@ -289,7 +297,11 @@ fn resolve_repo_falls_back_to_git_remote() {
   );
   assert_eq!(
     resolve_repo_config(&path),
-    Some(repo_config(Some("github"), Some("github.com"), Some("owner/repo")))
+    Some(repo_config(
+      Some("github"),
+      Some("github.com"),
+      Some("owner/repo")
+    ))
   );
 }
 
@@ -304,7 +316,11 @@ fn resolve_repo_invalid_package_json_falls_through_to_remote() {
   );
   assert_eq!(
     resolve_repo_config(&path),
-    Some(repo_config(Some("gitlab"), Some("gitlab.com"), Some("owner/repo")))
+    Some(repo_config(
+      Some("gitlab"),
+      Some("gitlab.com"),
+      Some("owner/repo")
+    ))
   );
 }
 
@@ -343,7 +359,11 @@ fn resolve_repo_empty_string_repository_falls_to_remote() {
   );
   assert_eq!(
     resolve_repo_config(&path),
-    Some(repo_config(Some("gitlab"), Some("gitlab.com"), Some("owner/repo")))
+    Some(repo_config(
+      Some("gitlab"),
+      Some("gitlab.com"),
+      Some("owner/repo")
+    ))
   );
 }
 
