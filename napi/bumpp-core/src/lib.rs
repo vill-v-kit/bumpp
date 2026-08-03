@@ -1,8 +1,9 @@
 #![deny(clippy::all)]
 
-//! napi 导出面（ADR-0014 收缩、ADR-0016 再收缩后）：编排 `bumpVersion`、平台
-//! Release 四导出、CLI 单入口 `cliRun`。上游 parity 面（versionBump 系、
-//! loadBumpConfig）与 changelog 系函数已收归 Rust 内部，不再导出。
+//! napi 导出面（ADR-0014 收缩、ADR-0016 再收缩、ADR-0019 三收缩后）：编排
+//! `bumpVersion`、CLI 单入口 `cliRun`。平台 Release 四导出已删——独立
+//! release 由 CLI `vbumpp release` 子命令承接（ADR-0019）；上游 parity 面
+//! （versionBump 系、loadBumpConfig）与 changelog 系函数收归 Rust 内部。
 
 use std::path::PathBuf;
 
@@ -168,109 +169,4 @@ pub fn bump_version(
     provider,
     cwd,
   })
-}
-
-// ---------------------------------------------------------------------------
-// 平台 Release 四导出（ADR-0014：per-provider 1:1 parity；共享实现在 Rust 内部）
-// ---------------------------------------------------------------------------
-
-/// `createXRelease` 入参的 `bumpp` 槽（TS 结构类型：完整 BumpState 可赋值）
-#[napi(object)]
-pub struct CreateReleaseBump {
-  #[napi(js_name = "newVersion")]
-  pub new_version: String,
-}
-
-/// `createXRelease` 入参的 `changelog` 槽
-#[napi(object)]
-pub struct CreateReleaseChangelog {
-  pub markdown: Option<String>,
-}
-
-/// `createXRelease` 入参（ADR-0014 收缩后的 `BumpVersion` 形状）：
-/// token / repo / host 由 Rust 内部解析，不经 JS 传入
-#[napi(object)]
-pub struct CreateReleaseOptions {
-  pub bumpp: CreateReleaseBump,
-  pub changelog: Option<CreateReleaseChangelog>,
-}
-
-pub struct CreateReleaseTask {
-  provider: bumpp_core::release::Provider,
-  new_version: String,
-  markdown: String,
-  cwd: Option<String>,
-}
-
-#[napi]
-impl napi::Task for CreateReleaseTask {
-  type Output = ();
-  type JsValue = ();
-
-  fn compute(&mut self) -> napi::Result<Self::Output> {
-    bumpp_core::release::create_release(
-      self.provider,
-      &self.new_version,
-      &self.markdown,
-      &resolve_cwd(self.cwd.take())?,
-      None,
-    )
-    .map_err(to_napi_err)
-  }
-
-  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-    Ok(output)
-  }
-}
-
-fn create_release_task(
-  provider: bumpp_core::release::Provider,
-  options: CreateReleaseOptions,
-  cwd: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
-  napi::bindgen_prelude::AsyncTask::new(CreateReleaseTask {
-    provider,
-    new_version: options.bumpp.new_version,
-    markdown: options
-      .changelog
-      .and_then(|c| c.markdown)
-      .unwrap_or_default(),
-    cwd,
-  })
-}
-
-/// 创建 GitHub release（token 链：存储 → GH_TOKEN → GITHUB_TOKEN → gh CLI）
-#[napi]
-pub fn create_github_release(
-  options: CreateReleaseOptions,
-  cwd: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
-  create_release_task(bumpp_core::release::Provider::Github, options, cwd)
-}
-
-/// 创建 GitLab release（token 链：存储 → GITLAB_TOKEN；host 经配置 gitlab.host）
-#[napi]
-pub fn create_gitlab_release(
-  options: CreateReleaseOptions,
-  cwd: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
-  create_release_task(bumpp_core::release::Provider::Gitlab, options, cwd)
-}
-
-/// 创建 Gitee release（token 链：存储 → GITEE_TOKEN）
-#[napi]
-pub fn create_gitee_release(
-  options: CreateReleaseOptions,
-  cwd: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
-  create_release_task(bumpp_core::release::Provider::Gitee, options, cwd)
-}
-
-/// 创建 GitCode release（token 链：存储 → GITCODE_TOKEN）
-#[napi]
-pub fn create_gitcode_release(
-  options: CreateReleaseOptions,
-  cwd: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<CreateReleaseTask> {
-  create_release_task(bumpp_core::release::Provider::Gitcode, options, cwd)
 }

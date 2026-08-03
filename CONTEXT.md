@@ -9,7 +9,7 @@
 _Avoid_: release（指平台 release 创建）、publish
 
 **CLI**:
-`vbumpp` 命令行——argv 语法（子命令、flag、help 文案、错误提示、退出码）唯一归属 Rust（Core 内的 cli 模块，手写解析器，ADR-0016）。npm bin 与规划中的原生 CLI 二进制为共享同一 `run_from_argv` 的两个薄壳前端；Node 侧零依赖、零逻辑。
+`vbumpp` 命令行——argv 语法（子命令、flag、help 文案、错误提示、退出码）唯一归属 Rust（Core 内的 cli 模块，手写解析器，ADR-0016）。npm bin 与原生 CLI 二进制（`crates/bumpp-cli`，纯 Rust、零 napi 依赖）为共享同一 `run_from_argv` 的两个薄壳前端；Node 侧零依赖、零逻辑。provider 身份可经 `--provider` flag 在 argv 层给出（优先于平台变体包的注入），`release` 子命令提供失败后的独立重试通路（ADR-0019）。
 _Avoid_: cac 路由（ADR-0014 时代的旧制，ADR-0016 移除）
 
 **Release type**:
@@ -36,7 +36,7 @@ _Avoid_: XDG 目录（不引入）
 _Avoid_: 凭证库（语义过强）
 
 **平台 Release**:
-向 git 托管平台（github / gitlab / gitee / gitcode）创建 release 的动作，Rust 内按 provider 适配（gitee / gitcode 复用 github-like 实现；gitlab 多一步项目 id 直查，自建实例经 `gitlab` 段的 `host` 配置，ADR-0014）。token 解析链统一为：Token 存储 → 各家环境变量（`GH_TOKEN` → `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`）→ 仅 github 追加 `gh auth token` 兜底。
+向 git 托管平台（github / gitlab / gitee / gitcode）创建 release 的动作，Rust 内按 provider 适配（gitee / gitcode 复用 github-like 实现；gitlab 多一步项目 id 直查，自建实例经 `gitlab` 段的 `host` 配置，ADR-0014）。两通路：bump 流程末段自动创建（body 为当次生成的 changelog markdown）；`vbumpp release <version>` 独立重试（body 从 changelog 文件提取指定版本节，应对网络失败 / 密钥过期后的补发，ADR-0019）。token 解析链统一为：Token 存储 → 各家环境变量（`GH_TOKEN` → `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`）→ 仅 github 追加 `gh auth token` 兜底。
 _Avoid_: publish
 
 **内部机制包 (Internal machinery package)**:
@@ -56,7 +56,7 @@ _Avoid_: files 插件链（ADR-0007 时代的旧称）
 _Avoid_: 版本文件（过宽——还含 text 通道的任意文本文件，如 README、.env）
 
 **Core**:
-纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面（ADR-0014 收缩、ADR-0016 再收缩后）：编排 `bumpVersion(options, provider?)`、平台 Release 四导出（`createGithubRelease` / `createGitlabRelease` / `createGiteeRelease` / `createGitcodeRelease`）、CLI 单入口 `cliRun(argv, provider?)`；token 三件套已删（ADR-0016），上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
+纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面（ADR-0014 收缩、ADR-0016 再收缩、ADR-0019 三收缩后）：编排 `bumpVersion(options, provider?)`、CLI 单入口 `cliRun(argv, provider?)`；平台 Release 四导出（`createGithubRelease` 等）已删——独立 release 由 CLI `vbumpp release` 子命令承接（ADR-0019）；token 三件套已删（ADR-0016），上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:
@@ -70,3 +70,7 @@ _Avoid_: 平台包（歧义——兼指 Platform package 二进制分发包）
 **用户可见字符串 (User-facing string)**:
 包向终端与调用方暴露的全部文案——错误信息、CLI help/用法、交互 prompt、进度打印、panic 兜底、napi loader 平台报错。唯一语言为英文（ADR-0017）；非英文需求一律走配置定制（如本仓库 `.vbumpprc.toml` 的中文 changelog types 标题），不进代码内建。代码注释不在其列（仓库内部工作语言为中文）。
 _Avoid_: 控制台打印（过窄——错误信息不经打印通路亦属之）、界面文案
+
+**文档网站 (Docs website)**:
+面向用户的产品文档站（`website/`，fumadocs / Next.js 静态导出，ADR-0020）——与 `docs/` 的工程内部文档（ADR、agent 约定、迁移指南源稿）物理分离。纯中文、单版本（随最新 release）；内容板块：快速上手、CLI 参考、配置文件参考、平台 Release 指南、v5→v6 迁移指南、外链区（导航栏图标链接：npmx.dev 包页 + GitHub Releases）。部署 GitHub Pages（项目页子路径 `/bumpp`），接受国内访问不稳定的取舍、不做国内镜像。
+_Avoid_: docs（指 `docs/` 工程内部文档目录）

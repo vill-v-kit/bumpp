@@ -1,10 +1,14 @@
 //! changelog 域（ADR-0012）：changelogen 使用面的 Rust 重写。
 //! 编排与对外 API 收于此根部；能力子目录：配置段解析（`config`）、
-//! markdown 生成（`markdown`）、gitmoji 数据表（`gitmoji`）。
+//! markdown 生成（`markdown`）、gitmoji 数据表（`gitmoji`）、版本节提取
+//! （`extract`，ADR-0019 release 重试通路）。
 
 pub mod config;
+pub mod extract;
 pub mod gitmoji;
 pub mod markdown;
+
+pub use extract::extract_version_section;
 
 use std::error::Error;
 use std::fmt;

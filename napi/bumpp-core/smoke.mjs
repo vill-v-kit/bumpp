@@ -1,17 +1,10 @@
-// napi 链路冒烟（ADR-0016 收缩后的导出面）：编排/Release/CLI 单入口可调用，
-// 旧 parity 面与 token 三件套不再导出
+// napi 链路冒烟（ADR-0019 三收缩后的导出面）：编排与 CLI 单入口可调用，
+// 平台 Release 四导出、旧 parity 面与 token 三件套不再导出
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import {
-  bumpVersion,
-  cliRun,
-  createGitcodeRelease,
-  createGiteeRelease,
-  createGithubRelease,
-  createGitlabRelease,
-} from './index.js'
+import { bumpVersion, cliRun } from './index.js'
 
 const dir = mkdtempSync(join(tmpdir(), 'bumpp-smoke-'))
 // token 存储与全局配置目录指向临时路径，不碰真实 ~/.vbumpp
@@ -21,10 +14,6 @@ process.env.VBUMPP_HOME = join(dir, 'home')
 const checks = [
   ['bumpVersion export exists', typeof bumpVersion === 'function'],
   ['cliRun export exists', typeof cliRun === 'function'],
-  ['createGithubRelease export exists', typeof createGithubRelease === 'function'],
-  ['createGitlabRelease export exists', typeof createGitlabRelease === 'function'],
-  ['createGiteeRelease export exists', typeof createGiteeRelease === 'function'],
-  ['createGitcodeRelease export exists', typeof createGitcodeRelease === 'function'],
 ]
 
 // provider 校验在编排入口同步失败（不经网络/交互）

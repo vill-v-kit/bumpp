@@ -59,7 +59,7 @@ v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
 | `output` | `"CHANGELOG.md"` | 写出路径 |
-| `types` | 11 组中文标题 | 声明序即分组序；`false` 禁用 |
+| `types` | 内建英文标题（ADR-0017；中文标题经项目级 `types` 定制） | 声明序即分组序；`false` 禁用 |
 | `repo` | 无（自 git remote / package.json `repository` 解析） | string 或 `{provider, domain, repo}` |
 | `scopeMap` | `{}` | scope 显示重命名 |
 | `noAuthors` | `false` | 整节关闭贡献者列表 |
@@ -80,6 +80,21 @@ v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配
   配置就是普通对象，不再需要辅助函数
 - **`ResolveConfig.changelog` 为用户透传段**：解析统一发生在 Rust 内部
   （单一解析路径），JS 不再有 changelog 配置解析态
+
+## 平台 Release 独立创建迁移至 CLI（ADR-0019）
+
+四个平台变体包的 `createGithubRelease` / `createGitlabRelease` /
+`createGiteeRelease` / `createGitcodeRelease`（及 `CreateReleaseOptions`
+类型）**移除**。独立 release 场景（bump 末段 release 因网络失败 / 密钥过期
+后的重试）由 CLI 子命令承接：
+
+```sh
+vbumpp release <version> --provider <github|gitlab|gitee|gitcode>
+```
+
+body 从 changelog 文件（`--output`，默认 `CHANGELOG.md`）提取指定版本节；
+前置校验两道：本地 `v<version>` tag 必须存在、changelog 必须含该版本节。
+`--provider` flag 对 bump 默认命令同样可用（优先于变体包的注入身份）。
 
 ## 子路径改名与导出收窄
 
