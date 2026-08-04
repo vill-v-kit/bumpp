@@ -1,7 +1,7 @@
 import { loader } from 'fumadocs-core/source';
 import type { LoaderPlugin } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/plugins/lucide-icons';
-import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
+import { docsContentRoute, docsImageRoute, docsRoute, siteUrl } from './shared';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 import { createElement } from 'react';
@@ -76,7 +76,10 @@ export function getPageMarkdownUrl(page: (typeof source)['$inferPage']) {
 export async function getLLMText(page: (typeof source)['$inferPage']) {
   const processed = await page.data.getText('processed');
 
-  return `# ${page.data.title} (${page.url})
+  // 与 llms.txt 同理：标题页链与正文站内链接补全为绝对 URL（启发式替换，正文代码块不含 ]( 前缀链接即安全）
+  const body = processed.replaceAll('](/', `](${siteUrl}/`);
 
-${processed}`;
+  return `# ${page.data.title} (${siteUrl}${page.url})
+
+${body}`;
 }
