@@ -8,8 +8,18 @@ description: 子命令、flag 与退出码的完整参考
 发版主命令：更新版本号、生成 changelog、git commit / tag / push、执行发版脚本；使用平台变体包或给出 `--provider` 时，完成后自动创建平台 Release。
 
 ```sh
-vbumpp                        # 标准发版
-vbumpp package.json Cargo.toml  # 只更新指定的版本文件
+$ vbumpp --help
+usage:
+  vbumpp [...files]                bump version and generate changelog
+  vbumpp release <version>         retry platform release from a changelog section
+  vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted
+
+options:
+  -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)
+  -r, --recursive             recursively
+  --provider <provider>       release provider (github / gitlab / gitee / gitcode)
+  -h, --help                  show help
+  -v, --version               show version
 ```
 
 | flag | 说明 |
