@@ -17,7 +17,7 @@
 - **provider 走配置文件字段或 git remote 推断**：配置字段引入与变体包注入的三方优先级问题；remote 推断对 gitee/gitcode/自建实例不可靠——均拒绝，argv flag 显式无状态。
 - **远端已存在时自动转为更新 release body**：对"请求成功但响应丢失"的重试更顺，但引入覆盖远端内容的写语义，超出"重试"本意——拒绝，保持纯创建。
 - **四导出合并为单个 `createRelease(options, provider)`**：面更小且与 `bumpVersion` 同形，但独立 release 场景已由 CLI 承接，保留价值不抵维护成本——拒绝，直接移除。
-- **分发（crates.io / GitHub Release 预编译）**：crates.io 发布不可撤销、预编译需 CI 矩阵基础设施——本次不做，后续单独决策。
+- **分发（crates.io / GitHub Release 预编译）**：crates.io 发布不可撤销、预编译需 CI 矩阵基础设施——本次不做，后续单独决策。（注：crates.io 分发后已决策——`bumpp-cli` 随 v6 发布上架 crates.io；上架前需移除 crate 清单的 `publish = false` 并接通发布通路。GitHub Release 预编译维持不做。）
 
 ## Consequences
 
