@@ -70,4 +70,14 @@ v6 是一次大版本升级，底层引擎重写、配置体系统一。好消�
 
 ## 4. 依赖大幅瘦身
 
-`@vill-v/bumpp` 不再传递安装 `changelogen`、`cac`、`consola`、`defu`、`tinyexec` 等一揽子依赖，安装体积和供应链面显著缩小——你不需要做任何事，但如果项目里间接依赖过这些包，升级后请检查。
+`@vill-v/bumpp` 不再传递安装 `changelogen`、`cac`、`consola`、`defu`、`tinyexec` 等一揽子依赖。实测安装体积（darwin-arm64，其他平台略有浮动）：
+
+| | 安装内容 | 体积 | npm 包数 |
+| --- | --- | --- | --- |
+| v5 | 本体 + 全部传递依赖 | ≈8.6 MB | 59 |
+| v6（npm 通路） | wrapper + napi 加载层 + 本平台预编译 `.node` | ≈5 MB | 3 |
+| v6（原生 CLI 通路） | 单个 `vbumpp` 二进制，不需要 Node.js | ≈4.6 MB | 0 |
+
+npm 通路体积缩小约 40%，供应链面从 59 个包收窄到 3 个。如果连 Node.js 环境都不想引入，还可以彻底抛开 npm——原生 CLI 是纯 Rust 单二进制，功能与 npm 版完全一致，[`cargo install bumpp-cli`](/docs/install/crates-io) 之后没有任何 node_modules 和依赖包，相比 v5 缩小近一半。
+
+你不需要做任何事，但如果项目里间接依赖过这些包，升级后请检查。
