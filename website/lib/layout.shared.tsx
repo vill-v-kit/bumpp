@@ -1,13 +1,18 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { siNpm } from 'simple-icons';
+import { Logo } from '@/components/logo';
 import { PMIcon } from '@/components/pm-tabs';
 import { appName, gitConfig } from './shared';
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      // JSX supported
-      title: appName,
+      title: (
+        <span className="inline-flex items-center gap-2">
+          <Logo className="size-6" />
+          {appName}
+        </span>
+      ),
     },
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
     links: [

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="vbumpp logo">
+  <defs>
+    <clipPath id="vbumpp-circle"><circle cx="48" cy="48" r="40"/></clipPath>
+    <clipPath id="vbumpp-above"><path d="M0 52 C 12 47, 24 47, 36 52 S 60 57, 72 52 S 90 48, 96 52 L96 0 L0 0 Z"/></clipPath>
+    <linearGradient id="vbumpp-water" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff6736"/>
+      <stop offset="0.62" stop-color="#ff6736" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#vbumpp-circle)">
+    <path d="M0 52 C 12 47, 24 47, 36 52 S 60 57, 72 52 S 90 48, 96 52 L96 96 L0 96 Z" fill="url(#vbumpp-water)"/>
+    <g clip-path="url(#vbumpp-above)">
+      <path d="M23 30 L48 66 L73 30" fill="none" stroke="#ff6736" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>
+    </g>
+    <path d="M0 52 C 12 47, 24 47, 36 52 S 60 57, 72 52 S 90 48, 96 52" fill="none" stroke="#ff6736" stroke-width="3" stroke-linecap="round"/>
+    <path d="M6 44 C 16 40, 28 40, 38 44 S 60 48, 74 44" fill="none" stroke="#ff6736" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  <circle cx="48" cy="48" r="40" fill="none" stroke="#ff6736" stroke-width="6"/>
+</svg>
