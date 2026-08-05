@@ -21,12 +21,12 @@ serde_json = { version = "1.0.151", features = ["preserve_order"] }
 shell-words = "1.1.0"
 toml = "0.9"
 toml_edit = "0.23"
-# TLS 走 rustls + aws-lc-rs（而非 ureq 默认的 ring）：ring 0.17 的 aarch64 预生成
-# 汇编要求 __ARM_ARCH（clang 专有预定义），napi-cross 的 gcc 工具链无法编译——
-# linux-arm64-gnu 交叉腿必炸；aws-lc-rs 为纯 C、gcc 友好，且是 rustls 默认 provider
-# （单 provider 编译时自动成为进程默认，ureq 的 rustls-no-provider 直接拾取，零代码改动）
-ureq = { version = "3", default-features = false, features = ["json", "gzip", "rustls-no-provider", "rustls-webpki-roots"] }
-rustls = "0.23"
+# TLS 走 native-tls + vendored openssl：napi cross-toolchain 1.0.3 的 aarch64 gcc
+# 过旧（缺 stdatomic.h / 不认 armv8.4-a -march / glibc 头无 AT_HWCAP2），ring 的
+# clang 专有汇编与 aws-lc-sys 的现代 C 均无法编译（v6.0.0 tag CI 两连炸实例）；
+# openssl 是移植面最广的 C 栈，上古 gcc 也能编。linux 两 legs 经 openssl-src 源码
+# 构建，macOS/Windows 走系统 TLS（SecureTransport/Schannel），无额外 C 构建
+ureq = { version = "3", default-features = false, features = ["json", "gzip", "native-tls", "vendored"] }
 url = "2.5"
 
 [dev-dependencies]
