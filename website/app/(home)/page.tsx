@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { siGithub, siKimi, siRust } from 'simple-icons';
 import { PMIcon } from '@/components/pm-tabs';
+import { DEMO_TERMINAL } from './demo-terminal';
 
 const features = [
   {
@@ -94,7 +95,7 @@ export default function HomePage() {
         完成版本号更新、CHANGELOG 生成、git tag / push，并在 GitHub / GitLab /
         Gitee / GitCode 上创建 Release。
       </p>
-      <div className="flex gap-3 mb-16">
+      <div className="flex gap-3 mb-10">
         <Link
           href="/docs/quick-start"
           className="rounded-lg bg-fd-primary text-fd-primary-foreground px-5 py-2.5 font-medium transition-opacity hover:opacity-90"
@@ -107,6 +108,23 @@ export default function HomePage() {
         >
           文档
         </Link>
+      </div>
+
+      <div className="mb-16 overflow-hidden rounded-xl border border-fd-border bg-fd-card shadow-sm">
+        <div className="flex items-center border-b border-fd-border px-4 py-2.5">
+          <span className="flex gap-1.5" aria-hidden="true">
+            <span className="size-3 rounded-full bg-[#ff5f57]" />
+            <span className="size-3 rounded-full bg-[#febc2e]" />
+            <span className="size-3 rounded-full bg-[#28c840]" />
+          </span>
+          <span className="flex-1 text-center text-xs text-fd-muted-foreground">
+            Terminal
+          </span>
+          <span className="w-12" aria-hidden="true" />
+        </div>
+        <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed">
+          {DEMO_TERMINAL}
+        </pre>
       </div>
 
       <h2 className="text-xl font-semibold mb-4">优势</h2>
