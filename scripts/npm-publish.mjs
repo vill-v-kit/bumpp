@@ -24,7 +24,8 @@
  *
  * PUBLISH_GUARD_NPM_URL 同时导向守卫查询与 pnpm 的 --registry（测试 stub /
  * 自建 registry 通用）；未设置时走默认 registry（https://registry.npmjs.org）。
- * 认证由调用方准备（CI 在 ~/.npmrc 写 ${NODE_AUTH_TOKEN} 展开式）。
+ * 认证：OIDC trusted publishing——CI 声明 id-token: write 后 pnpm 自动换
+ * 短期 token（provenance 随 OIDC 自动附加），无需 ~/.npmrc 与长效 token。
  */
 import { execFile, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'

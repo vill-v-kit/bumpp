@@ -143,7 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # 混合路线：首发走 NPM_TOKEN 长效凭证；id-token 为 OIDC trusted publishing 迁移（COL-56）预留
+      # OIDC trusted publishing（ADR-0021 决策④终态）：id-token 换短期 token 发布，无长效凭证
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -196,14 +196,11 @@ jobs:
             pnpm exec publint "$d"
           done
 
-      - name: Configure npm auth (~/.npmrc，值走环境变量展开，token 不落盘)
-        run: printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > ~/.npmrc
-
       - name: Publish (skip-if-published 守卫过滤后上架)
         # npm-publish.mjs：守卫过滤未上架包 → pnpm [--filter]×N publish -r --no-git-checks
         # （查询失败 exit 2 拦停；11 包全已上架则空计划收工；pnpm 拓扑序原生处理）
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # 认证：OIDC trusted publishing（ADR-0021 决策④终态）——pnpm 自动用
+        # id-token 换短期 token（无需 ~/.npmrc 与长效 NPM_TOKEN；provenance 随 OIDC 自动附加）
         run: node scripts/npm-publish.mjs
 
   # ADR-0021 决策①③：与 publish-npm 并行、无人工批准门；可任意次重跑收敛
@@ -213,7 +210,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # 混合路线：首发走 CARGO_REGISTRY_TOKEN 长效凭证；id-token 为 OIDC trusted publishing 迁移（COL-56）预留
+      # OIDC trusted publishing（ADR-0021 决策④终态）：crates-io-auth-action 换短期 token
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -232,10 +229,15 @@ jobs:
             exit 1
           fi
 
+      - name: Authenticate with crates.io (OIDC trusted publishing)
+        # ADR-0021 决策④终态：GitHub OIDC token 换 crates.io 短期 token，无需长效 CARGO_REGISTRY_TOKEN
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
       - name: Publish crates (守卫 → dry-run 前置 → core→cli 顺序上架)
         # crates-publish.mjs：vbumpp-core → vbumpp 硬序逐一过守卫；GO 的先
         # cargo publish --dry-run 再真实上架（dry-run 失败在上传前拦停）；
         # SKIP 跳过（部分失败重跑自动收敛）；查询失败 exit 2 零 cargo 调用
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: node scripts/crates-publish.mjs
