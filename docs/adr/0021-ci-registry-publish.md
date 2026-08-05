@@ -6,7 +6,7 @@ website 安装指南已双渠道承诺（npm + crates.io），`ci.yml` 亦预留
 
 - **挂点与拓扑**：`publish-npm` 与 `publish-crates` 均挂进现有 `ci.yml`，`needs` 门控在 test + build + test-bindings 全绿之后，两 job **并行**（registry、凭证、产物来源皆独立）；**无人工批准门**——tag 只能由本地 `pnpm release` 刻意产生，tag 推送即授权。
 - **publish-npm**：下载 build job 的 5 个 `.node` artifact 注入各平台包目录 → 断言 tag 版本 == 根 workspace 版本 → `pnpm -r pack` + publint 前置验证 → **skip-if-published 守卫**（`npm view <pkg>@<version>` 已存在即跳过）→ `pnpm publish -r --no-git-checks`。`workspace:*` 协议转换与拓扑序（平台包 → core → 用户包）由 pnpm 原生处理；`website` 为 private 自动跳过。
-- **publish-crates**：`cargo publish --dry-run` 前置 → skip-if-published 守卫（查 crates.io）→ 先 `vbumpp-core` 后 `vbumpp`。根 `[workspace.dependencies]` 的 vbumpp-core 条目补**宽松 `version = "6"`**（cargo publish 要求 path 依赖带版本；宽松 spec 记录为 `^6`，minor/patch 发版无需同步，仅 major bump 动一次——绕开 vbumpp 尚不维护 workspace.dependencies 版本字段的缺口）。
+- **publish-crates**：`cargo publish --dry-run` 前置 → skip-if-published 守卫（查 crates.io）→ 先 `vbumpp-core` 后 `vbumpp`。根 `[workspace.dependencies]` 的 vbumpp-core 条目补**宽松 `version = ">=5.1, <7"`**（cargo publish 要求 path 依赖带版本；cargo 会校验 path 依赖版本与 spec 匹配，^6 在 5.x 现世连本地编译都不可解析，故下界放到 5.1、上界卡 major——crates.io 上 vbumpp-core 只会有锁步发版的 ≥6.0.0，解析必落同代；v7 才需动一次——绕开 vbumpp 尚不维护 workspace.dependencies 版本字段的缺口）。
 - **认证（混合路线）**：首发用长效 token——secrets 挂 `NPM_TOKEN`（granular）与 `CARGO_REGISTRY_TOKEN`；npm/crates.io 的 trusted publishing 均要求包已存在才能配置，全新包无法 OIDC 首发。v6 落地后逐包（11 npm 包 + 2 crate）在 registry 侧配置 trusted publisher，CI 撤 token 转 OIDC + `--provenance`；workflow 自始预留 `id-token: write` 权限。
 - **幂等与恢复**：两 job 均可任意次重跑，已上架版本自动跳过——GitHub「Re-run failed jobs」是部分失败后的**唯一**恢复手段，不做手动补发、不做回滚（crates.io 上架不可撤）。
 

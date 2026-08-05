@@ -22,7 +22,9 @@ version = "5.1.0"
 
 [workspace.dependencies]
 # 成员间引用一律走 workspace 继承，成员清单内不再写 path
-vbumpp-core = { path = "crates/vbumpp-core" }
+# 宽松 version 供 cargo publish 改写成 registry 依赖：下界兼容现版 5.1（^6 在 5.x 时代不可解析），
+# 上界卡 major；crates.io 上 vbumpp-core 只会有锁步发版的 ≥6.0.0，解析必落同代（ADR-0021）
+vbumpp-core = { path = "crates/vbumpp-core", version = ">=5.1, <7" }
 
 [profile.release]
 lto = true

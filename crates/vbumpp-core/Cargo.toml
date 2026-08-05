@@ -3,7 +3,6 @@ name = "vbumpp-core"
 version.workspace = true
 edition = "2021"
 license = "MIT"
-publish = false
 description = "Pure Rust implementation of the bumpp version engine (upstream antfu/bumpp v11 semantics)"
 homepage = "https://github.com/vill-v-kit/bumpp"
 repository = "https://github.com/vill-v-kit/bumpp"
