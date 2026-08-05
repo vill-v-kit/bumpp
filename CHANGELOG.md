@@ -4,6 +4,17 @@
 
 [compare changes](https://github.com/vill-v-kit/bumpp/compare/v5.1.0...v6.0.0)
 
+> **⚠️ v6 大版本更新要点**
+>
+> - **纯 Rust 重写**：核心引擎全部 Rust 化——npm 通路走 napi 平台预编译包，另有原生 CLI 单二进制（`cargo install vbumpp`，无需 Node.js），功能完全一致
+> - **依赖大幅瘦身**：安装体积 8.6 MB / 59 包 → ≈5 MB / 3 包（npm 通路）；原生 CLI 为 4.6 MB 零依赖单二进制
+> - **配置文件统一**：收归 `.vbumpprc.json`（也支持 `.jsonc` / `.toml`）；`bump.config.*`、`vbumpp.config.*`、`changelog.config.*`、package.json 的 `changelog` 键**一律不再读取（静默失效）**
+> - **编程式 API 收紧**：`defineConfig` 移除、`@vill-v/bumpp/changelogen` 子路径移除、token/release 操作收归 CLI 子命令
+> - **changelog 产出完全离线**：分组标题默认英文（中文需在 `changelog.types` 显式声明）、贡献者行不再请求第三方服务、不再显示邮箱与 @链接
+> - **新文档站上线**：含迁移指南、CLI 参考、配置参考
+>
+> 升级前请阅读 [v5 → v6 迁移指南](https://vill-v-kit.github.io/bumpp/docs/migration-v6) · 文档站：<https://vill-v-kit.github.io/bumpp>
+
 ### 🚀 特性
 
 - **core:** 新增 @vill-v/bumpp-core napi 脚手架，接通 mise/turbo 工具链 (COL-6) ([b712faf](https://github.com/vill-v-kit/bumpp/commit/b712faf))
