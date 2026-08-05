@@ -21,7 +21,12 @@ serde_json = { version = "1.0.151", features = ["preserve_order"] }
 shell-words = "1.1.0"
 toml = "0.9"
 toml_edit = "0.23"
-ureq = { version = "3", features = ["json"] }
+# TLS 走 rustls + aws-lc-rs（而非 ureq 默认的 ring）：ring 0.17 的 aarch64 预生成
+# 汇编要求 __ARM_ARCH（clang 专有预定义），napi-cross 的 gcc 工具链无法编译——
+# linux-arm64-gnu 交叉腿必炸；aws-lc-rs 为纯 C、gcc 友好，且是 rustls 默认 provider
+# （单 provider 编译时自动成为进程默认，ureq 的 rustls-no-provider 直接拾取，零代码改动）
+ureq = { version = "3", default-features = false, features = ["json", "gzip", "rustls-no-provider", "rustls-webpki-roots"] }
+rustls = "0.23"
 url = "2.5"
 
 [dev-dependencies]
