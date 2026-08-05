@@ -19,7 +19,7 @@
  */
 const [registry, name, version] = process.argv.slice(2)
 
-const CRATES_UA = 'vill-v-kit/bumpp publish-guard (https://github.com/vill-v-kit/bumpp)'
+const GUARD_UA = 'vill-v-kit/bumpp publish-guard (https://github.com/vill-v-kit/bumpp)'
 
 function targetUrl() {
   if (registry === 'npm') {
@@ -42,7 +42,7 @@ if (!registry || !name || !version) {
 
 let res
 try {
-  res = await fetch(targetUrl(), { headers: { 'user-agent': CRATES_UA } })
+  res = await fetch(targetUrl(), { headers: { 'user-agent': GUARD_UA } })
 } catch (err) {
   console.error(`ERROR ${registry} query failed: ${err.cause?.code ?? err.message} for ${name}@${version}`)
   process.exit(2)

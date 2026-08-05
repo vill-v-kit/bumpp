@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * crates.io 上架（COL-54，ADR-0021 决策⑤的消费侧）：对 2 个 crate 按硬约束顺序
  * vbumpp-core → vbumpp（cli 依赖 core）逐一过 publish-guard（COL-51），
@@ -56,12 +55,20 @@ const version = versionMatch[1]
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// 执行外部命令：exit code 进返回值（不 reject），输出仅捕获不透传——
-// 往哪条流 relay 由调用方决定（守卫的信息行进 stderr；cargo 的输出是主体，原样回 stdio）
-function run(cmd, args) {
+// 执行外部命令：exit code 进返回值（不 reject）。relay 控制输出落点——
+// 'stdio' 原样回 stdout/stderr（cargo 的输出是主体）；'stderr' 双流并 stderr
+// （守卫的 GO/SKIP/ERROR 均为信息行，保持 stdout 干净）；'none' 仅捕获
+function run(cmd, args, relay = 'none') {
   return new Promise((resolve, reject) => {
     execFile(cmd, args, { cwd: root }, (error, stdout, stderr) => {
       if (error && error.code === undefined) return reject(error) // spawn 本身失败
+      if (relay === 'stdio') {
+        if (stdout) process.stdout.write(stdout)
+        if (stderr) process.stderr.write(stderr)
+      } else if (relay === 'stderr') {
+        if (stdout) process.stderr.write(stdout)
+        if (stderr) process.stderr.write(stderr)
+      }
       resolve({ code: error ? error.code : 0, stdout, stderr })
     })
   })
@@ -69,10 +76,8 @@ function run(cmd, args) {
 
 let publishedThisRun = false
 for (const name of CRATES) {
-  // 1. 守卫（GO/SKIP/ERROR 均为信息行 → stderr，保持 stdout 干净）
-  const g = await run('node', [guard, 'crates', name, version])
-  if (g.stdout) process.stderr.write(g.stdout)
-  if (g.stderr) process.stderr.write(g.stderr)
+  // 1. 守卫
+  const g = await run('node', [guard, 'crates', name, version], 'stderr')
   if (g.code === 2) process.exit(2) // 查询失败：零 cargo 调用，整体失败
   if (g.code === 1) continue // SKIP：已上架，跳过本 crate
 
@@ -80,9 +85,7 @@ for (const name of CRATES) {
   const attempts = publishedThisRun ? RETRY_MAX : 1
   let dr
   for (let i = 1; i <= attempts; i += 1) {
-    dr = await run(CARGO, ['publish', '--dry-run', '-p', name])
-    if (dr.stdout) process.stdout.write(dr.stdout)
-    if (dr.stderr) process.stderr.write(dr.stderr)
+    dr = await run(CARGO, ['publish', '--dry-run', '-p', name], 'stdio')
     if (dr.code === 0) break
     if (i < attempts) {
       console.error(
@@ -102,9 +105,7 @@ for (const name of CRATES) {
     console.log(`[dry-run] would publish ${name}@${version}`)
     continue
   }
-  const p = await run(CARGO, ['publish', '-p', name])
-  if (p.stdout) process.stdout.write(p.stdout)
-  if (p.stderr) process.stderr.write(p.stderr)
+  const p = await run(CARGO, ['publish', '-p', name], 'stdio')
   if (p.code !== 0) {
     console.error(`ERROR cargo publish -p ${name} failed`)
     process.exit(typeof p.code === 'number' ? p.code : 1)

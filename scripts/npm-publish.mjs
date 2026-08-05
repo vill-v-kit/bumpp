@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * npm 上架（COL-53，ADR-0021 决策⑤的消费侧）：枚举 workspace 全部非 private 包
  * （当前恰好 11 个——website 与根 monorepo 为 private 自动排除），逐一过
