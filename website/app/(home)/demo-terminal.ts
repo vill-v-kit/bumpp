@@ -13,9 +13,9 @@ export const DEMO_TERMINAL = `$ vbumpp
  1 file changed, 1 insertion(+), 1 deletion(-)
 ℹ Git commit
 ℹ Git tag
-To ../remote.git
+To ~/my-project.git
    ba44e61..9995c2b  main -> main
-To ../remote.git
+To ~/my-project.git
  * [new tag]         v1.1.0 -> v1.1.0
 ✔ Git push
 `;

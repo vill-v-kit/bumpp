@@ -34,11 +34,14 @@ fi
 
 WORK="$(mktemp -d /tmp/vbumpp-demo-XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
+WORK_PHYSICAL="$(cd "$WORK" && pwd -P)"
 PROJECT="$WORK/my-project"
 export VBUMPP_HOME="$WORK/vbumpp-home"
 
-# ---- fixture：1.0.0 基线（tag v1.0.0）+ feat + fix，预推到相对路径 bare remote ----
-git init -q --bare "$WORK/remote.git"
+# ---- fixture：1.0.0 基线（tag v1.0.0）+ feat + fix，预推到本地 bare remote ----
+# remote 用绝对路径（洗白后显示为 ~/my-project.git，避免 ../remote.git 这类
+# fixture 内部痕迹出现在 push 行）；纯本地路径，push 离线即可成功
+git init -q --bare "$WORK/my-project.git"
 mkdir -p "$PROJECT"
 cd "$PROJECT"
 git init -q -b main
@@ -64,7 +67,7 @@ git commit -q -m 'chore: initial commit'
 git tag v1.0.0
 git commit -q --allow-empty -m 'feat: 新增夜间模式'
 git commit -q --allow-empty -m 'fix: 修复导出时的编码错误'
-git remote add origin ../remote.git
+git remote add origin "$WORK_PHYSICAL/my-project.git"
 git push -q -u origin main
 git push -q origin v1.0.0
 
@@ -89,7 +92,6 @@ if ! grep -q 'Git push' "$SCREEN"; then
 fi
 
 # ---- 绝对路径洗白（/private/tmp/... → ~，保留 my-project 段）----
-WORK_PHYSICAL="$(cd "$WORK" && pwd -P)"
 WASHED="$WORK/washed.txt"
 sed -e "s|$WORK_PHYSICAL|~|g" -e "s|$WORK|~|g" "$SCREEN" > "$WASHED"
 if grep -q "$WORK_PHYSICAL" "$WASHED"; then
