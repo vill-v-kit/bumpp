@@ -78,10 +78,21 @@ const builtWith = [
 export default function HomePage() {
   return (
     <div className="flex flex-col flex-1 px-6 py-16 mx-auto w-full max-w-4xl">
-      <h1 className="text-4xl font-bold mb-3">vbumpp</h1>
-      <p className="text-lg text-fd-muted-foreground mb-6">
-        遵循 semver 的版本发布工具——一条命令完成版本号更新、CHANGELOG 生成、git
-        tag / push，并在 GitHub / GitLab / Gitee / GitCode 上创建 Release。
+      <Link
+        href="/docs/migration-v6"
+        className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-fd-border px-3 py-1 text-sm text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-foreground"
+      >
+        <span className="size-1.5 rounded-full bg-fd-primary" />
+        v6 · Rust 重写 →
+      </Link>
+      <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-4">
+        vbumpp
+      </h1>
+      <p className="text-lg text-fd-muted-foreground mb-8 max-w-2xl">
+        遵循 semver 的版本发布工具——
+        <span className="text-fd-primary font-medium">一条命令</span>
+        完成版本号更新、CHANGELOG 生成、git tag / push，并在 GitHub / GitLab /
+        Gitee / GitCode 上创建 Release。
       </p>
       <div className="flex gap-3 mb-16">
         <Link
