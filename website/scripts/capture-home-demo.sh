@@ -28,7 +28,7 @@ export GIT_AUTHOR_DATE="$PIN_DATE" GIT_COMMITTER_DATE="$PIN_DATE"
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 
 if [[ ! -x "$BINARY" ]]; then
-  echo "error: $BINARY 不存在，先 cargo build --release -p bumpp-cli" >&2
+  echo "error: $BINARY 不存在，先 cargo build --release -p vbumpp" >&2
   exit 1
 fi
 

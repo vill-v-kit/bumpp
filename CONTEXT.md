@@ -9,7 +9,7 @@
 _Avoid_: release（指平台 release 创建）、publish
 
 **CLI**:
-`vbumpp` 命令行——argv 语法（子命令、flag、help 文案、错误提示、退出码）唯一归属 Rust（Core 内的 cli 模块，手写解析器，ADR-0016）。npm bin 与原生 CLI 二进制（`crates/bumpp-cli`，纯 Rust、零 napi 依赖）为共享同一 `run_from_argv` 的两个薄壳前端；Node 侧零依赖、零逻辑。provider 身份可经 `--provider` flag 在 argv 层给出（优先于平台变体包的注入），`release` 子命令提供失败后的独立重试通路（ADR-0019）。
+`vbumpp` 命令行——argv 语法（子命令、flag、help 文案、错误提示、退出码）唯一归属 Rust（Core 内的 cli 模块，手写解析器，ADR-0016）。npm bin 与原生 CLI 二进制（`crates/vbumpp`，纯 Rust、零 napi 依赖）为共享同一 `run_from_argv` 的两个薄壳前端；Node 侧零依赖、零逻辑。provider 身份可经 `--provider` flag 在 argv 层给出（优先于平台变体包的注入），`release` 子命令提供失败后的独立重试通路（ADR-0019）。
 _Avoid_: cac 路由（ADR-0014 时代的旧制，ADR-0016 移除）
 
 **Release type**:
@@ -39,12 +39,16 @@ _Avoid_: 凭证库（语义过强）
 向 git 托管平台（github / gitlab / gitee / gitcode）创建 release 的动作，Rust 内按 provider 适配（gitee / gitcode 复用 github-like 实现；gitlab 多一步项目 id 直查，自建实例经 `gitlab` 段的 `host` 配置，ADR-0014）。两通路：bump 流程末段自动创建（body 为当次生成的 changelog markdown）；`vbumpp release <version>` 独立重试（body 从 changelog 文件提取指定版本节，应对网络失败 / 密钥过期后的补发，ADR-0019）。token 解析链统一为：Token 存储 → 各家环境变量（`GH_TOKEN` → `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`）→ 仅 github 追加 `gh auth token` 兜底。
 _Avoid_: publish
 
+**上架 (Registry publish)**:
+向 registry（npm / crates.io）上传包的发布动作——本仓 11 个 npm 包与 2 个 crate（`vbumpp-core`、`vbumpp`）经 `ci.yml` 的 publish jobs 完成：tag 触发、无人工门、skip-if-published 幂等（ADR-0021）。与 Bump（含 commit/tag/push 的完整发布操作）、平台 Release（git 托管平台 release）三者分立。
+_Avoid_: publish（英文对应词，不作术语）、发布（过宽——兼指 Bump 与平台 Release）
+
 **内部机制包 (Internal machinery package)**:
 虽然发布到 npm、但设计上就不是给用户直接使用的包——判别问句："用户会直接 npm install 它吗？"不会即归 `napi/` 目录（ADR-0005，与是否发布无关）。成员：Core（napi 绑定本体）、Platform package（平台二进制分发包）；它们发布仅因 npm 不支持 workspace 协议与 optionalDependencies 按平台分发的机制需要。
 _Avoid_: 内部包（过宽，`crates/` 亦属内部）、native package
 
 **生态 (Ecosystem)**:
-一套工具链及其版本文件与安装机制的集合（node / cargo；未来 maven、gradle）。bumpp-core 的生态知识集中于插件底座 `src/plugins/`（ADR-0010）：版本解析与更新（ADR-0007）、install 适配（ADR-0008，按本次 bump 实际更新的生态条件触发）、recursive 整树收集三能力子目录，各生态实现落同名文件。
+一套工具链及其版本文件与安装机制的集合（node / cargo；未来 maven、gradle）。vbumpp-core 的生态知识集中于插件底座 `src/plugins/`（ADR-0010）：版本解析与更新（ADR-0007）、install 适配（ADR-0008，按本次 bump 实际更新的生态条件触发）、recursive 整树收集三能力子目录，各生态实现落同名文件。
 _Avoid_: platform（指 OS/CPU 平台）、registry（指发布平台）
 
 **插件底座 (Plugin base)**:

@@ -36,7 +36,7 @@ impl napi::Task for CliRunTask {
   type JsValue = i32;
 
   fn compute(&mut self) -> napi::Result<Self::Output> {
-    Ok(bumpp_core::cli::run_from_argv(
+    Ok(vbumpp_core::cli::run_from_argv(
       &self.argv,
       self.provider.as_deref(),
     ))
@@ -81,8 +81,8 @@ pub struct BumpState {
   pub skipped_files: Vec<String>,
 }
 
-impl From<bumpp_core::info::BumpState> for BumpState {
-  fn from(s: bumpp_core::info::BumpState) -> Self {
+impl From<vbumpp_core::info::BumpState> for BumpState {
+  fn from(s: vbumpp_core::info::BumpState) -> Self {
     Self {
       release: s.release,
       current_version: s.current_version,
@@ -127,15 +127,15 @@ impl napi::Task for BumpVersionTask {
       .provider
       .as_deref()
       .map(|p| {
-        bumpp_core::release::Provider::parse(p).ok_or_else(|| {
+        vbumpp_core::release::Provider::parse(p).ok_or_else(|| {
           napi::Error::from_reason(format!(
             "unknown provider: {p} (expected github / gitlab / gitee / gitcode)"
           ))
         })
       })
       .transpose()?;
-    let outcome = bumpp_core::orchestrate::bump_version(
-      &bumpp_core::orchestrate::BumpVersionOptions {
+    let outcome = vbumpp_core::orchestrate::bump_version(
+      &vbumpp_core::orchestrate::BumpVersionOptions {
         overrides: self.overrides.take(),
         provider,
       },
