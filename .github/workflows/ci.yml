@@ -4,7 +4,7 @@ env:
   DEBUG: napi:*
 
 on:
-  # 仅在版本 tag（v*）推送时触发：发版构建与全平台测试；全绿后 publish-npm 自动上架 npm（ADR-0021）
+  # 仅在版本 tag（v*）推送时触发：发版构建与全平台测试；全绿后 publish-npm / publish-crates 并行自动上架（ADR-0021）
   push:
     tags:
       - 'v*'
@@ -205,3 +205,37 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node scripts/npm-publish.mjs
+
+  # ADR-0021 决策①③：与 publish-npm 并行、无人工批准门；可任意次重跑收敛
+  publish-crates:
+    name: publish crates
+    needs: [test, build, test-bindings]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # 混合路线：首发走 CARGO_REGISTRY_TOKEN 长效凭证；id-token 为 OIDC trusted publishing 迁移（COL-56）预留
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup toolchain (node + rust via mise.toml)
+        uses: jdx/mise-action@v2
+
+      - name: Assert tag version == workspace version
+        # 与 publish-npm 对称的防手滑：tag 去 v 前缀必须等于根 Cargo.toml 工作区版本
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(sed -n '/^\[workspace\.package\]/,/^\[/ s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag ${GITHUB_REF_NAME} => ${tag}, but Cargo workspace version is ${pkg}"
+            exit 1
+          fi
+
+      - name: Publish crates (守卫 → dry-run 前置 → core→cli 顺序上架)
+        # crates-publish.mjs：vbumpp-core → vbumpp 硬序逐一过守卫；GO 的先
+        # cargo publish --dry-run 再真实上架（dry-run 失败在上传前拦停）；
+        # SKIP 跳过（部分失败重跑自动收敛）；查询失败 exit 2 零 cargo 调用
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: node scripts/crates-publish.mjs
