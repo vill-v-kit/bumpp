@@ -1,5 +1,116 @@
 # Changelog
 
+## v6.0.0
+
+[compare changes](https://github.com/vill-v-kit/bumpp/compare/v5.1.0...v6.0.0)
+
+### 🚀 特性
+
+- **core:** 新增 @vill-v/bumpp-core napi 脚手架，接通 mise/turbo 工具链 (COL-6) ([b712faf](https://github.com/vill-v-kit/bumpp/commit/b712faf))
+- **core:** LoadBumpConfig 纯 Rust 实现（仅 JSON 配置） (COL-8) ([9fcc92f](https://github.com/vill-v-kit/bumpp/commit/9fcc92f))
+- **core:** 候选版本计算纯函数，全量对齐上游 bumpp v11 (COL-9) ([9c97a82](https://github.com/vill-v-kit/bumpp/commit/9c97a82))
+- **core:** 文件版本更新（manifest 保格式 + 文本模板替换） (COL-10) ([8e1feb3](https://github.com/vill-v-kit/bumpp/commit/8e1feb3))
+- **core:** Git 操作 + npm scripts，全部 shell out (COL-11) ([1f201e0](https://github.com/vill-v-kit/bumpp/commit/1f201e0))
+- **core:** 预编译平台包布局 + GitHub Actions 构建/测试矩阵 (COL-12) ([9bace0e](https://github.com/vill-v-kit/bumpp/commit/9bace0e))
+- **core:** Conventional 提交解析与版本推断 (COL-13) ([433ae07](https://github.com/vill-v-kit/bumpp/commit/433ae07))
+- **core:** VersionBumpInfo 全链路（Rust 渲染 prompt） (COL-14) ([8ee224a](https://github.com/vill-v-kit/bumpp/commit/8ee224a))
+- **core:** VersionBump 全链路编排 + ThreadsafeFunction 进度 (COL-15) ([8d0cf51](https://github.com/vill-v-kit/bumpp/commit/8d0cf51))
+- **bump:** 切换至 @vill-v/bumpp-core（自举前置） (COL-16) ([baca57b](https://github.com/vill-v-kit/bumpp/commit/baca57b))
+- **core:** Progress 内置 Rust，拆除 JS 进度面 (COL-19) ([0364c6e](https://github.com/vill-v-kit/bumpp/commit/0364c6e))
+- **core:** Version-files 插件底座 crate，JsManifest/Text 纯迁移 (COL-22) ([8628075](https://github.com/vill-v-kit/bumpp/commit/8628075))
+- **core:** Cargo.toml 版本同步——CargoTomlPlugin + Cargo.lock 定向同步 (COL-23) ([e1aa4d6](https://github.com/vill-v-kit/bumpp/commit/e1aa4d6))
+- **structure:** Napi/ 受众判别约定 + bumpp-core/平台包原子搬迁 (COL-25) ([9fae9a2](https://github.com/vill-v-kit/bumpp/commit/9fae9a2))
+- **core:** Package-manager 检测对齐上游名单 + pm.rs 模块独立 (COL-26) ([4044a31](https://github.com/vill-v-kit/bumpp/commit/4044a31))
+- **core:** Install 生态适配文件夹与条件触发 (COL-28) ([752b7fe](https://github.com/vill-v-kit/bumpp/commit/752b7fe))
+- **core:** Recursive 生态感知——链上清单模式表 + napi 导出 + CLI -r 重接 (COL-31) ([1c3070a](https://github.com/vill-v-kit/bumpp/commit/1c3070a))
+- **core:** 插件底座落地——默认清单/版本来源生态化 + scripts 通用化 (COL-32) ([f347526](https://github.com/vill-v-kit/bumpp/commit/f347526))
+- **core:** 配置文件改名 .vbumpprc.json——旧名不探测 + recursive 展开收归加载器 (COL-33) ([0967167](https://github.com/vill-v-kit/bumpp/commit/0967167))
+- **core:** Git 只读历史操作 + napi 导出——tag/diff/branch/remote 解析对齐 changelogen (COL-34) ([a55959a](https://github.com/vill-v-kit/bumpp/commit/a55959a))
+- **core:** Changelog 配置段解析——内建默认 + types 深合并 + 严格 schema (COL-35) ([804d167](https://github.com/vill-v-kit/bumpp/commit/804d167))
+- **core:** Changelog markdown 引擎——展示层解析 + 结构 parity + golden fixtures (COL-36) ([7e1375b](https://github.com/vill-v-kit/bumpp/commit/7e1375b))
+- **core:** GenerateChangelog 编排 + napi——changelog.ts 内置与 N1/C1/C2/C3 修复 (COL-37) ([92198da](https://github.com/vill-v-kit/bumpp/commit/92198da))
+- **bump:** 薄编排重接——三删一迁 + Config 扁平化 + ./changelog 子路径 + 依赖瘦身 (COL-38) ([ecb21eb](https://github.com/vill-v-kit/bumpp/commit/ecb21eb))
+- **release:** 导入改 ./changelog 子路径 + defineConfig 移除 (COL-39) ([c868d8a](https://github.com/vill-v-kit/bumpp/commit/c868d8a))
+- **core:** 剩余功能全面 Rust 化 + 全局配置与 JSONC/TOML 多格式（ADR-0014/0015） ([ab3f302](https://github.com/vill-v-kit/bumpp/commit/ab3f302))
+- **cli:** CLI 全权归 Rust——cliRun 单入口与五包收缩（ADR-0016，COL-41/42/43） ([169f6b7](https://github.com/vill-v-kit/bumpp/commit/169f6b7))
+- **core:** 用户可见字符串统一英文，changelog types 中文定制移项目级配置（ADR-0017） ([69458a1](https://github.com/vill-v-kit/bumpp/commit/69458a1))
+- **cli:** 纯 Rust CLI + vbumpp release 重试子命令 + napi 面三收缩（ADR-0019，COL-48） ([e014b7d](https://github.com/vill-v-kit/bumpp/commit/e014b7d))
+- **docs:** 文档网站——fumadocs 落地 website/ + GitHub Pages 部署（ADR-0020，COL-49） ([d9f1b5e](https://github.com/vill-v-kit/bumpp/commit/d9f1b5e))
+- **website:** 品牌 logo——#ff6736 水波圆徽 + 导航/favicon 接线（COL-49） ([13e6920](https://github.com/vill-v-kit/bumpp/commit/13e6920))
+- **website:** 首页终端演示素材捕获管道——pty 实跑 vbumpp 交互发版 + ANSI 帧塌缩 + 钉日期确定性复跑（COL-57） ([8d259d3](https://github.com/vill-v-kit/bumpp/commit/8d259d3))
+- **website:** 首页 hero 增强——v6 迁移 pill + 标题放大 5xl/6xl + 品牌橙强调「一条命令」（COL-58） ([d45400b](https://github.com/vill-v-kit/bumpp/commit/d45400b))
+- **website:** 首页嵌入 macOS 风终端窗口——红绿灯标题栏 + COL-57 实捕发版输出，纯 HTML/CSS 零新依赖（COL-59） ([e6f7d92](https://github.com/vill-v-kit/bumpp/commit/e6f7d92))
+- **crates:** Vbumpp-core/vbumpp 上架开闸——移除 publish=false，workspace dep 补宽松版本区间 >=5.1,<7（^6 在 5.x 现世不可解析，ADR-0021 同步修订）（COL-50） ([f922dd2](https://github.com/vill-v-kit/bumpp/commit/f922dd2))
+- **ci:** 上架幂等守卫 publish-guard——npm/crates.io 双查 + 放行/跳过/失败三态退出码（COL-51） ([865d265](https://github.com/vill-v-kit/bumpp/commit/865d265))
+- **ci:** Publish-npm job——artifact 注入 + 前置校验 + 守卫过滤上架（COL-53） ([817e5f2](https://github.com/vill-v-kit/bumpp/commit/817e5f2))
+- **ci:** Publish-crates job——dry-run 前置 + core→cli 顺序上架（COL-54） ([49d377c](https://github.com/vill-v-kit/bumpp/commit/49d377c))
+
+### 🩹 修复
+
+- **core:** Prompt 选项去内嵌 bold——修复活动行 ANSI 裸显 (COL-30) ([b793eae](https://github.com/vill-v-kit/bumpp/commit/b793eae))
+- **core:** Release 报错脱敏——明文 token 不出错误消息（ADR-0014 注记，COL-47） ([a06089a](https://github.com/vill-v-kit/bumpp/commit/a06089a))
+- **website:** Llms 系生成物 URL 补全 basePath——llms.txt/llms-full.txt/content.md 输出绝对地址，修复子路径部署下全量 404 ([2dff9e0](https://github.com/vill-v-kit/bumpp/commit/2dff9e0))
+- **website:** 演示素材 push 行洗白——fixture remote 改绝对路径，输出 To ~/my-project.git 取代 ../remote.git 内部痕迹（code-review COL-57） ([4f8178f](https://github.com/vill-v-kit/bumpp/commit/4f8178f))
+
+### 💅 重构
+
+- **core:** 迁移 packages/core → npm/bumpp-core，确立 crates/napi/npm 分层约定 ([386e292](https://github.com/vill-v-kit/bumpp/commit/386e292))
+- 废弃 packages/，全部可发版包归入 npm/ ([fa6e365](https://github.com/vill-v-kit/bumpp/commit/fa6e365))
+- **core:** Version-files 合并回 bumpp-core，生态插件文件夹化 (COL-27) ([bc0688a](https://github.com/vill-v-kit/bumpp/commit/bc0688a))
+- **core:** Clippy 历史警告清理——manual_contains + 测试模块位置 ([37a5056](https://github.com/vill-v-kit/bumpp/commit/37a5056))
+- **core:** Release 按 provider 单文件 + 共用原语抽 http.rs（ADR-0018，COL-46） ([1ae4340](https://github.com/vill-v-kit/bumpp/commit/1ae4340))
+- **crates:** Crates.io 家族更名 vbumpp-*——bumpp-core→vbumpp-core、bumpp-cli→vbumpp 落地 ADR-0021（2026-08 修订），CONTEXT 增上架术语、website 安装文档同步 ([948dadb](https://github.com/vill-v-kit/bumpp/commit/948dadb))
+- **scripts:** Code-review 收尾——GUARD_UA 更名 + relay 折叠 + shebang 统一 + ADR-0021 决策②补 index.d.ts 括注 ([4811789](https://github.com/vill-v-kit/bumpp/commit/4811789))
+
+### 📖 文档
+
+- 补充工程技能约定与 rust napi 重写 ADR ([676d8b9](https://github.com/vill-v-kit/bumpp/commit/676d8b9))
+- 架构/平台矩阵文档与贡献指南 (COL-17) ([db8a7b2](https://github.com/vill-v-kit/bumpp/commit/db8a7b2))
+- ADR-0002 progress 内置 + ADR-0003 Cargo.toml 版本同步决策 ([be10bd4](https://github.com/vill-v-kit/bumpp/commit/be10bd4))
+- ADR-0004 version-files 插件底座 crate ([184d1fc](https://github.com/vill-v-kit/bumpp/commit/184d1fc))
+- **compliance:** 上游开源标识三层闭合——LICENSE 版权行 + README 致谢 + 发包携带 (COL-24) ([aabe009](https://github.com/vill-v-kit/bumpp/commit/aabe009))
+- **adr:** 矛盾决策记录精简——0007 权威化、0004 删除、0005 去标签 (COL-29) ([d8658a6](https://github.com/vill-v-kit/bumpp/commit/d8658a6))
+- **adr:** Changelogen 使用面重写与配置文件统一决策记录——ADR-0012/0013 + 词汇表 (COL-32) ([bd66f2b](https://github.com/vill-v-kit/bumpp/commit/bd66f2b))
+- V6 迁移指南 + napi 全链路冒烟脚本 (COL-40) ([2794e8a](https://github.com/vill-v-kit/bumpp/commit/2794e8a))
+- ADR-0016（CLI 全权归 Rust）+ CONTEXT 词条 + ADR-0014 例外标注 ([9e994aa](https://github.com/vill-v-kit/bumpp/commit/9e994aa))
+- **adr:** 0018 补注记——napi 四导出已由 ADR-0019 移除（COL-48） ([45e02b1](https://github.com/vill-v-kit/bumpp/commit/45e02b1))
+- **adr:** 0019 补注记——crates.io 分发已决策随 v6 上架 bumpp-cli ([bd09706](https://github.com/vill-v-kit/bumpp/commit/bd09706))
+- **website:** Crates-io 安装页移除未上架 callout——页面随 v6 发版部署，届时 crate 已上架（ADR-0019 注记） ([b87a003](https://github.com/vill-v-kit/bumpp/commit/b87a003))
+- **website:** Cli 参考首语法块替换为完整 --help 输出——原样捕获自 vbumpp 二进制 ([db02a83](https://github.com/vill-v-kit/bumpp/commit/db02a83))
+- **website:** 迁移指南依赖瘦身节补实测体积数据——v5 8.6MB/59包 → napi ≈5MB/3包 → 原生 CLI 4.6MB 单二进制 ([0cb8791](https://github.com/vill-v-kit/bumpp/commit/0cb8791))
+- **contributing:** 发布流程节改写为实际上架链路 + ADR-0021 双向互链（COL-55） ([de87aee](https://github.com/vill-v-kit/bumpp/commit/de87aee))
+
+### 🏡 框架
+
+- 删除 packages/next 实验包 (COL-7) ([04c6535](https://github.com/vill-v-kit/bumpp/commit/04c6535))
+- 包声明邮箱统一替换为 xuxjigsaw@qq.com ([65f60b1](https://github.com/vill-v-kit/bumpp/commit/65f60b1))
+- CHANGELOG 历史记录邮箱同步替换为 xuxjigsaw@qq.com ([87ee599](https://github.com/vill-v-kit/bumpp/commit/87ee599))
+- 升级开发依赖与 pnpm 版本 ([3b8f059](https://github.com/vill-v-kit/bumpp/commit/3b8f059))
+- 发版 files 显式配置移除——默认清单已覆盖根 Cargo.toml（COL-44） ([8dee7f1](https://github.com/vill-v-kit/bumpp/commit/8dee7f1))
+
+### 📦 打包
+
+- Xcode 27 链接器 Mach-O 串池错位规避——darwin 声明 SDK 26.0 ([c8f05c8](https://github.com/vill-v-kit/bumpp/commit/c8f05c8))
+- Cargo 成员引用与版本号收编根 workspace 统一管理（ADR-0003 修订，COL-44） ([8e851ae](https://github.com/vill-v-kit/bumpp/commit/8e851ae))
+
+### ✅ 测试
+
+- **core:** Loader 负例改到干净子进程执行（隔离 CI 环境 NODE_PATH 干扰） ([bcaab17](https://github.com/vill-v-kit/bumpp/commit/bcaab17))
+- **core:** Update-files parity 路径列表改集合比较（上游 glob 排序跨平台不稳定） ([204647b](https://github.com/vill-v-kit/bumpp/commit/204647b))
+- **napi:** LoadBumpConfig 测试对齐 .vbumpprc.json 与旧名静默 (COL-33) ([700ad35](https://github.com/vill-v-kit/bumpp/commit/700ad35))
+
+### 🎨 样式
+
+- **core:** Code-review 清理——imports 置顶、注释对齐现状 (COL-19) ([325943e](https://github.com/vill-v-kit/bumpp/commit/325943e))
+- **test:** Tests/git.rs rustfmt 补齐（COL-34 漏格式化） ([ea17503](https://github.com/vill-v-kit/bumpp/commit/ea17503))
+- **test:** Tests/config.rs rustfmt 补齐（既有漂移，随本次 fmt --all 顺带） ([a5c8c57](https://github.com/vill-v-kit/bumpp/commit/a5c8c57))
+- 在制文件 rustfmt 统一——零语义变化（COL-46/047 后续） ([8b3f3dd](https://github.com/vill-v-kit/bumpp/commit/8b3f3dd))
+- Release 模块声明字母序重排——零语义变化 ([dbeabb8](https://github.com/vill-v-kit/bumpp/commit/dbeabb8))
+
+### ❤️ Contributors
+
+- Whitekite
+
 ## v5.1.0
 
 [compare changes](https://gitee.com/vill-v/bump/compare/v5.0.1...v5.1.0)
