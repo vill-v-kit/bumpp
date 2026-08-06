@@ -7,7 +7,7 @@
 - **arm64 腿改直呼 `cargo zigbuild --target aarch64-unknown-linux-gnu.2.17`**，不走 napi CLI：napi CLI 的 target 校验只收合法 rust 三元组，**glibc 后缀被拒**（`--target aarch64-unknown-linux-gnu.2.17` 在 cargo metadata 阶段即报 "did you mean aarch64-unknown-linux-gnu?"）。产物 `libbumpp_core_napi.so` 由 CI 手动 `cp` 成 `bumpp-core.linux-arm64-gnu.node`——命名是 loader 的唯一契约，napi CLI 在 `--no-js` 下也只做这步改名。其余四腿仍走 `napi build`。
 - **glibc 下限 pin 2.17，并在 CI 内断言**：后缀是必需项而非装饰——**裸 `--target aarch64-unknown-linux-gnu` 经 zig 会把下限抬到 2.30**（实测符号表出现 GLIBC_2.18/2.25/2.28/2.29/2.30）。矩阵里 pin 值单点维护（`glibc: '2.17'`），同时供 target 后缀与断言取用；断言判据是 `objdump -T` 里**最高**被引用版本 ≤ pin（不是全等——引用低于 pin 的版本合法，`GLIBC_PRIVATE` 无版本号不参与比较），回归即红。理由：平台包是公开分发物，静默抬下限等于砍掉一批老发行版用户。
 - **TLS 回 rustls（ring 后端，ureq 3.x 默认）**：`ureq` features 从 `["json","gzip","native-tls","vendored"]` 收回 `["json","gzip","rustls"]`，openssl / openssl-src 出依赖图。ADR-0024 随之作废。
-- **zig 与 cargo-zigbuild 写进 `mise.toml` 的 `[tools]`**（`zig = "0.15.2"`、`"github:rust-cross/cargo-zigbuild" = "0.23.0"`，版本与七平台校验和落 `mise.lock`），由既有的 `jdx/mise-action` 步骤统一安装，zigbuild 腿直接 `cargo zigbuild`。代价是另四条腿与本地开发也会装一套 zig（~50MB 级），换来的是任何平台都能本地复现 arm64 产物，且工具版本与校验和有锁。
+- **zig 与 cargo-zigbuild 写进 `mise.toml` 的 `[tools]`，但用 `os = ["linux"]` 限定**：由既有的 `jdx/mise-action` 步骤安装（带 token，版本与校验和落 `mise.lock`），zigbuild 腿直接 `cargo zigbuild`。`os` 限定让另四条腿（macOS/Windows）与本地开发不必白下载一套 zig——这条链的用途本身只在 Linux 主机上成立。macOS 上临时复现 arm64 产物走显式 spec 现取（`mise exec zig@… github:rust-cross/cargo-zigbuild@… -- cargo zigbuild …`），命令记在 `mise.toml` 注释里。
 - **arm64 smoke test 进 CI 但不进 publish 前置**：`test-bindings-arm64-smoke` job 经 `docker/setup-qemu-action` 在 arm64 容器里 `require()` 产物并断言四个导出面。不列入 `publish-*` 的 `needs`——交叉腿实测是额外信心，napi-rs 生态（含 oxc）均不测交叉腿，不让它有权拦发版。
 
 ## Considered Options

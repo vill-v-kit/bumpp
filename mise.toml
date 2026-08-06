@@ -1,5 +1,11 @@
 [tools]
-"github:rust-cross/cargo-zigbuild" = "0.23.0"
 node = "lts"
 rust = "stable"
-zig = "0.15.2"
+
+# linux-arm64-gnu 交叉编译链（ADR-0027）：仅 linux 主机装——用途本身就只在
+# Linux 上成立（CI 的 arm64 腿跑 ubuntu-latest），macOS/Windows 三条腿与本地
+# 开发不必白下载一套 zig。要在 macOS 临时复现 arm64 产物，用显式 spec 现取：
+#   mise exec zig@0.15.2 github:rust-cross/cargo-zigbuild@0.23.0 -- \
+#     cargo zigbuild --release -p bumpp-core-napi --target aarch64-unknown-linux-gnu.2.17
+zig = { version = "0.15.2", os = ["linux"] }
+"github:rust-cross/cargo-zigbuild" = { version = "0.23.0", os = ["linux"] }
