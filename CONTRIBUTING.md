@@ -52,6 +52,19 @@ GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时
 
 `pnpm check:licenses`（test job 同步执行）校验各发版包的 `LICENSE` 与根逐字节一致——MIT 要求软件副本携带版权与许可文本，发版包即"副本"载体。新增发版包时必须从根复制 `LICENSE`；根 `LICENSE` 变更后须同步全部副本。
 
+### tag 推送后 CI 未触发（COL-62 实例）
+
+v6.0.0 首发时 GitHub 收到了 tag push（ref 创建成功），但其下游事件被丢失——两个 workflow 零 run、零 check-suite，上架静默不发生；删 tag 重推（同一 object）即恢复。此故障形态的唯一现场特征是 **tag 推送后 Actions 长时间无 CI run**。`pnpm release` 已内建 `scripts/verify-tag-ci.mjs` 自检（vbumpp 推送后轮询 Actions runs，无则告警并中断后续 build）；若告警或人工发现未触发，恢复手段：
+
+```shell
+git push origin :refs/tags/<tag>   # 删远端 tag
+git push origin <tag>              # 原样重推，强制生成新 push 事件
+```
+
+重推后 CI 即重新触发；自检告警已中断 `pnpm release` 的后续 build，确认 Actions 有 run 后**人工补跑 `pnpm build`** 完成发版收尾（上架由 CI 执行，本地 build 仅为发版前置校验）。
+
+自检脚本本身依赖 GitHub API 可达性——API 故障时以 exit 2 与「事件丢失」（exit 1）区分，此时按脚本 ERROR 输出中的 Actions 链接（`https://github.com/vill-v-kit/bumpp/actions`）人工核对后继续。
+
 ## 已知事项
 
 ### 本阶段不发版

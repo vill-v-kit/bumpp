@@ -7,7 +7,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:licenses": "node scripts/check-licenses.mjs",
-    "release": "vbumpp -r && pnpm build",
+    "release": "vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
     "pretest": "turbo run build",
     "test": "vitest"
   },
