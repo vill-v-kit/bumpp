@@ -4,7 +4,7 @@ version.workspace = true
 edition = "2021"
 license = "MIT"
 description = "Pure Rust implementation of the bumpp version engine (upstream antfu/bumpp v11 semantics)"
-homepage = "https://github.com/vill-v-kit/bumpp"
+homepage = "https://vill-v-kit.github.io/bumpp/"
 repository = "https://github.com/vill-v-kit/bumpp"
 
 [dependencies]

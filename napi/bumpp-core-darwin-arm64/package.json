@@ -8,9 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vill-v-kit/bumpp",
+    "url": "git+https://github.com/vill-v-kit/bumpp.git",
     "directory": "napi/bumpp-core-darwin-arm64"
   },
+  "homepage": "https://vill-v-kit.github.io/bumpp/",
+  "type": "commonjs",
   "os": ["darwin"],
   "cpu": ["arm64"],
   "main": "bumpp-core.darwin-arm64.node",

@@ -8,9 +8,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vill-v-kit/bumpp",
+    "url": "git+https://github.com/vill-v-kit/bumpp.git",
     "directory": "npm/gitcode"
   },
+  "homepage": "https://vill-v-kit.github.io/bumpp/",
   "bin": {
     "vbumpp": "bin/index.js"
   },

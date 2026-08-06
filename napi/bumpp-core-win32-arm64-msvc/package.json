@@ -8,9 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vill-v-kit/bumpp",
+    "url": "git+https://github.com/vill-v-kit/bumpp.git",
     "directory": "napi/bumpp-core-win32-arm64-msvc"
   },
+  "homepage": "https://vill-v-kit.github.io/bumpp/",
+  "type": "commonjs",
   "os": ["win32"],
   "cpu": ["arm64"],
   "main": "bumpp-core.win32-arm64-msvc.node",
