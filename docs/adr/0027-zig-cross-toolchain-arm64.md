@@ -22,7 +22,7 @@
 ## Consequences
 
 - **本地实测证据链**（macOS arm64 主机，2026-08-07）：`cargo zigbuild --target aarch64-unknown-linux-gnu.2.17` 编译 38s 通过（含 rustls 0.23 / ring）；产物 ELF aarch64、`DT_NEEDED` 仅 libm/libpthread/libc/libdl、GLIBC 引用仅 2.17；arm64 容器（qemu，node:22-bookworm）内 `require()` 成功、`release` 子命令对 api.github.com 完成真实 rustls 握手并干净返回 `[401] Bad credentials`——ring 在 aarch64 的编译期与运行期风险双双关闭。
-- **残留一条良性警告**：`warning: linker stderr: ignoring deprecated linker optimization setting '1'`。来源是 **rustc 对 gnu 目标默认传的 `-Wl,-O1`**（非本仓传入），zig 的 lld 已废弃 `-O<n>`（`-O2` 同样告警）。不用 `-A linker-messages` 吞掉——那会连未来真警告一起静音。与旧链的 `unsupported GNU PROPERTY_TYPE (5)` 不同级：后者是链接器读不懂现代目标文件元数据，前者只是忽略一个过时开关。
+- **残留一条良性警告（维护者已显式接受，2026-08-07）**：`warning: linker stderr: ignoring deprecated linker optimization setting '1'`。来源是 **rustc 对 gnu 目标默认传的 `-Wl,-O1`**（非本仓传入），zig 的 lld 已废弃 `-O<n>`（`-O2` 同样告警）。不用 `-A linker-messages` 吞掉——那会连未来真警告一起静音。与旧链的 `unsupported GNU PROPERTY_TYPE (5)` 不同级：后者是链接器读不懂现代目标文件元数据，前者只是忽略一个过时开关。COL-63「无 linker 警告」验收按「病灶类警告已消除」裁定达成；上游（rustc/zig）修复后此行自然消失，本仓无需动作。
 - **arm64 腿失去 napi CLI 的 dts 产出**，故 artifact 上传分两路：四腿传 `.node + index.d.ts`（`if-no-files-found: error`），zigbuild 腿只传 `.node`。`index.d.ts` 由其余四腿供给 publish-npm，注入逻辑不变。
 - **构建时间下降**：不再逐次源码编译 openssl。
 - **未来 musl 平台包（ADR-0026）可复用这条 zig 链**——oxc 的 musl 腿正是同款方案；注意 musl 的 cdylib 需 `-C target-feature=-crt-static`（napi CLI 自动加，直呼 zigbuild 时需手动补）。
