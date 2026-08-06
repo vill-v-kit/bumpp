@@ -56,10 +56,14 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             triple: linux-x64-gnu
+          # ADR-0027：zig 链取代 --use-napi-cross（上古 gcc 4.8.5）。napi CLI 的
+          # target 校验不收 glibc 后缀，故这条腿直呼 cargo zigbuild pin glibc，
+          # 产物按 napi 命名规范落名；index.d.ts 由其余四腿供给
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             triple: linux-arm64-gnu
-            cross: --use-napi-cross
+            # 存在即走 zigbuild 腿；值是 glibc 下限，同时供 target 后缀与断言取用
+            glibc: '2.17'
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             triple: win32-x64-msvc
@@ -82,10 +86,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }} ${{ matrix.settings.cross }}
+      - name: Build (napi CLI)
+        if: ${{ !matrix.settings.glibc }}
+        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }}
 
-      - name: Upload artifact
+      - name: Build (cargo zigbuild, glibc pinned)
+        # zig 链交叉：现代 clang + lld（ring/rustls 可编，无 ld.bfd 的 GNU
+        # PROPERTY_TYPE 警告），glibc 下限由 target 后缀 pin 死，产物手动落名。
+        # zig / cargo-zigbuild 由 mise.toml 声明、mise-action 带 token 安装
+        # （不用 mise exec 现取：那条路要打无 token 的 GitHub API，撞限流即红）
+        if: ${{ matrix.settings.glibc }}
+        run: |
+          set -euo pipefail
+          cargo zigbuild --release -p bumpp-core-napi \
+            --target "${{ matrix.settings.target }}.${{ matrix.settings.glibc }}"
+          cp "target/${{ matrix.settings.target }}/release/libbumpp_core_napi.so" \
+             "napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node"
+
+      - name: Assert glibc floor <= ${{ matrix.settings.glibc }}
+        # COL-63 验收：公开分发平台包，抬 glibc 下限等于静默砍老发行版用户。
+        # 判据是「最高被引用版本 ≤ pin 值」——不是全等：产物引用低于 pin 的版本
+        # 合法（sort -V 取末位即最高），GLIBC_PRIVATE 无版本号故不参与比较
+        if: ${{ matrix.settings.glibc }}
+        run: |
+          set -euo pipefail
+          pin='${{ matrix.settings.glibc }}'
+          node_file="napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node"
+          refs=$(objdump -T "$node_file" | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -uV)
+          echo "$refs"
+          highest=$(printf '%s\n' "$refs" | tail -1 | sed 's/^GLIBC_//')
+          if [ "$(printf '%s\n%s\n' "$pin" "$highest" | sort -V | tail -1)" != "$pin" ]; then
+            echo "::error::glibc floor regressed: highest reference GLIBC_${highest} exceeds pinned ${pin}"
+            exit 1
+          fi
+
+      - name: Upload artifact (napi CLI legs：.node + dts)
+        if: ${{ !matrix.settings.glibc }}
         uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.triple }}
@@ -94,6 +130,17 @@ jobs:
           path: |
             napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node
             napi/bumpp-core/index.d.ts
+          if-no-files-found: error
+
+      - name: Upload artifact (zigbuild leg：.node only)
+        # 不经 napi CLI 故无 dts 产出，其余四腿供给（publish-npm 经
+        # merge-multiple 合并同名 dts，内容一致；前提是至少一条 napi CLI 腿存活
+        # ——若将来更多腿转 zigbuild，需另立 dts 供给步骤，见 ADR-0027）
+        if: ${{ matrix.settings.glibc }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: bindings-${{ matrix.settings.triple }}
+          path: napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node
           if-no-files-found: error
 
   test-bindings:
@@ -133,6 +180,40 @@ jobs:
 
       - name: Test bindings
         run: pnpm exec vitest run napi/bumpp-core
+
+  # COL-63 加分项：交叉产物过 qemu-arm64 容器实跑（加载 + 导出面）。
+  # 不进 publish 的 needs——交叉腿实测是额外信心，非上架前置（napi-rs 生态含 oxc 均不测交叉腿）
+  test-bindings-arm64-smoke:
+    name: smoke - linux-arm64-gnu (qemu)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: bindings-linux-arm64-gnu
+          path: .artifacts
+
+      - name: Setup qemu (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Load .node in arm64 container
+        run: |
+          set -euo pipefail
+          docker run --rm --platform linux/arm64 \
+            -v "$PWD/.artifacts:/a:ro" node:22-bookworm-slim node -e '
+              const fs = require("fs");
+              fs.copyFileSync("/a/bumpp-core.linux-arm64-gnu.node", "/tmp/b.node");
+              console.log("arch:", process.arch, "glibc:", process.report.getReport().header.glibcVersionRuntime);
+              const m = require("/tmp/b.node");
+              const fns = Object.keys(m).filter((k) => typeof m[k] === "function").sort();
+              console.log("exports:", fns.join(", "));
+              const want = ["BumpVersionTask", "CliRunTask", "bumpVersion", "cliRun"];
+              if (want.some((k) => !fns.includes(k))) {
+                throw new Error("missing exports, got: " + fns.join(", "));
+              }
+            '
 
   # ADR-0021 决策①②：tag 推送即授权，无人工批准门；与 publish-crates 并行。
   # 部分失败后「Re-run failed jobs」是唯一恢复手段——skip-if-published 守卫

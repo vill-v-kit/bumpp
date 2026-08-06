@@ -5,7 +5,7 @@ JS 侧残留三块功能——Token 存储（accesstoken.ts）、`bump.ts` 薄�
 ## Decisions
 
 - **范围全收**：Token 存储、编排、平台 Release 三块进 Rust；token 录入的密码交互一并进 Rust（`dialoguer::Password`，`prompt.rs` 已有 dialoguer 先例），`@inquirer/password` 依赖移除。JS 剩余：cac 命令路由 + re-export 壳。
-- **HTTP 选型 ureq 3.x + rustls**：同步 API 与 core 现状一致；无 OpenSSL（五平台交叉编译链不动）；无并发需求不引入 tokio。HTTP 调用收敛在单一模块内，未来换 reqwest 不伤编排。
+- **HTTP 选型 ureq 3.x + rustls**：同步 API 与 core 现状一致；无 OpenSSL（五平台交叉编译链不动）；无并发需求不引入 tokio。HTTP 调用收敛在单一模块内，未来换 reqwest 不伤编排。（本条一度被 ADR-0024 暂时取代为 native-tls + vendored openssl——v6.0.0 上古交叉链两连炸的临时偏离；ADR-0027 换 zig 交叉链后已撤销偏离，本条恢复生效）
 - **Token 存储逐字节兼容**：VBTK v1 布局（magic 4B + version 1B + iv 12B + authTag 16B + AES-256-GCM 密文）、`key.bin`、0600/0700 权限位、`VBUMPP_TOKEN_STORE` 覆盖、损坏自愈重写、清空删文件——全部对齐 JS 时代行为；crypto 用 `aes-gcm` crate；golden test 用 Node 版预生成样本校验解密。
 - **token 解析链统一**：Token 存储 → 各家环境变量 →（仅 github）`gh auth token` CLI 兜底。环境变量：github 为 `GH_TOKEN` → `GITHUB_TOKEN`（拼错的 `GITHOB_TOKEN` 移除——已发布但属 typo 修复，随大版本）；gitlab / gitee / gitcode 补 `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`（CI 场景此前无通道）。
 - **napi 面收缩**：删 `plus100`（脚手架残留）；藏 `updateFiles` / `gitCommit` / `gitTag` / `gitPush` / `versionFileManifestGlobs` / `loadBumpConfig` / `versionBump` / `versionBumpInfo` / changelog 系五函数（`generateChangelog` / `getLastGitTag` / `getGitDiff` / `getCurrentGitBranch` / `resolveRepoConfig`）；`@vill-v/bumpp/changelog` 子路径删除。`loadBumpConfig` 收编后回归 ADR-0013「解析结果不向 JS 导出」原则。

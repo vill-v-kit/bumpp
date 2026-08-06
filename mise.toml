@@ -1,3 +1,5 @@
 [tools]
+"github:rust-cross/cargo-zigbuild" = "0.23.0"
 node = "lts"
 rust = "stable"
+zig = "0.15.2"

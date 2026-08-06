@@ -21,12 +21,10 @@ serde_json = { version = "1.0.151", features = ["preserve_order"] }
 shell-words = "1.1.0"
 toml = "0.9"
 toml_edit = "0.23"
-# TLS 走 native-tls + vendored openssl：napi cross-toolchain 1.0.3 的 aarch64 gcc
-# 过旧（缺 stdatomic.h / 不认 armv8.4-a -march / glibc 头无 AT_HWCAP2），ring 的
-# clang 专有汇编与 aws-lc-sys 的现代 C 均无法编译（v6.0.0 tag CI 两连炸实例）；
-# openssl 是移植面最广的 C 栈，上古 gcc 也能编。linux 两 legs 经 openssl-src 源码
-# 构建，macOS/Windows 走系统 TLS（SecureTransport/Schannel），无额外 C 构建
-ureq = { version = "3", default-features = false, features = ["json", "gzip", "native-tls", "vendored"] }
+# TLS 回 rustls（ring 后端，ureq 默认）：ADR-0024 的 native-tls+vendored openssl
+# 临时偏离随 zig 交叉链落地（COL-63/ADR-0027）撤销——ring 当初的炸点
+# （clang 专有 __ARM_ARCH）在 zig cc（clang 系）下天然消失
+ureq = { version = "3", default-features = false, features = ["json", "gzip", "rustls"] }
 url = "2.5"
 
 [dev-dependencies]
