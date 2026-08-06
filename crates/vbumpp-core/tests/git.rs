@@ -6,8 +6,9 @@ use std::process::Command;
 
 use tempfile::TempDir;
 use vbumpp_core::git::{
-  format_version_string, get_current_git_branch, get_git_diff, get_last_git_tag, get_repo_config,
-  git_commit, git_push, git_tag, resolve_repo_config, CommitSpec, RepoConfig, TagSpec,
+  check_ignored, filter_tracked, format_version_string, get_current_git_branch, get_git_diff,
+  get_last_git_tag, get_repo_config, git_commit, git_push, git_tag, resolve_repo_config,
+  CommitSpec, RepoConfig, TagSpec,
 };
 use vbumpp_core::progress::ProgressEvent;
 
@@ -580,4 +581,76 @@ fn git_failure_error_includes_stderr() {
     msg.contains("not a git repository"),
     "错误应含 stderr：{msg}"
   );
+}
+
+// ---------------------------------------------------------------------------
+// COL-61：gitignore 批量裁决（收集层）与已跟踪过滤（commit 兜底层）
+// ---------------------------------------------------------------------------
+
+#[test]
+fn check_ignored_returns_ignored_subset_in_repo() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  fs::write(path.join(".gitignore"), "residue/\n*.log\n").unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "ignore rules"]);
+  let candidates = vec![
+    "package.json".to_string(),
+    "residue/Cargo.toml".to_string(),
+    "build.log".to_string(),
+  ];
+  let ignored = check_ignored(&path, &candidates).unwrap();
+  assert_eq!(
+    ignored,
+    vec!["residue/Cargo.toml".to_string(), "build.log".to_string()],
+    "仅 gitignore 命中项"
+  );
+}
+
+#[test]
+fn check_ignored_outside_git_repo_fails_open() {
+  // 非 git 仓库 / 子进程失败 → None（调用方 fail-open 回落不过滤）
+  let dir = TempDir::new().unwrap();
+  fs::write(dir.path().join(".gitignore"), "target/\n").unwrap();
+  let candidates = vec!["target/x.json".to_string()];
+  assert_eq!(check_ignored(dir.path(), &candidates), None);
+}
+
+#[test]
+fn filter_tracked_returns_tracked_subset() {
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  fs::create_dir_all(path.join("nested")).unwrap();
+  fs::write(
+    path.join("nested/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  let tracked = path.join("package.json").to_string_lossy().into_owned();
+  let untracked = path
+    .join("nested/package.json")
+    .to_string_lossy()
+    .into_owned();
+  let candidates = vec![tracked.clone(), untracked];
+  assert_eq!(
+    filter_tracked(&path, &candidates),
+    Some(vec![tracked]),
+    "仅已跟踪文件留存"
+  );
+}
+
+#[test]
+fn filter_tracked_outside_git_repo_fails_open() {
+  let dir = TempDir::new().unwrap();
+  let candidates = vec![dir.path().join("a.json").to_string_lossy().into_owned()];
+  assert_eq!(filter_tracked(dir.path(), &candidates), None);
+}
+
+#[test]
+fn empty_candidates_short_circuit() {
+  // 空输入不触子进程（git ls-files 无 pathspec 会列出全仓——语义陷阱）
+  let dir = TempDir::new().unwrap();
+  let path = init_repo(&dir);
+  assert_eq!(check_ignored(&path, &[]), Some(vec![]));
+  assert_eq!(filter_tracked(&path, &[]), Some(vec![]));
 }

@@ -389,6 +389,231 @@ fn recursive_default_files_expand_packages_manifests() {
 }
 
 // ---------------------------------------------------------------------------
+// COL-61：gitignore 感知收集 + commit 未跟踪 pathspec 兜底
+// ---------------------------------------------------------------------------
+
+#[test]
+fn recursive_skips_gitignored_residue() {
+  // COL-61 事故场景（v6.0.0 发版中断实例）：-r 整树收集须跳过 gitignored
+  // 构建残留（target/package 打包暂存、.next 缓存），残留不被撞版本号、
+  // 不进更新清单，commit 不再撞未跟踪 pathspec
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  common::git(&path, &["init", "-b", "main"]);
+  common::git(&path, &["config", "user.email", "test@example.com"]);
+  common::git(&path, &["config", "user.name", "Test"]);
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  fs::write(path.join(".gitignore"), "target/\n.next/\n").unwrap();
+  fs::create_dir_all(path.join("target/package/demo-1.0.0")).unwrap();
+  fs::write(
+    path.join("target/package/demo-1.0.0/Cargo.toml"),
+    "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+  )
+  .unwrap();
+  fs::create_dir_all(path.join("website/.next")).unwrap();
+  fs::write(
+    path.join("website/.next/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "chore: init"]);
+
+  let mut options = base_options();
+  options.recursive = true;
+  let (_events, mut cb) = collect_events();
+  let results = version_bump(&options, &path, &mut cb).unwrap();
+
+  assert_eq!(results.updated_files.len(), 1, "仅根 package.json 入列");
+  assert_eq!(
+    fs::read_to_string(path.join("package.json")).unwrap(),
+    "{\n  \"version\": \"2.0.0\"\n}\n"
+  );
+  for residue in [
+    "target/package/demo-1.0.0/Cargo.toml",
+    "website/.next/package.json",
+  ] {
+    assert!(
+      fs::read_to_string(path.join(residue))
+        .unwrap()
+        .contains("1.0.0"),
+      "gitignored 残留不应被撞版本号：{residue}"
+    );
+  }
+  let committed = common::git(&path, &["show", "--pretty=format:", "--name-only", "HEAD"]);
+  assert_eq!(committed, "package.json", "release commit 仅含已跟踪文件");
+}
+
+#[test]
+fn commit_filters_untracked_files_with_warning() {
+  // COL-61 兜底层：显式 files 引入的未跟踪文件不再炸 commit——滤出提交、
+  // 磁盘修改保留（不静默丢弃的另一半是 ⚠ 警告，走 stdout 不在本 seam 断言）
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  common::git(&path, &["init", "-b", "main"]);
+  common::git(&path, &["config", "user.email", "test@example.com"]);
+  common::git(&path, &["config", "user.name", "Test"]);
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "chore: init"]);
+  // 初始提交之后才落盘——未跟踪（非 gitignored，兜底层与收集层解耦）
+  fs::create_dir_all(path.join("nested")).unwrap();
+  fs::write(
+    path.join("nested/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+
+  let options = BumpOptions {
+    files: vec![
+      "package.json".to_string(),
+      "nested/package.json".to_string(),
+    ],
+    ..base_options()
+  };
+  let (_events, mut cb) = collect_events();
+  let results = version_bump(&options, &path, &mut cb).unwrap();
+
+  assert_eq!(results.updated_files.len(), 2, "两份文件都已更新");
+  assert_eq!(
+    fs::read_to_string(path.join("nested/package.json")).unwrap(),
+    "{\n  \"version\": \"2.0.0\"\n}\n",
+    "未跟踪文件保留磁盘修改"
+  );
+  let committed = common::git(&path, &["show", "--pretty=format:", "--name-only", "HEAD"]);
+  assert_eq!(committed, "package.json", "commit 仅含已跟踪文件");
+}
+
+#[test]
+fn explicit_files_bypass_gitignore_filter() {
+  // COL-61 spec 边界：gitignore 过滤只作用于 glob 收集——字面点名的文件
+  // 即使 gitignored 也照更（用户意图优先）；提交侧由兜底层过滤 + 警告
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  common::git(&path, &["init", "-b", "main"]);
+  common::git(&path, &["config", "user.email", "test@example.com"]);
+  common::git(&path, &["config", "user.name", "Test"]);
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  fs::write(path.join(".gitignore"), "generated/\n").unwrap();
+  fs::create_dir_all(path.join("generated")).unwrap();
+  fs::write(
+    path.join("generated/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "chore: init"]);
+
+  let options = BumpOptions {
+    files: vec![
+      "package.json".to_string(),
+      "generated/package.json".to_string(),
+    ],
+    ..base_options()
+  };
+  let (_events, mut cb) = collect_events();
+  let results = version_bump(&options, &path, &mut cb).unwrap();
+
+  assert_eq!(results.updated_files.len(), 2, "字面点名文件照更不误");
+  assert_eq!(
+    fs::read_to_string(path.join("generated/package.json")).unwrap(),
+    "{\n  \"version\": \"2.0.0\"\n}\n"
+  );
+  let committed = common::git(&path, &["show", "--pretty=format:", "--name-only", "HEAD"]);
+  assert_eq!(committed, "package.json", "commit 仅含已跟踪文件（兜底层）");
+}
+
+#[test]
+fn commit_tolerates_gitignored_cargo_lock() {
+  // COL-61 兜底层同类第二实例：gitignored Cargo.lock 经 ADR-0003 定向同步
+  // 入 updated_files——库 crate 常见布局，pre-fix 同样炸 pathspec 提交
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  common::git(&path, &["init", "-b", "main"]);
+  common::git(&path, &["config", "user.email", "test@example.com"]);
+  common::git(&path, &["config", "user.name", "Test"]);
+  fs::write(
+    path.join("Cargo.toml"),
+    "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+  )
+  .unwrap();
+  fs::write(path.join(".gitignore"), "Cargo.lock\n").unwrap();
+  fs::write(
+    path.join("Cargo.lock"),
+    "version = 4\n\n[[package]]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+  )
+  .unwrap();
+  common::git(&path, &["add", "."]);
+  common::git(&path, &["commit", "-m", "chore: init"]);
+
+  let options = BumpOptions {
+    files: vec!["Cargo.toml".to_string()],
+    ..base_options()
+  };
+  let (_events, mut cb) = collect_events();
+  let results = version_bump(&options, &path, &mut cb).unwrap();
+
+  assert_eq!(
+    results.updated_files.len(),
+    2,
+    "Cargo.toml + Cargo.lock 同步"
+  );
+  assert!(
+    fs::read_to_string(path.join("Cargo.lock"))
+      .unwrap()
+      .contains("2.0.0"),
+    "gitignored Cargo.lock 保留磁盘修改"
+  );
+  let committed = common::git(&path, &["show", "--pretty=format:", "--name-only", "HEAD"]);
+  assert_eq!(committed, "Cargo.toml", "commit 仅含已跟踪文件");
+}
+
+#[test]
+fn non_git_dir_recursive_fails_open() {
+  // COL-61 fail-open：非 git 目录下 gitignore 探测失败回落裸 walk（上游
+  // parity 现状）——收集不过滤、不新增报错
+  let dir = TempDir::new().unwrap();
+  let path = dir.path().to_path_buf();
+  fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  fs::write(path.join(".gitignore"), "target/\n").unwrap();
+  fs::create_dir_all(path.join("target/residue")).unwrap();
+  fs::write(
+    path.join("target/residue/package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+
+  let mut options = base_options();
+  options.recursive = true;
+  options.commit = None;
+  options.tag = None;
+  let (_events, mut cb) = collect_events();
+  let results = version_bump(&options, &path, &mut cb).unwrap();
+
+  assert_eq!(results.updated_files.len(), 2, "非 git 目录回落不过滤");
+  assert_eq!(
+    fs::read_to_string(path.join("target/residue/package.json")).unwrap(),
+    "{\n  \"version\": \"2.0.0\"\n}\n"
+  );
+}
+
+// ---------------------------------------------------------------------------
 // BumpOptions::from_merged（ADR-0014）：合并配置 → versionBump 输入的转换
 // ---------------------------------------------------------------------------
 

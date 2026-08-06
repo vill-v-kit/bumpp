@@ -371,10 +371,32 @@ pub fn version_bump(
   script_step!(version);
 
   if let Some(commit) = &commit {
+    // COL-61 兜底：pathspec 提交枚举 updated_files，未跟踪路径（收集层
+    // 漏网的 gitignored 残留、gitignored Cargo.lock 定向同步、显式 files
+    // 点名的未跟踪文件）会让 git 报错炸掉发版——滤为已跟踪子集，被滤文件
+    // 保留磁盘修改并逐条 ⚠ 警告（不静默丢弃）；--all 无 pathspec 不涉，
+    // 过滤失败 fail-open（git commit 原始报错透出真实问题）
+    let tracked_filter = if commit.all {
+      None
+    } else {
+      crate::git::filter_tracked(cwd, &state.updated_files)
+    };
+    let updated_files: &[String] = match &tracked_filter {
+      Some(t) => {
+        for f in state.updated_files.iter().filter(|f| !t.contains(f)) {
+          println!(
+            "{} skipping untracked file in commit (left modified on disk): {f}",
+            dialoguer::console::style("⚠").yellow()
+          );
+        }
+        t.as_slice()
+      }
+      None => &state.updated_files,
+    };
     let (_, message) = git_commit(
       cwd,
       &CommitSpec {
-        updated_files: &state.updated_files,
+        updated_files,
         all: commit.all,
         no_verify: commit.no_verify,
         sign: options.sign,
@@ -450,8 +472,13 @@ fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
     options.files.clone()
   };
 
-  let mut matched: Vec<String> = vec![];
+  let mut collected: Vec<String> = vec![];
+  let mut explicit: Vec<String> = vec![];
   for pattern in &patterns {
+    // glob 模式命中属「收集」（默认清单 / -r / 配置 recursive 展开 / 用户
+    // 显式 glob）——gitignore 过滤只作用于它们；字面路径是用户点名，
+    // 用户意图优先，不过滤（COL-61 spec 边界）
+    let is_glob = pattern.contains(['*', '?', '[']);
     let full = cwd.join(pattern);
     let Some(full) = full.to_str() else { continue };
     for entry in glob::glob_with(full, glob::MatchOptions::default())
@@ -466,14 +493,33 @@ fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
       }
       if entry.is_file() {
         if let Ok(rel) = entry.strip_prefix(cwd) {
-          matched.push(rel.to_string_lossy().replace('\\', "/"));
+          let rel = rel.to_string_lossy().replace('\\', "/");
+          if is_glob {
+            collected.push(rel);
+          } else {
+            explicit.push(rel);
+          }
         }
       }
     }
   }
-  matched.sort();
-  matched.dedup();
-  matched
+  collected.sort();
+  collected.dedup();
+
+  // COL-61：gitignore 过滤（git 仓库内）——glob 裸 walk 会下钻 gitignored
+  // 构建残留（target/package 打包暂存、.next 缓存等），残留清单被撞版本号后
+  // commit pathspec 撞未跟踪文件炸掉发版（v6.0.0 实例）；git check-ignore
+  // 一次进程批量裁决，非 git 仓库 / 检查失败 fail-open 回落裸 walk（现状）
+  if let Some(ignored) = crate::git::check_ignored(cwd, &collected) {
+    if !ignored.is_empty() {
+      let ignored: std::collections::HashSet<String> = ignored.into_iter().collect();
+      collected.retain(|f| !ignored.contains(f));
+    }
+  }
+  collected.extend(explicit);
+  collected.sort();
+  collected.dedup();
+  collected
 }
 
 /// 上游 `printSummary`（confirm 前的变更摘要）

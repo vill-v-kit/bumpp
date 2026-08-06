@@ -7,8 +7,83 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::exec::{capture, run, ExecError};
+use crate::exec::{capture, capture_with_stdin, run, ExecError};
 use crate::progress::ProgressEvent;
+
+/// gitignore 批量裁决（COL-61 收集层）：返回 `paths` 中被 gitignore 命中的
+/// 子集（cwd 相对路径，一次进程；语义含 .gitignore 层级 + .git/info/exclude +
+/// core.excludesFile，git 本体裁决）。非 git 仓库 / 子进程失败返回 None——
+/// 调用方 fail-open 回落不过滤（本过滤是发版卫生而非正确性）
+pub fn check_ignored(cwd: &Path, paths: &[String]) -> Option<Vec<String>> {
+  if paths.is_empty() {
+    return Some(vec![]);
+  }
+  let mut input = Vec::new();
+  for p in paths {
+    input.extend_from_slice(p.as_bytes());
+    input.push(0);
+  }
+  let output = capture_with_stdin(
+    "git",
+    &[
+      "check-ignore".to_string(),
+      "--stdin".to_string(),
+      "-z".to_string(),
+    ],
+    &input,
+    cwd,
+  )
+  .ok()?;
+  // check-ignore 退出码：0=有命中 / 1=无命中；其余（128 非 git 仓库等）fail-open
+  match output.status.code() {
+    Some(0) | Some(1) => Some(split_nul(&output.stdout)),
+    _ => None,
+  }
+}
+
+/// git 已跟踪文件批量过滤（COL-61 commit 兜底层）：返回 `paths` 中已纳入
+/// git 跟踪的子集，**保持输入形态**（`git ls-files` 一次进程，字面
+/// pathspec——updated_files 是精确文件路径，禁 glob 魔术；ls-files 输出
+/// 为 cwd 相对路径，按 strip_prefix 回映射）。**输入契约**：cwd 下的绝对
+/// 路径（plugins 链 updated_files 形态）——cwd 之外的输入（`..` 逃逸
+/// pattern 的病理用法）或相对路径一律判为未跟踪；未来新增相对路径生产者
+/// 须先调整本映射。非 git 仓库 / 子进程失败返回 None——调用方 fail-open
+/// 全量提交（git commit 原始报错会透出真实问题）
+pub fn filter_tracked(cwd: &Path, paths: &[String]) -> Option<Vec<String>> {
+  if paths.is_empty() {
+    return Some(vec![]);
+  }
+  let mut args = vec![
+    "--literal-pathspecs".to_string(),
+    "ls-files".to_string(),
+    "-z".to_string(),
+    "--".to_string(),
+  ];
+  args.extend(paths.iter().cloned());
+  let output = capture("git", &args, cwd).ok()?;
+  let tracked: std::collections::HashSet<String> = split_nul(&output.stdout).into_iter().collect();
+  Some(
+    paths
+      .iter()
+      .filter(|p| {
+        Path::new(p)
+          .strip_prefix(cwd)
+          .map(|rel| tracked.contains(&rel.to_string_lossy().replace('\\', "/")))
+          .unwrap_or(false)
+      })
+      .cloned()
+      .collect(),
+  )
+}
+
+/// NUL 分隔输出拆分（check-ignore / ls-files 的 -z 形态）
+fn split_nul(bytes: &[u8]) -> Vec<String> {
+  bytes
+    .split(|b| *b == 0)
+    .filter(|s| !s.is_empty())
+    .map(|s| String::from_utf8_lossy(s).into_owned())
+    .collect()
+}
 
 /// git commit 的输入参数（对齐上游 options.commit + operation.state）
 pub struct CommitSpec<'a> {

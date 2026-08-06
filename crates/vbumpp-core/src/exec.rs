@@ -51,6 +51,37 @@ pub fn capture(program: &str, args: &[String], cwd: &Path) -> Result<Output, Exe
   }
 }
 
+/// 带 stdin 供给的捕获（`git check-ignore --stdin` 等批量查询，COL-61）：
+/// 仅 spawn / IO 失败报错——退出码语义归调用方（check-ignore 的
+/// 0=有命中 / 1=无命中、ls-files 的 0=成功 之类各不相同）
+pub fn capture_with_stdin(
+  program: &str,
+  args: &[String],
+  stdin: &[u8],
+  cwd: &Path,
+) -> Result<Output, ExecError> {
+  let mut child = Command::new(program)
+    .args(args)
+    .current_dir(cwd)
+    .stdin(std::process::Stdio::piped())
+    .stdout(std::process::Stdio::piped())
+    .stderr(std::process::Stdio::piped())
+    .spawn()
+    .map_err(|e| ExecError::Spawn {
+      message: format!("failed to execute {program} {}: {e}", args.join(" ")),
+    })?;
+  // stdin 写入独立线程（std 文档范式）：child 边读边产出时双向管道缓冲不互锁；
+  // 写入失败（child 早退断管）吞掉——退出码由调用方裁决
+  let mut pipe = child.stdin.take().expect("stdin is piped");
+  let input = stdin.to_owned();
+  let writer = std::thread::spawn(move || pipe.write_all(&input));
+  let output = child.wait_with_output().map_err(|e| ExecError::Io {
+    message: format!("failed to read output of {program}: {e}"),
+  })?;
+  let _ = writer.join();
+  Ok(output)
+}
+
 fn spawn(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError> {
   Command::new(program)
     .args(args)
