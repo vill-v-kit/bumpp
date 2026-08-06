@@ -40,7 +40,7 @@ _Avoid_: 凭证库（语义过强）
 _Avoid_: publish
 
 **上架 (Registry publish)**:
-向 registry（npm / crates.io）上传包的发布动作——本仓 11 个 npm 包与 2 个 crate（`vbumpp-core`、`vbumpp`）经 `ci.yml` 的 publish jobs 完成：tag 触发、无人工门、skip-if-published 幂等（ADR-0021）。与 Bump（含 commit/tag/push 的完整发布操作）、平台 Release（git 托管平台 release）三者分立。
+向 registry（npm / crates.io）上传包的发布动作——本仓 13 个 npm 包（ADR-0026 增 musl 平台包 ×2）与 2 个 crate（`vbumpp-core`、`vbumpp`）经 `ci.yml` 的 publish jobs 完成：tag 触发、无人工门、skip-if-published 幂等（ADR-0021）。与 Bump（含 commit/tag/push 的完整发布操作）、平台 Release（git 托管平台 release）三者分立。
 _Avoid_: publish（英文对应词，不作术语）、发布（过宽——兼指 Bump 与平台 Release）
 
 **免编译安装 (cargo-binstall 渠道)**:
