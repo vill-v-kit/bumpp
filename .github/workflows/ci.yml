@@ -18,13 +18,13 @@ jobs:
     name: cargo test + vitest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup toolchain (node + rust via mise.toml)
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -68,16 +68,16 @@ jobs:
             triple: win32-arm64-msvc
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup toolchain (node + rust via mise.toml)
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Add rust target
         run: rustup target add ${{ matrix.settings.target }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -86,7 +86,7 @@ jobs:
         run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }} ${{ matrix.settings.cross }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.triple }}
           # index.d.ts 同车捎带：publish-npm 注入 @vill-v/bumpp-core 的 types 入口用
@@ -111,19 +111,19 @@ jobs:
             triple: win32-x64-msvc
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup toolchain (node via mise.toml)
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-${{ matrix.settings.triple }}
           path: napi/bumpp-core
@@ -146,19 +146,19 @@ jobs:
       # OIDC trusted publishing（ADR-0021 决策④终态）：id-token 换短期 token 发布，无长效凭证
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup toolchain (node via mise.toml)
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Download artifacts (5 platform .node + index.d.ts)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: bindings-*
           path: .artifacts
@@ -213,10 +213,10 @@ jobs:
       # OIDC trusted publishing（ADR-0021 决策④终态）：crates-io-auth-action 换短期 token
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup toolchain (node + rust via mise.toml)
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Assert tag version == workspace version
         # 与 publish-npm 对称的防手滑：tag 去 v 前缀必须等于根 Cargo.toml 工作区版本
