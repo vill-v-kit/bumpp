@@ -30,3 +30,32 @@ pub fn git(dir: &Path, args: &[&str]) -> String {
   );
   String::from_utf8(output.stdout).unwrap().trim().to_owned()
 }
+
+/// bump 编排 fixture（COL-60）：package.json 1.0.0 + tag v1.0.0 + 一个 feat
+/// commit（供 changelog）；`config` 原文写入 .vbumpprc.toml。remote 仅供
+/// changelog repo 推断（纯本地，无任何网络动作）；push 由各用例配置关闭
+pub fn init_bump_repo(dir: &tempfile::TempDir, config: &str) -> std::path::PathBuf {
+  let path = dir.path().to_path_buf();
+  git(&path, &["init", "-b", "main"]);
+  git(&path, &["config", "user.email", "test@example.com"]);
+  git(&path, &["config", "user.name", "Test"]);
+  git(&path, &["config", "commit.gpgsign", "false"]);
+  git(&path, &["config", "tag.gpgsign", "false"]);
+  std::fs::write(
+    path.join("package.json"),
+    "{\n  \"version\": \"1.0.0\"\n}\n",
+  )
+  .unwrap();
+  std::fs::write(path.join(".vbumpprc.toml"), config).unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "chore: init"]);
+  git(&path, &["tag", "v1.0.0"]);
+  git(
+    &path,
+    &["remote", "add", "origin", "git@github.com:owner/repo.git"],
+  );
+  std::fs::write(path.join("feat.txt"), "x").unwrap();
+  git(&path, &["add", "."]);
+  git(&path, &["commit", "-m", "feat: new thing"]);
+  path
+}

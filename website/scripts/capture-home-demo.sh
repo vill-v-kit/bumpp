@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # 捕获 vbumpp 真实发版输出 → 生成首页终端演示素材 website/app/(home)/demo-terminal.ts
 #
-# 管道：临时 fixture（git 仓库 1.0.0 基线 + feat/fix 两提交 + bare 相对路径 remote）
-#   → pty 驱动真实交互菜单（管道喂 "minor\r"，FuzzySelect 模糊过滤后回车选定）
+# 管道：临时 fixture（git 仓库 1.0.0 基线 + feat/fix 两提交 + bare 相对路径 remote，
+#   .vbumpprc.toml 配 release = "minor" + confirm = false——COL-60 接通后全程非交互）
+#   → pty 实跑（保 TTY 着色输出，零击键投喂）
 #   → 原始字节流 → scripts/terminal-screen.mjs 塌缩 ANSI 重绘帧为最终屏幕
 #   → 绝对路径洗白为 ~ → 导出为 TS 字符串常量
 #
@@ -71,19 +72,19 @@ git remote add origin "$WORK_PHYSICAL/my-project.git"
 git push -q -u origin main
 git push -q origin v1.0.0
 
-# ---- pty 实跑：管道喂键选 minor（pty 缓冲击键，菜单出现时即被消费）----
-# 两道防回显：pty 建立到 dialoguer 设 raw mode 之间，行规程处于 canonical+echo，
-# 早到的击键会被回显进捕获（竞态）。① sleep 0.5 + stty -echo 在 exec 前关掉回显；
-# ② 下方 awk 再按不变量裁掉首个 Current version 行之前的一切前菜噪点，保证确定性。
+# ---- pty 实跑：配置已指定 release + confirm=false，全程无 prompt，零击键投喂
+# （stdin 立空即可——macOS script(1) 在 stdin EOF 后仍跑到子进程退出）。
+# pty 仍必要：dialoguer console::style 按 TTY 探测着色，演示要的就是彩色输出
 RAW="$WORK/raw.txt"
-(sleep 0.5; printf 'minor\r') | script -q /dev/null sh -c 'stty -echo cols 80 rows 24; exec "$1"' _ "$BINARY" > "$RAW" || true
+script -q /dev/null sh -c 'stty cols 80 rows 24; exec "$1"' _ "$BINARY" < /dev/null > "$RAW" || true
 
-# ---- 塌缩 ANSI 重绘帧 → 最终屏幕；裁掉选定点之前的输入回显等前菜噪点 ----
+# ---- 塌缩 ANSI 重绘帧 → 最终屏幕 ----
 SCREEN="$WORK/screen.txt"
 node "$SCREEN_MJS" "$RAW" "$SCREEN"
 if grep -q 'Current version' "$SCREEN"; then
-  awk 'found || /Current version/ { found=1; print }' "$SCREEN" > "$SCREEN.trimmed"
-  mv "$SCREEN.trimmed" "$SCREEN"
+  echo 'error: 捕获出现交互菜单——release 配置键未生效（COL-60 回归？），应全程非交互' >&2
+  cat "$SCREEN" >&2
+  exit 1
 fi
 if ! grep -q 'Git push' "$SCREEN"; then
   echo 'error: 捕获未包含完整发版流程（缺 Git push），最终屏幕：' >&2
@@ -102,7 +103,8 @@ fi
 # ---- 生成 TS 产物（模板字符串转义：\、`、${）----
 {
   echo '// 本文件由 website/scripts/capture-home-demo.sh 生成，勿手改。'
-  echo '// 内容：target/release/vbumpp 在临时 fixture 中的真实交互发版输出（菜单选定 minor），'
+  echo '// 内容：target/release/vbumpp 在临时 fixture 中的真实非交互发版输出'
+  echo '//（.vbumpprc.toml 配 release = "minor" + confirm = false，COL-60），'
   echo '// pty 原始字节流经 terminal-screen.mjs 塌缩为最终屏幕，绝对路径已洗白为 ~。'
   echo '// 首行 `$ vbumpp` 为演示提示符（非捕获内容）；复跑脚本可字节级复现其余内容。'
   echo 'export const DEMO_TERMINAL = `$ vbumpp'

@@ -183,6 +183,117 @@ fn config_file_path_loads_exact_file() {
   assert_eq!(merged["push"], false);
 }
 
+// ---------------------------------------------------------------------------
+// 顶层键名白名单（COL-60）：configuration.mdx 与 migration-v6.mdx 声称
+// 「写错键名会直接报错（并告诉你是哪个键）」——文件层严格 schema，防配置
+// 静默失效；release 是文档在册键，须过白名单并出现在 merged 里
+// ---------------------------------------------------------------------------
+
+#[test]
+fn release_key_in_file_is_carried() {
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.toml", "release = \"minor\"\n");
+  let merged = load(&dir, None);
+  assert_eq!(merged["release"], json!("minor"));
+}
+
+#[test]
+fn unknown_top_level_key_errors_naming_the_key() {
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.toml", "bogus_key = 1\n");
+  let err = load_bump_config(None, dir.path()).unwrap_err();
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(message.contains("bogus_key"), "应指出是哪个键：{message}");
+      assert!(
+        message.contains(".vbumpprc.toml"),
+        "应含文件路径：{message}"
+      );
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn unknown_key_error_lists_supported_keys() {
+  // 典型场景：release 拼成 releaze——报错列出合法键（含 release）帮人自查
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(&dir, ".vbumpprc.json", r#"{ "releaze": "patch" }"#);
+  let err = load_bump_config(None, dir.path()).unwrap_err();
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(message.contains("releaze"), "应指出是哪个键：{message}");
+      assert!(message.contains("release"), "应列出支持的键：{message}");
+      assert!(message.contains("commit"), "应列出支持的键：{message}");
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn multiple_unknown_keys_are_all_reported() {
+  // migration-v6.mdx：搬家时正好清理掉旧配置里无效的键——一次性全部列出
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.toml",
+    "bogus_one = 1\nbogus_two = 2\ncommit = false\n",
+  );
+  let err = load_bump_config(None, dir.path()).unwrap_err();
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(message.contains("bogus_one"), "非法键应全部列出：{message}");
+      assert!(message.contains("bogus_two"), "非法键应全部列出：{message}");
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn all_documented_keys_are_accepted() {
+  // 白名单钉住文档全集（configuration.mdx 顶层配置项表 + 机制键 noGitCheck）
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.json",
+    r#"{
+      "files": ["a.json"],
+      "commit": false,
+      "tag": true,
+      "push": false,
+      "sign": true,
+      "all": true,
+      "noVerify": true,
+      "recursive": false,
+      "install": true,
+      "ignoreScripts": true,
+      "execute": "echo hi",
+      "release": "patch",
+      "preid": "rc",
+      "currentVersion": "1.0.0",
+      "confirm": false,
+      "noGitCheck": false,
+      "scripts": { "preversion": "echo pre" },
+      "changelog": { "output": "HISTORY.md" },
+      "gitlab": { "host": "https://gitlab.example.com" }
+    }"#,
+  );
+  let merged = load(&dir, None);
+  assert_eq!(merged["release"], json!("patch"));
+  assert_eq!(merged["preid"], json!("rc"));
+}
+
+#[test]
+fn unknown_keys_in_overrides_are_not_validated() {
+  // 上游 parity：严格键名校验只针对配置文件；编程式 overrides 无 schema
+  let dir = TempDir::new().unwrap();
+  let merged = load(&dir, overrides(json!({ "anything_goes": 1 })));
+  assert_eq!(merged["anything_goes"], json!(1));
+}
+
 #[test]
 fn config_file_path_to_ts_errors() {
   common::isolate_global_home();

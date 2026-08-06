@@ -147,6 +147,26 @@ fn bump_accepts_valid_provider_and_reaches_orchestration() {
 }
 
 #[test]
+fn bump_with_config_release_runs_non_interactive_end_to_end() {
+  // COL-60 票据原场景：.vbumpprc.toml 配 release + confirm=false，
+  // CLI bump 全程零交互完成发版（非 TTY 测试环境有任何 prompt 都会失败）
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  let cwd = TempDir::new().unwrap();
+  let path = common::init_bump_repo(&cwd, "release = \"minor\"\nconfirm = false\npush = false\n");
+
+  let (_out, err, code) = run_full(&[], None, &store_in(&dir), Some(&path), None);
+  assert_eq!(code, 0, "非交互 bump 应成功：{err}");
+  let pkg = std::fs::read_to_string(path.join("package.json")).unwrap();
+  assert!(pkg.contains("1.1.0"), "package.json 应已更新：{pkg}");
+  common::git(&path, &["rev-parse", "--verify", "refs/tags/v1.1.0"]);
+  assert!(
+    path.join("CHANGELOG.md").is_file(),
+    "有 tag 应生成 changelog"
+  );
+}
+
+#[test]
 fn token_path_ignores_provider() {
   let dir = TempDir::new().unwrap();
   let store = store_in(&dir);

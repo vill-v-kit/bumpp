@@ -1,9 +1,9 @@
 // 本文件由 website/scripts/capture-home-demo.sh 生成，勿手改。
-// 内容：target/release/vbumpp 在临时 fixture 中的真实交互发版输出（菜单选定 minor），
+// 内容：target/release/vbumpp 在临时 fixture 中的真实非交互发版输出
+//（.vbumpprc.toml 配 release = "minor" + confirm = false，COL-60），
 // pty 原始字节流经 terminal-screen.mjs 塌缩为最终屏幕，绝对路径已洗白为 ~。
 // 首行 `$ vbumpp` 为演示提示符（非捕获内容）；复跑脚本可字节级复现其余内容。
 export const DEMO_TERMINAL = `$ vbumpp
-✔ Current version 1.0.0 ·         minor 1.1.0
 [main e11eadf] chore: update CHANGELOG.md
  1 file changed, 19 insertions(+)
  create mode 100644 CHANGELOG.md

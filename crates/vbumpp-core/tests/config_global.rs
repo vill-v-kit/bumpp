@@ -179,3 +179,18 @@ fn changelog_types_deep_merge_across_global_and_project() {
     "内建默认表仍在：{titles:?}"
   );
 }
+
+#[test]
+fn global_config_unknown_key_errors() {
+  // COL-60：顶层键名白名单对全局层同样生效（与项目层共用 read_config）
+  let project = TempDir::new().unwrap();
+  let home = TempDir::new().unwrap();
+  write(&home, "config.toml", "bogus_key = 1\n");
+  let err = load_bump_config_with_home(None, project.path(), Some(home.path())).unwrap_err();
+  match err {
+    LoadConfigError::UnsupportedConfig { message } => {
+      assert!(message.contains("bogus_key"), "应指出是哪个键：{message}");
+    }
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}

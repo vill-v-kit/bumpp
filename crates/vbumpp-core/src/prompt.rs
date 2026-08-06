@@ -45,6 +45,16 @@ pub fn prompt_new_version(
   current_version: &str,
   next: &NextVersions,
 ) -> Result<(Option<String>, String), InfoError> {
+  // dialoguer 的 Confirm 有非 TTY 守卫，FuzzySelect 没有——非 TTY 下 read_key
+  // 立即失败、渲染循环空转（100% CPU 假死）。显式前置拦截并指明出路：
+  // 非交互环境（CI / 脚本）用 release 配置键跳过菜单（COL-60）
+  if !dialoguer::console::Term::stderr().is_term() {
+    return Err(InfoError::Prompt {
+      message: "interactive version selection requires a terminal — set the \"release\" config \
+                key (e.g. release = \"patch\") for non-interactive use"
+        .to_string(),
+    });
+  }
   let choices = build_choices(current_version, next);
   let titles: Vec<&str> = choices.iter().map(|(_, t)| t.as_str()).collect();
   let initial = choices

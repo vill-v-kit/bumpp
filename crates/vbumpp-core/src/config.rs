@@ -27,6 +27,33 @@ const PROJECT_CONFIG_FILES: [&str; 3] = [".vbumpprc.json", ".vbumpprc.jsonc", ".
 /// 全局级探测文件名集合（全局配置目录 `~/.vbumpp/` 内）
 const GLOBAL_CONFIG_FILES: [&str; 3] = ["config.json", "config.jsonc", "config.toml"];
 
+/// 顶层键名白名单（COL-60）：configuration.mdx 顶层配置项表 + 机制键
+/// （`noGitCheck`）。文档声称「写错键名会直接报错（并告诉你是哪个键）」
+/// （configuration.mdx / migration-v6.mdx）——文件层严格 schema，防配置
+/// 静默失效；overrides 层不校验（编程式 API 上游 parity）。`configFilePath`
+/// 不在列：它是 overrides 专用机制键，配置文件内自指无意义，写即报错。
+const SUPPORTED_TOP_LEVEL_KEYS: [&str; 19] = [
+  "all",
+  "changelog",
+  "commit",
+  "confirm",
+  "currentVersion",
+  "execute",
+  "files",
+  "gitlab",
+  "ignoreScripts",
+  "install",
+  "noGitCheck",
+  "noVerify",
+  "preid",
+  "push",
+  "recursive",
+  "release",
+  "scripts",
+  "sign",
+  "tag",
+];
+
 #[derive(Debug)]
 pub enum LoadConfigError {
   Io { message: String },
@@ -306,6 +333,29 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
             "config file {} contains the customVersion option: config files cannot carry \
              functions; this option was removed in the rewrite — delete the key.",
             path.display()
+          ),
+        });
+      }
+      // 顶层键名白名单（COL-60）：未知键全部列出（一次报错清完旧配置里的
+      // 无效键），并附合法键全集；customVersion 已在上文以专属迁移信息拦截
+      let mut unknown: Vec<&str> = map
+        .keys()
+        .map(String::as_str)
+        .filter(|k| !SUPPORTED_TOP_LEVEL_KEYS.contains(k))
+        .collect();
+      if !unknown.is_empty() {
+        unknown.sort_unstable();
+        return Err(LoadConfigError::UnsupportedConfig {
+          message: format!(
+            "config file {} contains unsupported {}: {} — supported top-level keys: {}",
+            path.display(),
+            if unknown.len() == 1 { "key" } else { "keys" },
+            unknown
+              .iter()
+              .map(|k| format!("\"{k}\""))
+              .collect::<Vec<_>>()
+              .join(", "),
+            SUPPORTED_TOP_LEVEL_KEYS.join(" / ")
           ),
         });
       }
