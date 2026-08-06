@@ -19,3 +19,4 @@
 
 - `npm/bump/src/bump.ts` 的 JS progress 函数删除，`versionBump` 调用不再传 progress。
 - 对上游 bumpp API 形状形成新偏差：上游 `progress` 为公开入参，本实现内置——本仓是唯一消费方，无兼容性损失。
+- 进度行中的路径打印格式后经 ADR-0023 修订（显示层统一为：cwd 内相对、cwd 外绝对、一律 POSIX）；本 ADR 的「复刻上游」范围自此不含路径形态。

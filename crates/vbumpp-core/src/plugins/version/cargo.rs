@@ -49,18 +49,20 @@ pub(crate) fn read_version(path: &Path) -> Option<String> {
     .map(str::to_string)
 }
 
-/// 保格式更新清单版本并按需定向同步 Cargo.lock（形态探测见模块头注释）
+/// 保格式更新清单版本并按需定向同步 Cargo.lock（形态探测见模块头注释）；
+/// `cwd` 为错误消息中绝对路径（lock）的显示路径锚点（ADR-0023）
 pub(crate) fn update(
   path: &Path,
   rel_path: &Path,
   current: &str,
   new: &str,
+  cwd: &Path,
 ) -> Result<UpdateOutcome, FilesError> {
   let text = read_text(path, rel_path)?;
   // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
   // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
   let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
-    message: format!("failed to parse {}: {e}", rel_path.display()),
+    message: format!("failed to parse {}: {e}", crate::display::posix(rel_path)),
   })?;
 
   let package = doc.get("package").and_then(Item::as_table_like);
@@ -78,13 +80,13 @@ pub(crate) fn update(
       .ok_or_else(|| FilesError::Lock {
         message: format!(
           "{} has no [package] name field; cannot sync Cargo.lock by crate name",
-          rel_path.display()
+          crate::display::posix(rel_path)
         ),
       })?
       .to_string();
     // 先完成全部计算（含 lock 同步校验），失败即报错且清单不改写
     let lock = find_lock(path)
-      .map(|lock_path| sync_lock_by_name(&lock_path, &name, current, new))
+      .map(|lock_path| sync_lock_by_name(&lock_path, &name, current, new, cwd))
       .transpose()?;
     return apply(
       &mut doc,
@@ -93,6 +95,7 @@ pub(crate) fn update(
       path,
       rel_path,
       new,
+      cwd,
     );
   }
 
@@ -106,7 +109,7 @@ pub(crate) fn update(
     return Ok(UpdateOutcome::Skipped);
   }
   let lock = find_lock(path)
-    .map(|lock_path| sync_lock_workspace_members(&lock_path, current, new))
+    .map(|lock_path| sync_lock_workspace_members(&lock_path, current, new, cwd))
     .transpose()?;
   apply(
     &mut doc,
@@ -115,6 +118,7 @@ pub(crate) fn update(
     path,
     rel_path,
     new,
+    cwd,
   )
 }
 
@@ -152,6 +156,7 @@ fn apply(
   path: &Path,
   rel_path: &Path,
   new: &str,
+  cwd: &Path,
 ) -> Result<UpdateOutcome, FilesError> {
   let table = match location {
     VersionLocation::Package => doc.get_mut("package").and_then(Item::as_table_like_mut),
@@ -163,7 +168,7 @@ fn apply(
   };
   set_table_version(table, new);
   write_text(path, rel_path, &doc.to_string())?;
-  commit_lock(lock)
+  commit_lock(lock, cwd)
 }
 
 /// 同步产物：更新后的 lock 文本与其路径（校验全部通过后才允许写盘）
@@ -179,9 +184,10 @@ fn sync_lock_by_name(
   name: &str,
   current: &str,
   new: &str,
+  cwd: &Path,
 ) -> Result<LockSync, FilesError> {
   let mut name_seen = false;
-  let (sync, synced) = sweep_lock(lock_path, current, new, |pkg| {
+  let (sync, synced) = sweep_lock(lock_path, current, new, cwd, |pkg| {
     let matched = pkg.get("name").and_then(Item::as_str) == Some(name);
     name_seen |= matched;
     matched
@@ -191,11 +197,11 @@ fn sync_lock_by_name(
       message: match name_seen {
         true => format!(
           "{} has crate \"{name}\" at a version other than the Cargo.toml current version {current} (version drift)",
-          lock_path.display()
+          crate::display::path(cwd, lock_path)
         ),
         false => format!(
           "{} has no [[package]] entry for crate \"{name}\"",
-          lock_path.display()
+          crate::display::path(cwd, lock_path)
         ),
       },
     });
@@ -209,13 +215,16 @@ fn sync_lock_workspace_members(
   lock_path: &Path,
   current: &str,
   new: &str,
+  cwd: &Path,
 ) -> Result<LockSync, FilesError> {
-  let (sync, swept) = sweep_lock(lock_path, current, new, |pkg| pkg.get("source").is_none())?;
+  let (sync, swept) = sweep_lock(lock_path, current, new, cwd, |pkg| {
+    pkg.get("source").is_none()
+  })?;
   if swept == 0 {
     return Err(FilesError::Lock {
       message: format!(
         "{} has no workspace member entry at version {current} (version drift)",
-        lock_path.display()
+        crate::display::path(cwd, lock_path)
       ),
     });
   }
@@ -228,9 +237,10 @@ fn sweep_lock(
   lock_path: &Path,
   current: &str,
   new: &str,
+  cwd: &Path,
   mut is_target: impl FnMut(&Table) -> bool,
 ) -> Result<(LockSync, usize), FilesError> {
-  let mut doc = parse_lock(lock_path)?;
+  let mut doc = parse_lock(lock_path, cwd)?;
   let mut synced = 0;
   if let Some(packages) = doc
     .get_mut("package")
@@ -253,11 +263,11 @@ fn sweep_lock(
 }
 
 /// 清单已写盘后落 lock；返回主文件 + 附带 lock 的更新结果
-fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, FilesError> {
+fn commit_lock(lock: Option<LockSync>, cwd: &Path) -> Result<UpdateOutcome, FilesError> {
   match lock {
     Some(sync) => {
       std::fs::write(&sync.path, &sync.content).map_err(|e| FilesError::Lock {
-        message: format!("failed to write {}: {e}", sync.path.display()),
+        message: format!("failed to write {}: {e}", crate::display::path(cwd, &sync.path)),
       })?;
       Ok(UpdateOutcome::UpdatedWith(vec![sync.path]))
     }
@@ -265,12 +275,12 @@ fn commit_lock(lock: Option<LockSync>) -> Result<UpdateOutcome, FilesError> {
   }
 }
 
-fn parse_lock(lock_path: &Path) -> Result<DocumentMut, FilesError> {
+fn parse_lock(lock_path: &Path, cwd: &Path) -> Result<DocumentMut, FilesError> {
   let text = std::fs::read_to_string(lock_path).map_err(|e| FilesError::Lock {
-    message: format!("failed to read {}: {e}", lock_path.display()),
+    message: format!("failed to read {}: {e}", crate::display::path(cwd, lock_path)),
   })?;
   text.parse::<DocumentMut>().map_err(|e| FilesError::Lock {
-    message: format!("failed to parse {}: {e}", lock_path.display()),
+    message: format!("failed to parse {}: {e}", crate::display::path(cwd, lock_path)),
   })
 }
 

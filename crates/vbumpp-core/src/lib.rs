@@ -6,6 +6,7 @@ pub mod changelog;
 pub mod cli;
 pub mod commits;
 pub mod config;
+pub mod display;
 pub mod exec;
 pub mod git;
 pub mod home;

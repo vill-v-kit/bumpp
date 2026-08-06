@@ -18,6 +18,7 @@ fn bump(dir: &TempDir) -> Result<UpdateOutcome, UpdateError> {
     &dir.path().join("Cargo.toml"),
     CURRENT,
     NEW,
+    dir.path(),
   )
 }
 
@@ -260,6 +261,7 @@ fn lock_is_discovered_by_walking_up_ancestors() {
     &dir.path().join("crates/demo/Cargo.toml"),
     CURRENT,
     NEW,
+    dir.path(),
   )
   .unwrap();
   // workspace 成员的 lock 位于仓库根：向上发现

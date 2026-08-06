@@ -185,11 +185,11 @@ pub fn read_document_with_home(
   home: Option<&Path>,
 ) -> Result<Option<Map<String, Value>>, LoadConfigError> {
   let project = match config_file_path {
-    Some(custom) => Some(read_config(&cwd.join(custom))?),
-    None => probe_config(cwd, &PROJECT_CONFIG_FILES)?,
+    Some(custom) => Some(read_config(&cwd.join(custom), cwd)?),
+    None => probe_config(cwd, &PROJECT_CONFIG_FILES, cwd)?,
   };
   let global = match home {
-    Some(dir) => probe_config(dir, &GLOBAL_CONFIG_FILES)?,
+    Some(dir) => probe_config(dir, &GLOBAL_CONFIG_FILES, cwd)?,
     None => None,
   };
   Ok(match (global, project) {
@@ -200,8 +200,14 @@ pub fn read_document_with_home(
   })
 }
 
-/// 单级探测：认名集合内命中 1 个即解析；2 个及以上报错并全部列出（ADR-0015）
-fn probe_config(dir: &Path, names: &[&str]) -> Result<Option<Map<String, Value>>, LoadConfigError> {
+/// 单级探测：认名集合内命中 1 个即解析；2 个及以上报错并全部列出（ADR-0015）。
+/// `cwd` 为错误消息的显示路径锚点（ADR-0023）：项目层 dir == cwd 打相对，
+/// 全局层（home 目录）打绝对 POSIX
+fn probe_config(
+  dir: &Path,
+  names: &[&str],
+  cwd: &Path,
+) -> Result<Option<Map<String, Value>>, LoadConfigError> {
   let found: Vec<PathBuf> = names
     .iter()
     .map(|n| dir.join(n))
@@ -209,11 +215,11 @@ fn probe_config(dir: &Path, names: &[&str]) -> Result<Option<Map<String, Value>>
     .collect();
   match found.len() {
     0 => Ok(None),
-    1 => Ok(Some(read_config(&found[0])?)),
+    1 => Ok(Some(read_config(&found[0], cwd)?)),
     _ => Err(LoadConfigError::AmbiguousConfig {
       message: format!(
         "multiple config files found in {}: {} — keep only one (supported: {})",
-        dir.display(),
+        crate::display::path(cwd, dir),
         found
           .iter()
           .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
@@ -301,29 +307,42 @@ impl ConfigFormat {
   }
 }
 
-fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
+/// 单文件读取与校验：`cwd` 为错误消息的显示路径锚点（ADR-0023）
+fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfigError> {
   let content = fs::read_to_string(path).map_err(|e| LoadConfigError::Io {
-    message: format!("failed to read config file {}: {e}", path.display()),
+    message: format!(
+      "failed to read config file {}: {e}",
+      crate::display::path(cwd, path)
+    ),
   })?;
   let value: Value = match ConfigFormat::of(path) {
     Some(ConfigFormat::Jsonc) => {
       jsonc_parser::parse_to_serde_value(&content, &CONFIG_JSONC_OPTIONS).map_err(|e| {
         LoadConfigError::Parse {
-          message: format!("failed to parse config file {}: {e}", path.display()),
+          message: format!(
+            "failed to parse config file {}: {e}",
+            crate::display::path(cwd, path)
+          ),
         }
       })?
     }
     Some(ConfigFormat::Toml) => {
       let toml_value: toml::Value =
         toml::from_str(&content).map_err(|e| LoadConfigError::Parse {
-          message: format!("failed to parse config file {}: {e}", path.display()),
+          message: format!(
+            "failed to parse config file {}: {e}",
+            crate::display::path(cwd, path)
+          ),
         })?;
-      reject_toml_datetimes(&toml_value, path)?;
+      reject_toml_datetimes(&toml_value, path, cwd)?;
       serde_json::to_value(toml_value).map_err(|e| LoadConfigError::Parse {
-        message: format!("failed to parse config file {}: {e}", path.display()),
+        message: format!(
+          "failed to parse config file {}: {e}",
+          crate::display::path(cwd, path)
+        ),
       })?
     }
-    None => return Err(unsupported_config(path)),
+    None => return Err(unsupported_config(path, cwd)),
   };
   match value {
     Value::Object(map) => {
@@ -332,7 +351,7 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
           message: format!(
             "config file {} contains the customVersion option: config files cannot carry \
              functions; this option was removed in the rewrite — delete the key.",
-            path.display()
+            crate::display::path(cwd, path)
           ),
         });
       }
@@ -348,7 +367,7 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
         return Err(LoadConfigError::UnsupportedConfig {
           message: format!(
             "config file {} contains unsupported {}: {} — supported top-level keys: {}",
-            path.display(),
+            crate::display::path(cwd, path),
             if unknown.len() == 1 { "key" } else { "keys" },
             unknown
               .iter()
@@ -362,14 +381,17 @@ fn read_config(path: &Path) -> Result<Map<String, Value>, LoadConfigError> {
       // gitlab 段严格 schema（ADR-0014）：随文件加载即校验，与 provider 无关
       if let Some(message) = gitlab_section_error(&map) {
         return Err(LoadConfigError::UnsupportedConfig {
-          message: format!("config file {}: {message}", path.display()),
+          message: format!("config file {}: {message}", crate::display::path(cwd, path)),
         });
       }
       Ok(map)
     }
     // 上游 `{...非对象}` 的行为（数组展开为索引键等）属于病理用法，明确拒绝
     _ => Err(LoadConfigError::Parse {
-      message: format!("config file {} must be an object", path.display()),
+      message: format!(
+        "config file {} must be an object",
+        crate::display::path(cwd, path)
+      ),
     }),
   }
 }
@@ -432,32 +454,36 @@ fn gitlab_section_error(source: &Map<String, Value>) -> Option<String> {
 
 /// TOML datetime 在 JSON 值域无表达（serde 会静默降为 ISO 字符串）——
 /// 配置中出现即报错（ADR-0015），请用户显式写字符串
-fn reject_toml_datetimes(value: &toml::Value, path: &Path) -> Result<(), LoadConfigError> {
+fn reject_toml_datetimes(
+  value: &toml::Value,
+  path: &Path,
+  cwd: &Path,
+) -> Result<(), LoadConfigError> {
   match value {
     toml::Value::Datetime(dt) => Err(LoadConfigError::Parse {
       message: format!(
         "config file {} contains a TOML datetime value ({dt}): not expressible in the \
          JSON value domain — use a string instead",
-        path.display()
+        crate::display::path(cwd, path)
       ),
     }),
     toml::Value::Array(items) => items
       .iter()
-      .try_for_each(|v| reject_toml_datetimes(v, path)),
+      .try_for_each(|v| reject_toml_datetimes(v, path, cwd)),
     toml::Value::Table(table) => table
       .values()
-      .try_for_each(|v| reject_toml_datetimes(v, path)),
+      .try_for_each(|v| reject_toml_datetimes(v, path, cwd)),
     _ => Ok(()),
   }
 }
 
-fn unsupported_config(path: &Path) -> LoadConfigError {
+fn unsupported_config(path: &Path, cwd: &Path) -> LoadConfigError {
   LoadConfigError::UnsupportedConfig {
     message: format!(
       "supported config file formats: .json / .jsonc / .toml (.vbumpprc.* or the file \
        configFilePath points to); the given config file {} is not supported — this \
        implementation does not execute TS/JS config.",
-      path.display()
+      crate::display::path(cwd, path)
     ),
   }
 }

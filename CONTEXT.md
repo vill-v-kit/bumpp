@@ -43,6 +43,10 @@ _Avoid_: publish
 向 registry（npm / crates.io）上传包的发布动作——本仓 11 个 npm 包与 2 个 crate（`vbumpp-core`、`vbumpp`）经 `ci.yml` 的 publish jobs 完成：tag 触发、无人工门、skip-if-published 幂等（ADR-0021）。与 Bump（含 commit/tag/push 的完整发布操作）、平台 Release（git 托管平台 release）三者分立。
 _Avoid_: publish（英文对应词，不作术语）、发布（过宽——兼指 Bump 与平台 Release）
 
+**免编译安装 (cargo-binstall 渠道)**:
+用户侧安装通路之一（与 npm 并列的一等渠道，ADR-0025）——`cargo binstall vbumpp` 依据 crates.io 元数据的 `repository` 字段探测 GitHub Release，拉取预编译 CLI 二进制免编译安装；无匹配平台的用户自动回退 `cargo install` 源码编译。产物约定跟随 binstall 默认模板（`vbumpp-{target}.tar.gz`、顶层目录 `vbumpp-{target}/`、tag `v{version}`），故 `crates/vbumpp` 的 Cargo.toml 零 binstall 元数据；覆盖 7 target（napi 5 平台 + linux musl×2），每产物附 `.sha256` 供用户手动校验（binstall 不消费）。与上架（向 registry 上传包）分立：本渠道消费的产物由 tag CI 的 build-cli job 构建、`gh release upload --clobber` 追加到 bump 流程已建的平台 Release，产物缺失令流水线硬失败。
+_Avoid_: 发布到 binstall（binstall 无 registry，纯按约定探测 GitHub Release）、预编译 npm 包（指 Platform package，机制不同）
+
 **内部机制包 (Internal machinery package)**:
 虽然发布到 npm、但设计上就不是给用户直接使用的包——判别问句："用户会直接 npm install 它吗？"不会即归 `napi/` 目录（ADR-0005，与是否发布无关）。成员：Core（napi 绑定本体）、Platform package（平台二进制分发包）；它们发布仅因 npm 不支持 workspace 协议与 optionalDependencies 按平台分发的机制需要。
 _Avoid_: 内部包（过宽，`crates/` 亦属内部）、native package
@@ -74,6 +78,10 @@ _Avoid_: 平台包（歧义——兼指 Platform package 二进制分发包）
 **用户可见字符串 (User-facing string)**:
 包向终端与调用方暴露的全部文案——错误信息、CLI help/用法、交互 prompt、进度打印、panic 兜底、napi loader 平台报错。唯一语言为英文（ADR-0017）；非英文需求一律走配置定制（如本仓库 `.vbumpprc.toml` 的中文 changelog types 标题），不进代码内建。代码注释不在其列（仓库内部工作语言为中文）。
 _Avoid_: 控制台打印（过窄——错误信息不经打印通路亦属之）、界面文案
+
+**显示路径 (Display path)**:
+打印到控制台的路径的统一形态——cwd 之内打相对路径，cwd 之外（token 存储、全局配置、`..` 逃逸的显式参数）打绝对路径，一律 POSIX 分隔符（ADR-0023）。只约束显示层；存储与 API 返回值（`updatedFiles` 等）保持绝对原生路径不变。
+_Avoid_: 完整路径、绝对路径打印
 
 **文档网站 (Docs website)**:
 面向用户的产品文档站（`website/`，fumadocs / Next.js 静态导出，ADR-0020）——与 `docs/` 的工程内部文档（ADR、agent 约定、迁移指南源稿）物理分离。纯中文、单版本（随最新 release）；内容板块：快速上手、CLI 参考、配置文件参考、平台 Release 指南、v5→v6 迁移指南、外链区（导航栏图标链接：npmx.dev 包页 + GitHub Releases）。部署 GitHub Pages（项目页子路径 `/bumpp`），接受国内访问不稳定的取舍、不做国内镜像。

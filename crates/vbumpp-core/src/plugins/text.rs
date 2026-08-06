@@ -33,6 +33,7 @@ impl VersionFilePlugin for TextPlugin {
     rel_path: &Path,
     current: &str,
     new: &str,
+    _cwd: &Path,
   ) -> Result<UpdateOutcome, FilesError> {
     version::text::update(path, rel_path, current, new)
   }

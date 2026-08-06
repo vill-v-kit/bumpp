@@ -28,12 +28,14 @@ impl VersionFilePlugin for NodePlugin {
     version::node::read_version(path)
   }
 
+  /// 本通道错误消息只用 rel_path（显示路径的相对形态，ADR-0023），无需 cwd 锚点
   fn update(
     &self,
     path: &Path,
     rel_path: &Path,
     current: &str,
     new: &str,
+    _cwd: &Path,
   ) -> Result<UpdateOutcome, FilesError> {
     version::node::update(path, rel_path, current, new)
   }

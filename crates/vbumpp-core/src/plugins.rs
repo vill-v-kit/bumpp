@@ -96,13 +96,15 @@ pub(crate) trait VersionFilePlugin: Sync {
   /// 读取失败均返回 None——semver 校验由编排层统一承担（上游 semver.valid 门）
   fn read_version(&self, path: &Path) -> Option<String>;
   /// 更新 `path`（绝对路径）指向的文件；`current` / `new` 为当前与新版本号；
-  /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案
+  /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案；
+  /// `cwd` 为错误消息中绝对路径（如 Cargo.lock）的显示路径锚点（ADR-0023）
   fn update(
     &self,
     path: &Path,
     rel_path: &Path,
     current: &str,
     new: &str,
+    cwd: &Path,
   ) -> Result<UpdateOutcome, FilesError>;
   /// 本生态的 install 适配（ADR-0008）；无适配能力的通道（Text）返回 None
   fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>>;
@@ -148,17 +150,19 @@ pub fn dispatch_read_version(rel_path: &Path, abs_path: &Path) -> Option<String>
 }
 
 /// 按 `rel_path` 分发到首个命中的插件，更新 `abs_path` 指向的文件
+/// （`cwd` 为错误消息的显示路径锚点，ADR-0023）
 pub fn dispatch_file(
   rel_path: &Path,
   abs_path: &Path,
   current: &str,
   new: &str,
+  cwd: &Path,
 ) -> Result<UpdateOutcome, FilesError> {
   PLUGINS
     .iter()
     .find(|p| p.matches(rel_path))
     .expect("the TextPlugin fallback always matches")
-    .update(abs_path, rel_path, current, new)
+    .update(abs_path, rel_path, current, new, cwd)
 }
 
 /// 按生态适配触发 install（ADR-0008 的链走查实现）：逐个执行待触发插件的适配
@@ -199,13 +203,13 @@ fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlug
 
 pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {
   std::fs::read_to_string(path).map_err(|e| FilesError::Io {
-    message: format!("failed to read {}: {e}", rel_path.display()),
+    message: format!("failed to read {}: {e}", crate::display::posix(rel_path)),
   })
 }
 
 pub(crate) fn write_text(path: &Path, rel_path: &Path, content: &str) -> Result<(), FilesError> {
   std::fs::write(path, content).map_err(|e| FilesError::Io {
-    message: format!("failed to write {}: {e}", rel_path.display()),
+    message: format!("failed to write {}: {e}", crate::display::posix(rel_path)),
   })
 }
 
@@ -289,7 +293,7 @@ fn update_file(
   if !path.exists() {
     return Ok((false, vec![]));
   }
-  let outcome = dispatch_file(Path::new(rel_path), &path, current_version, new_version)?;
+  let outcome = dispatch_file(Path::new(rel_path), &path, current_version, new_version, cwd)?;
   Ok(match outcome {
     UpdateOutcome::Updated => (true, vec![]),
     UpdateOutcome::UpdatedWith(extra_paths) => (true, extra_paths),

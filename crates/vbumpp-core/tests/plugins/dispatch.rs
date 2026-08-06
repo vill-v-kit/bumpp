@@ -17,6 +17,7 @@ fn manifest_basename_wins_over_text_fallback() {
     &dir.path().join("package.json"),
     "1.0.0",
     "2.0.0",
+    dir.path(),
   )
   .unwrap();
   assert_eq!(outcome, UpdateOutcome::Skipped);
@@ -36,6 +37,7 @@ fn unknown_basename_falls_through_to_text() {
     &dir.path().join("VERSION.txt"),
     "1.0.0",
     "2.0.0",
+    dir.path(),
   )
   .unwrap();
   assert_eq!(outcome, UpdateOutcome::Updated);
@@ -59,6 +61,7 @@ fn matches_uses_basename_not_full_path() {
     &dir.path().join("sub/deep/package.json"),
     "1.0.0",
     "2.0.0",
+    dir.path(),
   )
   .unwrap();
   assert_eq!(outcome, UpdateOutcome::Updated);
@@ -77,6 +80,7 @@ fn io_error_message_uses_rel_path() {
     &dir.path().join("sub/ghost.txt"),
     "1.0.0",
     "2.0.0",
+    dir.path(),
   )
   .unwrap_err();
   let message = err.to_string();
@@ -101,6 +105,7 @@ fn cargo_toml_wins_over_text_fallback() {
     &dir.path().join("Cargo.toml"),
     "1.0.0",
     "2.0.0",
+    dir.path(),
   )
   .unwrap();
   assert_eq!(outcome, UpdateOutcome::Skipped);
@@ -124,6 +129,7 @@ fn cargo_toml_basename_matching_is_case_insensitive() {
     &dir.path().join("CARGO.TOML"),
     "1.0.0",
     "2.0.0",
+    dir.path(),
   )
   .unwrap();
   assert_eq!(outcome, UpdateOutcome::Updated);

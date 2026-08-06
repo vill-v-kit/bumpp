@@ -34,8 +34,9 @@ impl VersionFilePlugin for CargoPlugin {
     rel_path: &Path,
     current: &str,
     new: &str,
+    cwd: &Path,
   ) -> Result<UpdateOutcome, FilesError> {
-    version::cargo::update(path, rel_path, current, new)
+    version::cargo::update(path, rel_path, current, new, cwd)
   }
 
   fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>> {

@@ -7,7 +7,14 @@ use tempfile::TempDir;
 use vbumpp_core::plugins::{dispatch_file as update_file, UpdateOutcome};
 
 fn bump(dir: &TempDir, name: &str) -> UpdateOutcome {
-  update_file(Path::new(name), &dir.path().join(name), "1.0.0", "2.0.0").unwrap()
+  update_file(
+    Path::new(name),
+    &dir.path().join(name),
+    "1.0.0",
+    "2.0.0",
+    dir.path(),
+  )
+  .unwrap()
 }
 
 fn write(dir: &TempDir, name: &str, content: &str) {

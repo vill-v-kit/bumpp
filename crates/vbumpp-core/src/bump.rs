@@ -322,7 +322,7 @@ pub fn version_bump(
         ProgressEvent::FileSkipped => p.skipped_files.last().map(String::as_str),
         _ => None,
       };
-      crate::progress::print_line(p.event, p.script, p.new_version, file);
+      crate::progress::print_line(p.event, p.script, p.new_version, file, cwd);
       progress(&p);
     }};
   }
@@ -384,9 +384,11 @@ pub fn version_bump(
     let updated_files: &[String] = match &tracked_filter {
       Some(t) => {
         for f in state.updated_files.iter().filter(|f| !t.contains(f)) {
+          // 存储值保持绝对原生（pathspec 依据），打印走显示路径（ADR-0023）
           println!(
-            "{} skipping untracked file in commit (left modified on disk): {f}",
-            dialoguer::console::style("⚠").yellow()
+            "{} skipping untracked file in commit (left modified on disk): {}",
+            dialoguer::console::style("⚠").yellow(),
+            crate::display::path(cwd, Path::new(f))
           );
         }
         t.as_slice()
