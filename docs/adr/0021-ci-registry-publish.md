@@ -25,5 +25,5 @@ website 安装指南已双渠道承诺（npm + crates.io），`ci.yml` 亦预留
 - `crates/vbumpp-core` 与 `crates/vbumpp` 移除 `publish = false`；`vbumpp-core` 以独立库 crate 身份公开占位，crates.io 名字占用不可撤销。
 - 仓库 secrets 新增两枚长效 token；granular token 最长一年期，OIDC 迁移完成前需轮换——迁移尾巴由本 ADR 记死，防 token 变永久遗留。
 - ADR-0014 注记的「发布前需复测交叉编译链」由 tag CI 的 5 平台 build + test-bindings 承担，publish 只在全绿后发生。
-- 平台包 `.node` 注入的 `cp` 逻辑与 `test-bindings` job 同款；ADR-0019 的「接通发布通路」注记由本 ADR 兑现，GitHub Release 预编译维持不做。
+- 平台包 `.node` 注入的 `cp` 逻辑与 `test-bindings` job 同款；ADR-0019 的「接通发布通路」注记由本 ADR 兑现，GitHub Release 预编译维持不做（2026-08 由 ADR-0025 反转：tag CI 增 build-cli job，向 Release 追加 7 target 预编译 CLI 产物，接通 cargo-binstall 免编译渠道）。
 - 守卫与上架编排沉淀为 `scripts/` 可测脚本族（publish-guard / npm-publish / crates-publish，vitest CLI 契约测试）；面向贡献者的发布流程描述见 `CONTRIBUTING.md`「CI」节（操作视图，与本 ADR 双向互查）。
