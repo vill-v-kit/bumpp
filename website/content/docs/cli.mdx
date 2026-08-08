@@ -42,19 +42,14 @@ vbumpp release 5.1.0 --provider gitee
 
 它会从 changelog 文件（默认 `CHANGELOG.md`，可用 `-o` 换）里取出 `5.1.0` 这一节的全部内容作为 Release 描述。版本号写 `5.1.0` 或 `v5.1.0` 都行。
 
-执行前会做两项检查，任一不满足都会拒绝执行（不会发出任何内容）：
-
-1. 本地存在 `v5.1.0` 这个 git tag——防止在错误的提交上建 Release
-2. changelog 里能找到 `5.1.0` 这一节——防止发出一个空描述的 Release
-
-如果平台上已存在该版本的 Release，会按平台返回的错误原样提示（不会覆盖已有内容）。
+执行前会检查本地存在 `v5.1.0` 这个 git tag、且 changelog 里能找到 `5.1.0` 这一节。
 
 ## `vbumpp token <action> [name]`
 
 管理各平台的 access token（详见[平台 Release 指南](/docs/release)）：
 
 ```sh
-vbumpp token set gitee      # 录入（密码式输入，不回显）
+vbumpp token set gitee      # 录入
 vbumpp token list           # 查看已配置了哪些平台
 vbumpp token remove gitee   # 删除
 ```
@@ -64,4 +59,4 @@ vbumpp token remove gitee   # 删除
 | 码 | 含义 |
 | --- | --- |
 | `0` | 成功 |
-| `1` | 失败：参数用法错误、配置错误、git / 网络 / 平台 API 出错、`release` 前置检查未通过等（具体原因会打印在终端） |
+| `1` | 失败 |

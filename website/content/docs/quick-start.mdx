@@ -18,7 +18,7 @@ vbumpp
 
 会出现一个交互菜单让你选择新版本怎么算：
 
-- `patch` / `minor` / `major`：按 semver 递增（修 bug 选 patch，加功能选 minor，破坏性变更选 major）
+- `patch` / `minor` / `major`：按 semver 递增
 - `prepatch` / `preminor` / `premajor` / `prerelease`：发预发布版本（如 `1.1.0-beta.1`）
 - `conventional`：根据自上次发版以来的 conventional commits 自动推断
 - `next`：取当前版本的下一个递增
@@ -33,7 +33,7 @@ vbumpp
 5. （平台变体包）在该平台创建 Release
 
 <Callout type="info">
-第一次使用时如果仓库还没有任何 git tag，会跳过 changelog 生成——先正常发一版，从第二版开始就有变更记录了。
+仓库还没有任何 git tag 时会跳过 changelog 生成。
 </Callout>
 
 ## 常见用法

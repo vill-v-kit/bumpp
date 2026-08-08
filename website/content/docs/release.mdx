@@ -19,7 +19,7 @@ description: 在 GitHub / GitLab / Gitee / GitCode 上创建 Release
 
 ## 配置 token
 
-在平台上创建 Release 需要对应平台的 access token。本机使用录入一次即可（加密保存在 `~/.vbumpp/`，不会明文落盘；输入时不回显）：
+在平台上创建 Release 需要对应平台的 access token。本机使用录入一次即可：
 
 ```sh
 vbumpp token set gitee
@@ -65,4 +65,4 @@ vbumpp token set gitee
 vbumpp release 5.1.0 --provider gitee
 ```
 
-`release` 命令会从 `CHANGELOG.md` 取出 `5.1.0` 这一节作为 Release 描述。为防误发，它会先检查本地确实存在 `v5.1.0` 的 tag、且 changelog 里确实有这一节，缺任何一样都会拒绝执行。如果平台上已有该版本的 Release，会原样提示平台的错误信息，不会覆盖。
+`release` 命令会从 `CHANGELOG.md` 取出 `5.1.0` 这一节作为 Release 描述，执行前会检查本地存在 `v5.1.0` 的 tag、且 changelog 里有这一节。
