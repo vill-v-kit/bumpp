@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import {
-  Code2,
   FileText,
   Globe,
   Layers,
@@ -8,7 +7,7 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react';
-import { siGithub, siKimi, siRust } from 'simple-icons';
+import { siGithub } from 'simple-icons';
 import { PMIcon } from '@/components/pm-tabs';
 import { DEMO_TERMINAL } from './demo-terminal';
 
@@ -55,24 +54,6 @@ const upstream = [
     href: 'https://github.com/unjs/changelogen',
     repo: 'unjs/changelogen',
     desc: 'changelog 生成——变更记录语义的改写来源',
-  },
-];
-
-const builtWith = [
-  {
-    icon: <PMIcon path={siRust.path} title="Rust" />,
-    title: 'Rust 重写',
-    desc: '核心引擎纯 Rust，启动快、行为一致',
-  },
-  {
-    icon: <Code2 className="size-5" />,
-    title: 'ZCode',
-    desc: '全程 vibe coding 的编码代理',
-  },
-  {
-    icon: <PMIcon path={siKimi.path} title="Kimi" />,
-    title: 'Kimi K3',
-    desc: '驱动全部代码编写的模型',
   },
 ];
 
@@ -154,17 +135,6 @@ export default function HomePage() {
             </div>
             <div className="text-sm text-fd-muted-foreground">{u.desc}</div>
           </a>
-        ))}
-      </div>
-
-      <h2 className="text-xl font-semibold mb-4">构建</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {builtWith.map((b) => (
-          <div key={b.title} className="rounded-lg border border-fd-border p-4">
-            <div className="text-fd-primary mb-2">{b.icon}</div>
-            <div className="font-medium mb-1">{b.title}</div>
-            <div className="text-sm text-fd-muted-foreground">{b.desc}</div>
-          </div>
         ))}
       </div>
     </div>
