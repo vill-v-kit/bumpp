@@ -1,8 +1,8 @@
 #![deny(clippy::all)]
 
-//! napi 导出面（ADR-0014 收缩、ADR-0016 再收缩、ADR-0019 三收缩后）：编排
+//! napi 导出面（ADR-0014 收缩、ADR-0016 再收缩、ADR-0016 三收缩后）：编排
 //! `bumpVersion`、CLI 单入口 `cliRun`。平台 Release 四导出已删——独立
-//! release 由 CLI `vbumpp release` 子命令承接（ADR-0019）；上游 parity 面
+//! release 由 CLI `vbumpp release` 子命令承接（ADR-0016）；上游 parity 面
 //! （versionBump 系、loadBumpConfig）与 changelog 系函数收归 Rust 内部。
 
 use std::path::PathBuf;

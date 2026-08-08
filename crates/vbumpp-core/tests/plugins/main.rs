@@ -1,5 +1,5 @@
 //! 插件底座编排矩阵——对齐上游 bumpp v11 updateFiles（事件序列、路径归一、
-//! 附带文件补发）；生态能力矩阵按 src/plugins/ 能力子目录镜像（ADR-0010）。
+//! 附带文件补发）；生态能力矩阵按 src/plugins/ 能力子目录镜像（ADR-0007）。
 
 use std::fs;
 

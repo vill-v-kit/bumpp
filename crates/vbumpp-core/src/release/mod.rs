@@ -1,5 +1,5 @@
 //! 平台 Release（ADR-0014）：github / gitlab / gitee / gitcode 的 release 创建。
-//! 布局（ADR-0018）：每 provider 单文件——github / gitee / gitcode 为薄文件
+//! 布局（ADR-0014）：每 provider 单文件——github / gitee / gitcode 为薄文件
 //! （各持 base_url 与 token 注入形态：Bearer 头 / 请求体字段 / query 参数），
 //! 请求体语义的单一事实源在 github_like.rs；gitlab.rs 全特化（`PRIVATE-TOKEN`
 //! 头 + 项目 id 直查 + `gitlab.host` 解析随文件，自建实例严格 schema 仅 host 一键）。

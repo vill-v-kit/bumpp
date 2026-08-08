@@ -373,7 +373,7 @@ fn recursive_default_files_expand_packages_manifests() {
   let (_events, mut cb) = collect_events();
   let results = version_bump(&options, &path, &mut cb).unwrap();
 
-  // ADR-0009：recursive 默认清单 = 链上 basename 表的 `**/` 整树收集模式，
+  // ADR-0007：recursive 默认清单 = 链上 basename 表的 `**/` 整树收集模式，
   // 整树命中 packages 下的 manifest（替代上游 packages/**/package.json 硬编码）
   assert_eq!(results.new_version, "2.0.0");
   assert_eq!(results.updated_files.len(), 2);

@@ -1,5 +1,5 @@
 //! `loadBumpConfig`：语义对齐上游 antfu/bumpp v11；配置文件为两级多格式
-//! （ADR-0015）：项目级 `.vbumpprc.{json,jsonc,toml}` + 全局级
+//! （ADR-0013）：项目级 `.vbumpprc.{json,jsonc,toml}` + 全局级
 //! `~/.vbumpp/config.{json,jsonc,toml}`（`.json`/`.jsonc` 同走 JSONC 解析）。
 //!
 //! 合并顺序（浅展开，整体替换）：`bumpConfigDefaults` ← 全局文件 ← 项目文件
@@ -22,7 +22,7 @@ use serde_json::{Map, Value};
 
 use crate::plugins::recursive_manifest_globs;
 
-/// 项目级探测文件名集合（ADR-0015）
+/// 项目级探测文件名集合（ADR-0013）
 const PROJECT_CONFIG_FILES: [&str; 3] = [".vbumpprc.json", ".vbumpprc.jsonc", ".vbumpprc.toml"];
 /// 全局级探测文件名集合（全局配置目录 `~/.vbumpp/` 内）
 const GLOBAL_CONFIG_FILES: [&str; 3] = ["config.json", "config.jsonc", "config.toml"];
@@ -165,7 +165,7 @@ fn merge(base: &mut Map<String, Value>, overrides: Map<String, Value>) {
   }
 }
 
-/// 配置文件读取原语（单一解析路径，ADR-0013/0015）：bumpp 键与 changelog 段共享
+/// 配置文件读取原语（单一解析路径，ADR-0013）：bumpp 键与 changelog 段共享
 /// 同一份文档。项目层与全局层（`~/.vbumpp/`）分层读取后合并（全局 ← 项目）。
 /// `config_file_path` 指定时按给定文件精确加载（替代项目层探测；文件缺失报 Io，
 /// 非支持扩展名报错——上游行为扩展）；全局层照常叠加。
@@ -200,8 +200,8 @@ pub fn read_document_with_home(
   })
 }
 
-/// 单级探测：认名集合内命中 1 个即解析；2 个及以上报错并全部列出（ADR-0015）。
-/// `cwd` 为错误消息的显示路径锚点（ADR-0023）：项目层 dir == cwd 打相对，
+/// 单级探测：认名集合内命中 1 个即解析；2 个及以上报错并全部列出（ADR-0013）。
+/// `cwd` 为错误消息的显示路径锚点（ADR-0002）：项目层 dir == cwd 打相对，
 /// 全局层（home 目录）打绝对 POSIX
 fn probe_config(
   dir: &Path,
@@ -292,7 +292,7 @@ fn strip_nulls(map: Map<String, Value>) -> Map<String, Value> {
 
 /// 支持的配置文件格式（按扩展名分派）
 enum ConfigFormat {
-  /// `.json` / `.jsonc` 同走 JSONC 解析（注释、尾逗号可用；`.jsonc` 为别名，ADR-0015）
+  /// `.json` / `.jsonc` 同走 JSONC 解析（注释、尾逗号可用；`.jsonc` 为别名，ADR-0013）
   Jsonc,
   Toml,
 }
@@ -307,7 +307,7 @@ impl ConfigFormat {
   }
 }
 
-/// 单文件读取与校验：`cwd` 为错误消息的显示路径锚点（ADR-0023）
+/// 单文件读取与校验：`cwd` 为错误消息的显示路径锚点（ADR-0002）
 fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfigError> {
   let content = fs::read_to_string(path).map_err(|e| LoadConfigError::Io {
     message: format!(
@@ -396,7 +396,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
   }
 }
 
-/// 配置文件的 JSONC 选项：仅注释与尾逗号（ADR-0015）——关掉 jsonc-parser 默认
+/// 配置文件的 JSONC 选项：仅注释与尾逗号（ADR-0013）——关掉 jsonc-parser 默认
 /// 开启的 JSON5 风格宽松项（未引号键、单引号串、缺省逗号、十六进制/一元加号数字）
 const CONFIG_JSONC_OPTIONS: jsonc_parser::ParseOptions = jsonc_parser::ParseOptions {
   allow_comments: true,
@@ -453,7 +453,7 @@ fn gitlab_section_error(source: &Map<String, Value>) -> Option<String> {
 }
 
 /// TOML datetime 在 JSON 值域无表达（serde 会静默降为 ISO 字符串）——
-/// 配置中出现即报错（ADR-0015），请用户显式写字符串
+/// 配置中出现即报错（ADR-0013），请用户显式写字符串
 fn reject_toml_datetimes(
   value: &toml::Value,
   path: &Path,

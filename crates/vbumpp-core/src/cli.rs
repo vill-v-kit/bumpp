@@ -1,6 +1,6 @@
 //! CLI 应用层（ADR-0016）：argv 语法（子命令、flag、help 文案、错误提示、
 //! 退出码）的唯一归属。手写解析器（语法盘子小，不引 clap）；npm bin 与原生
-//! CLI 二进制（`crates/vbumpp`，ADR-0019）为共享 `run_from_argv` 的两个
+//! CLI 二进制（`crates/vbumpp`，ADR-0016）为共享 `run_from_argv` 的两个
 //! 薄壳前端。
 //!
 //! 消息文案逐条对齐 JS 时代 cli.ts 的 consola 输出（parity 基准）；着色仿
@@ -16,7 +16,7 @@ use crate::token;
 
 /// 真实入口：npm bin / 原生 bin 的唯一调用点。`provider` 为平台变体注入身份
 /// （bump 与 release 通路生效；token 子命令无视）——argv `--provider` flag
-/// 优先于该注入（ADR-0019）。返回退出码，由调用壳回写
+/// 优先于该注入（ADR-0016）。返回退出码，由调用壳回写
 /// （Rust 不越权设宿主进程状态）。
 pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
   let stdout = std::io::stdout();
@@ -36,7 +36,7 @@ pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
 pub type TokenPrompt<'a> = &'a dyn Fn(&str) -> Result<Option<String>, token::TokenError>;
 
 /// 可测内核的环境注入：`store` 覆盖 token 存储路径（None 走环境解析，
-/// `VBUMPP_TOKEN_STORE` → `VBUMPP_HOME` → 系统 home，ADR-0015）；`cwd` 覆盖
+/// `VBUMPP_TOKEN_STORE` → `VBUMPP_HOME` → 系统 home，ADR-0013）；`cwd` 覆盖
 /// bump 执行目录（None 取进程当前目录）；`prompt` 覆盖 token 录入交互
 /// （None 走 dialoguer 密码 prompt，ADR-0014）。
 pub struct RunEnv<'a> {
@@ -90,7 +90,7 @@ struct BumpArgs {
   provider: Option<String>,
 }
 
-/// release 子命令（`vbumpp release <version>`，ADR-0019）的解析产物
+/// release 子命令（`vbumpp release <version>`，ADR-0016）的解析产物
 struct ReleaseArgs {
   version: String,
   output: String,
@@ -191,7 +191,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
   Ok(Command::Bump(args))
 }
 
-/// release 子命令解析（ADR-0019）：`vbumpp release <version> [-o file]
+/// release 子命令解析（ADR-0016）：`vbumpp release <version> [-o file]
 /// [--provider name]`。version 为唯一位置参数（多余位置参数即用法错误——
 /// 与 bump 的 files 列表语义不同）；`--provider` 的必填判定在命令执行层
 /// （平台变体注入可兜底，解析层不知注入身份）。
@@ -284,7 +284,7 @@ fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
   overrides
 }
 
-/// provider 解析（ADR-0019）：argv `--provider` flag 优先于平台变体注入身份；
+/// provider 解析（ADR-0016）：argv `--provider` flag 优先于平台变体注入身份；
 /// 两者皆无为 None（bump 后不接 release；release 子命令在执行层判必填）
 fn resolve_provider(
   flag: Option<&str>,
@@ -337,7 +337,7 @@ fn bump_command(
 }
 
 // ---------------------------------------------------------------------------
-// release 子命令（ADR-0019）：bump 末段 release 失败（网络 / 密钥过期）后的
+// release 子命令（ADR-0016）：bump 末段 release 失败（网络 / 密钥过期）后的
 // 独立重试通路——body 从 changelog 文件提取指定版本节，纯创建语义
 // ---------------------------------------------------------------------------
 
@@ -765,7 +765,7 @@ mod tests {
 
   #[test]
   fn provider_flag_beats_injection() {
-    // ADR-0019 优先级锚定：argv flag > 平台变体注入
+    // ADR-0016 优先级锚定：argv flag > 平台变体注入
     let resolved = resolve_provider(Some("gitee"), Some("github")).unwrap();
     assert_eq!(resolved, Some(crate::release::Provider::Gitee));
     let resolved = resolve_provider(None, Some("github")).unwrap();

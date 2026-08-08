@@ -1,4 +1,4 @@
-//! recursive 能力矩阵：链上清单模式表聚合（ADR-0003 opt-in；ADR-0010 底座化）。
+//! recursive 能力矩阵：链上清单模式表聚合（ADR-0003 opt-in；ADR-0007 底座化）。
 
 #[test]
 fn recursive_manifest_globs_cover_all_ecosystems() {
@@ -23,7 +23,7 @@ fn recursive_manifest_globs_cover_all_ecosystems() {
 
 #[test]
 fn default_file_patterns_are_root_level_chain_union() {
-  // ADR-0009：files 为空时的默认清单 = 链上 manifest basenames 根级并集
+  // ADR-0007：files 为空时的默认清单 = 链上 manifest basenames 根级并集
   // （glob 展开使不存在的文件自然消失，无需运行时生态探测）
   assert_eq!(
     vbumpp_core::plugins::default_file_patterns(false),
@@ -43,7 +43,7 @@ fn default_file_patterns_are_root_level_chain_union() {
 
 #[test]
 fn default_file_patterns_recursive_upgrades_to_tree_globs() {
-  // ADR-0009：recursive 默认清单 = 同一份 basename 表的 `**/` 整树收集模式
+  // ADR-0007：recursive 默认清单 = 同一份 basename 表的 `**/` 整树收集模式
   // （替代 bump.rs 原 `packages/**/package.json` 硬编码）
   assert_eq!(
     vbumpp_core::plugins::default_file_patterns(true),

@@ -1,7 +1,7 @@
 //! changelog 域（ADR-0012）：changelogen 使用面的 Rust 重写。
 //! 编排与对外 API 收于此根部；能力子目录：配置段解析（`config`）、
 //! markdown 生成（`markdown`）、gitmoji 数据表（`gitmoji`）、版本节提取
-//! （`extract`，ADR-0019 release 重试通路）。
+//! （`extract`，ADR-0016 release 重试通路）。
 
 pub mod config;
 pub mod extract;
@@ -176,7 +176,7 @@ pub fn generate_changelog(
 }
 
 /// 读既有文件（缺失则以 `# Changelog\n\n` 起始）→ 首个 `^###?` 条目前插入
-/// （无则追加）→ 写盘；返回最终全文。`cwd` 为错误消息的显示路径锚点（ADR-0023）
+/// （无则追加）→ 写盘；返回最终全文。`cwd` 为错误消息的显示路径锚点（ADR-0002）
 fn upsert_changelog(output: &Path, markdown: &str, cwd: &Path) -> Result<String, ChangelogError> {
   let mut changelog_md = match std::fs::read_to_string(output) {
     Ok(content) => content,

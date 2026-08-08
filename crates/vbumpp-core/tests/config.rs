@@ -1,6 +1,6 @@
 //! loadBumpConfig 合并矩阵——对齐上游 antfu/bumpp v11 的浅展开语义：
 //! `bumpConfigDefaults` ← 配置文件 ← overrides（undefined/null 剥离）。
-//! 多格式与并存探测见本文件后段；全局层合并见 config_global.rs（ADR-0015）。
+//! 多格式与并存探测见本文件后段；全局层合并见 config_global.rs（ADR-0013）。
 
 mod common;
 
@@ -400,7 +400,7 @@ fn files_are_deduped_without_recursive() {
 }
 
 // ---------------------------------------------------------------------------
-// 多格式（ADR-0015）：JSONC（.json/.jsonc 同 parser）+ TOML；同级并存报错
+// 多格式（ADR-0013）：JSONC（.json/.jsonc 同 parser）+ TOML；同级并存报错
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -419,7 +419,7 @@ fn json_config_accepts_comments_and_trailing_commas() {
 
 #[test]
 fn jsonc_file_is_detected_as_json_alias() {
-  // .jsonc 别名：照顾编辑器对 .json 内注释报错的团队场景（ADR-0015）
+  // .jsonc 别名：照顾编辑器对 .json 内注释报错的团队场景（ADR-0013）
   let dir = TempDir::new().unwrap();
   write(&dir, ".vbumpprc.jsonc", "// 注释\n{ \"push\": false }");
   let merged = load(&dir, None);
@@ -471,7 +471,7 @@ fn malformed_toml_reports_path() {
 
 #[test]
 fn toml_datetime_is_rejected() {
-  // TOML datetime 在 JSON 值域无表达——遇到即报错（ADR-0015）
+  // TOML datetime 在 JSON 值域无表达——遇到即报错（ADR-0013）
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   write(&dir, ".vbumpprc.toml", "when = 2026-08-03T00:00:00Z\n");
@@ -480,7 +480,7 @@ fn toml_datetime_is_rejected() {
 
 #[test]
 fn multiple_project_configs_error_listing_all() {
-  // 同级并存 = 迁移事故：报错并全部列出（ADR-0015）
+  // 同级并存 = 迁移事故：报错并全部列出（ADR-0013）
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   write(&dir, ".vbumpprc.json", r#"{ "tag": false }"#);
@@ -526,7 +526,7 @@ fn config_file_path_loads_jsonc() {
 
 #[test]
 fn config_file_path_to_yaml_errors_with_supported_formats() {
-  // YAML 不支持（ADR-0015）：报错列出支持格式
+  // YAML 不支持（ADR-0013）：报错列出支持格式
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   write(&dir, "custom.yaml", "push: false\n");
@@ -545,7 +545,7 @@ fn config_file_path_to_yaml_errors_with_supported_formats() {
 
 #[test]
 fn jsonc_rejects_json5_loose_syntax() {
-  // JSONC 仅注释与尾逗号（ADR-0015）：jsonc-parser 默认开启的 JSON5 宽松项全关
+  // JSONC 仅注释与尾逗号（ADR-0013）：jsonc-parser 默认开启的 JSON5 宽松项全关
   common::isolate_global_home();
   for (name, content) in [
     ("unquoted-keys", "{ tag: false }"),

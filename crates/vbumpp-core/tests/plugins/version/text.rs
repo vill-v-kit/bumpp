@@ -76,7 +76,7 @@ fn prerelease_current_version_in_text() {
   assert_eq!(read(&dir, "a.txt"), "now at 1.0.0-beta.2!\n");
 }
 
-// ---- read_version（ADR-0009：兜底通道无版本解析能力） ----
+// ---- read_version（ADR-0007：兜底通道无版本解析能力） ----
 
 #[test]
 fn text_channel_has_no_read_version() {
@@ -88,6 +88,6 @@ fn text_channel_has_no_read_version() {
       &dir.path().join("VERSION.txt"),
     ),
     None,
-    "Text 兜底通道不承载版本解析（ADR-0009）"
+    "Text 兜底通道不承载版本解析（ADR-0007）"
   );
 }

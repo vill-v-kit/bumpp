@@ -34,7 +34,7 @@ impl ProgressEvent {
 /// 事件 → CLI 输出字符串（仿 consola 样式：success ✔ 绿 / info ℹ 蓝；
 /// 非 TTY 时 console 自动降级为无 ANSI 纯文本）。
 /// `file` 为本次事件对应的文件路径（FileUpdated / FileSkipped 的最后一个，
-/// 绝对原生形态的存储值）——打印层按显示路径规则转换（ADR-0023：cwd 内相对、
+/// 绝对原生形态的存储值）——打印层按显示路径规则转换（ADR-0002：cwd 内相对、
 /// cwd 外绝对、一律 POSIX），存储与 API 返回值不受影响
 pub fn format_line(
   event: ProgressEvent,

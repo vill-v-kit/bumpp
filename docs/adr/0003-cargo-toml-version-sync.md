@@ -1,34 +1,19 @@
-# 发版支持 Cargo.toml 版本号同步
+# Cargo.toml 与 Cargo.lock 版本同步
 
-`vbumpp -r` 发版时除 `package.json` 外，同步更新显式列入 files 的 `Cargo.toml` 的 `[package].version`（toml_edit 保格式编辑，绝不触碰 `[dependencies]` 等其他表），并按 crate name 定向同步根 `Cargo.lock` 中对应 `[[package]]` 条目。解决自身 rust 包无法一键版本更新的问题。
+Cargo 生态清单由插件底座结构化处理。更新 `Cargo.toml` 时只修改 `[package].version` 或 `[workspace.package].version`，并在适用时按 crate name 定向同步最近的上级 `Cargo.lock`。
 
 ## Decisions
 
-- **toml_edit 编辑**：精确定位 `[package]` 表的 `version` 字段做保格式替换；引入 `toml_edit` 依赖（cargo 自家使用的 TOML 编辑库）。
-- **workspace 版本继承场景**：先探测 `package.version` 形态——字面量字符串则更新；`version.workspace = true`（成员继承根 `[workspace.package]`）则**跳过该文件**（强写字面量会造成键冲突/破坏继承），改为更新根 `[workspace.package].version`（若存在）；两者皆无才按"version 缺失"走 FileSkipped。
-- **basename 识别**：core 的 files 模块将 `cargo.toml`（小写比较）加入 manifest 识别名单，命中时走 TOML 通道而非文本替换。
-- **显式纳入 files**：Cargo.toml 进入发版清单靠显式配置（本仓 `vbumpp.config.ts` 列明各 rust crate 的 Cargo.toml——当前为 `crates/bumpp-core`、`napi/bumpp-core` 两处）。**默认流程不做自动收集**（避免误伤其他仓库中无关的 Cargo.toml）；`-r`（用户显式 opt-in 的整树收集）则允许收集 `**/Cargo.toml`——opt-in 语义与 JS 生态一致，core 的 `IGNORED_DIRS`（fixtures/__tests__/node_modules 等）过滤统一兜底。
-- **Cargo.lock 同步**：优先以同一 toml_edit 机制按 name 定向更新 `[[package]]` 条目（确定性、无需跑 cargo）；条目缺失等同步失败场景**失败即报错**（发版一致性优先）。`cargo check --workspace` 作为兜底的备选刷新方式。
-- **跳过规则复用**：与 manifest 相同——`version` 缺失或已是新版本时不改写（FileSkipped）。
-
-## Considered Options
-
-- **手写 span 替换（零新依赖）**：`[package]` 表边界、行内注释等边界需自行兜底——拒绝，toml_edit 维护性更强。
-- **recursive 自动收集 `**/Cargo.toml`（默认流程）**：会波及所有 `vbumpp -r` 用户仓库中无关的 Cargo.toml——默认流程维持拒绝，显式配置可控；但 `-r` 是用户显式 opt-in 的整树收集，与“误伤”不相干，该场景下允许（见 Decisions）。
-- **lock 同步失败仅警告**：静默不一致比直接失败更糟——拒绝。
+- 使用 `toml_edit` 保格式编辑版本字段，不触碰依赖表等其他内容。
+- `[package].version` 为字符串时直接更新；成员使用 `version.workspace = true` 时不写入成员字面量，由根清单的 `[workspace.package].version` 统一更新。版本字段缺失或已是目标版本时跳过。
+- 从清单目录向上查找首个 `Cargo.lock`。找不到 lock 时仅更新清单；找到时，按 crate name 和当前版本匹配无 `source` 的 workspace 条目并同步。
+- lock 解析失败、目标条目缺失或当前版本漂移均报错；所有检查成功后才写盘，避免清单先行改写。
+- 同步产生的 `Cargo.lock` 作为附带更新文件紧随主清单进入 `updated_files`，与清单在同一次 git 提交中暂存。
+- `Cargo.toml` 是 Cargo 插件声明的清单 basename。默认模式包含根级 `Cargo.toml`，recursive 模式包含 `**/Cargo.toml`；`matches` 对 basename 大小写不敏感。
+- 本仓根 `[workspace.package].version` 是 Rust 版本字面量的唯一维护点，成员均通过 `version.workspace = true` 继承；项目配置无需显式列出 Cargo 清单。
 
 ## Consequences
 
-- 根 `Cargo.lock` 与两处 Cargo.toml 在发版提交中保持一致，CONTRIBUTING.md 的"版本线漂移点"随之消除（文档同步更新）。
-- 未来新增 rust crate 时，需在 `vbumpp.config.ts` 的 files 中补充其 Cargo.toml。
-
-## 落地补充（COL-23）
-
-实现于 `crates/bumpp-core/src/files/` 的 `CargoTomlPlugin`（ADR-0007 静态链：JsManifest → CargoToml → Text），以下细节为实施时确定：
-
-- **lock 发现**：自清单所在目录向上取首个 `Cargo.lock`（workspace 成员的 lock 在仓库根）；找不到则仅更新清单（库 crate 可不提交 lock，不视为漂移）。
-- **失败语义**：lock 条目缺失、`[[package]]` 版本与清单当前版本漂移、lock 解析失败均立即报错（`FilesError::Lock`），且清单不先行改写（全部计算通过后才写盘）。
-- **workspace 继承**：成员清单（`version.workspace = true` 且本文件无 `[workspace.package]`）跳过——根清单自身作为显式文件项被处理；根 package 继承本文件 `[workspace.package]` 时更新该字段。lock 同步为成员扫描：无 `source` 且 `version == current` 的 `[[package]]` 条目。两条已知边界（单文件插件职责使然）：只列成员而不列根清单时不会代定位根文件——成员以 FileSkipped 事件可见地报出，由显式收集原则保证根清单在清单内；成员扫描以"零匹配报错"为漂移防线，个别成员条目缺失（其余成员仍命中）不可检测。
-- **附带文件事件**：lock 同步产物以 `UpdateOutcome::UpdatedWith` 上抛，编排层紧随主文件补发 `FileUpdated`——`updated_files` 是 git 提交暂存的依据，Cargo.lock 由此进入同一次发版提交。
-- **容错**：清单不可解析 → 立即报错（`FilesError::Parse`，文案沿用相对路径）——显式列入发版清单的文件不可解析即漂移风险，从本 ADR"失败即报错"；与 JsManifest 通道对坏 JSON 的容错是有意的不对称（后者为对齐上游 bumpp v11 `jsonc.parse` 的 parity 要求，TOML 通道无上游约束）。lock 存在但不可解析同样报错（属同步失败）。
-- **本仓配置**（2026-08 修订）：两 crate 已改为 `version.workspace = true` 继承根 `[workspace.package].version`；`.vbumpprc.toml` **不配置 files**——根 `Cargo.toml` 已在默认清单（ADR-0009 链上 manifest basenames 根级并集含 `Cargo.toml`），而显式 files 在 ADR-0013 浅替换语义下会顶替默认清单、反把根 `package.json` 挤出发版面；嵌套 npm/napi 发版包版本由 `-r` 整树收集（`**/` 模式表）覆盖，新增 rust crate 随根版本继承无需任何配置。原描述（`vbumpp.config.ts` 列明两处成员 Cargo.toml）作废，配置文件亦已更名。
+- Bump 可更新纯 Cargo 项目和混合项目，并保持 workspace 清单与 lock 一致。
+- 显式配置 `files` 会替换默认清单；需要自定义范围时必须同时纳入所有期望更新的根清单。
+- 新增 workspace crate 继续继承根版本即可，无需新增版本字面量或项目配置项。

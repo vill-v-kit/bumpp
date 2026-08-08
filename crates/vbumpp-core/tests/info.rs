@@ -220,7 +220,7 @@ fn error_display_is_readable() {
   assert!(err.to_string().contains("Unable to determine"));
 }
 
-// ---- 版本来源生态化（ADR-0009）：get_current_version 经插件底座链分发 ----
+// ---- 版本来源生态化（ADR-0007）：get_current_version 经插件底座链分发 ----
 
 #[test]
 fn current_version_scanned_from_cargo_toml_probe() {
@@ -260,7 +260,7 @@ fn current_version_from_workspace_package_literal() {
 
 #[test]
 fn files_order_determines_version_source() {
-  // ADR-0009 已记录后果：按 files 顺序先命中先赢——version_bump 的 normalize
+  // ADR-0007 已记录后果：按 files 顺序先命中先赢——version_bump 的 normalize
   // 后清单按字典序，Cargo.toml 排在 package.json 前
   let dir = TempDir::new().unwrap();
   let path = init_repo(&dir); // package.json 1.2.3

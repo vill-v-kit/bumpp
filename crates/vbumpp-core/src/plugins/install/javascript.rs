@@ -1,4 +1,4 @@
-//! JavaScript 生态 install 适配（ADR-0008）：检测包管理器后执行 `<pm> install`。
+//! JavaScript 生态 install 适配（ADR-0007）：检测包管理器后执行 `<pm> install`。
 //!
 //! 检测对齐上游 package-manager-detector 的默认行为（ADR-0006）：逐级向上爬
 //! 目录（目录为外层循环）；每级目录内按上游默认策略顺序 lockfile →

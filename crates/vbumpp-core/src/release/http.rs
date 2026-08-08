@@ -1,4 +1,4 @@
-//! 四家 provider 的共用原语（ADR-0018）：仓库信息解析与 HTTP 收发。
+//! 四家 provider 的共用原语（ADR-0014）：仓库信息解析与 HTTP 收发。
 //! 请求构造的语义归 github_like.rs / 各 provider 文件，本文件只管
 //! 「往哪发、怎么发、非 2xx 怎么报错」。
 

@@ -302,7 +302,7 @@ fn unparseable_lock_is_an_error() {
   assert_eq!(read(&dir, "Cargo.toml"), original);
 }
 
-// ---- read_version（ADR-0009：版本解析生态化，经链分发公开面） ----
+// ---- read_version（ADR-0007：版本解析生态化，经链分发公开面） ----
 
 use vbumpp_core::plugins::dispatch_read_version;
 

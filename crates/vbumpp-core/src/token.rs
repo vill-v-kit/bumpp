@@ -47,7 +47,7 @@ impl fmt::Display for TokenError {
 impl Error for TokenError {}
 
 /// token 存储文件路径：`VBUMPP_TOKEN_STORE` 覆盖（优先级高于 `VBUMPP_HOME`，
-/// ADR-0015），默认 `<全局配置目录>/tokens.bin`
+/// ADR-0013），默认 `<全局配置目录>/tokens.bin`
 pub fn store_path() -> Result<PathBuf, TokenError> {
   if let Some(custom) = env::var_os("VBUMPP_TOKEN_STORE") {
     if !custom.is_empty() {

@@ -1,4 +1,4 @@
-//! GitLab release（ADR-0018）：全特化——`PRIVATE-TOKEN` 头 + 项目 id 直查
+//! GitLab release（ADR-0014）：全特化——`PRIVATE-TOKEN` 头 + 项目 id 直查
 //! （`GET /api/v4/projects/<url编码的 owner/repo>`，替代 JS 时代的搜索 + 后缀
 //! 匹配两步法）；自建实例经配置 `gitlab.host` 段（严格 schema：仅 host 一键，
 //! ADR-0014），解析随本文件。

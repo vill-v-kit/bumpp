@@ -1,4 +1,4 @@
-//! JavaScript 生态版本能力（上游 bumpp v11 `updateManifestFile` 纯迁移，ADR-0007/0010）：
+//! JavaScript 生态版本能力（上游 bumpp v11 `updateManifestFile` 纯迁移，ADR-0007）：
 //! JSONC 容错解析后仅替换 `version` 值所在的文本区间（package-lock 另含
 //! `packages[""].version`），其余字节原样保留。
 
@@ -21,7 +21,7 @@ pub(crate) fn matches(rel_path: &Path) -> bool {
   MANIFEST_BASENAMES.contains(&basename.as_str())
 }
 
-/// 版本解析（ADR-0009）：上游 `readVersion` 的提取部分——JSONC 容错解析 +
+/// 版本解析（ADR-0007）：上游 `readVersion` 的提取部分——JSONC 容错解析 +
 /// is_manifest 门 + `version` 字段取字符串；semver 校验由编排层统一承担
 pub(crate) fn read_version(path: &Path) -> Option<String> {
   let text = std::fs::read_to_string(path).ok()?;

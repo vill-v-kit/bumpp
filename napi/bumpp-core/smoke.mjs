@@ -1,4 +1,4 @@
-// napi 链路冒烟（ADR-0019 三收缩后的导出面）：编排与 CLI 单入口可调用，
+// napi 链路冒烟（ADR-0016 三收缩后的导出面）：编排与 CLI 单入口可调用，
 // 平台 Release 四导出、旧 parity 面与 token 三件套不再导出
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

@@ -2,7 +2,7 @@
 # 本仓库的定制——内建默认为英文（ADR-0017），中文经此处项目级配置注入，
 # 保证本仓库 CHANGELOG 产出与历史归档一致。
 # 注：不配置 files——根 Cargo.toml（[workspace.package].version）已在默认
-# 清单（链上 manifest basenames 根级并集，ADR-0009），显式 files 会在浅替换
+# 清单（链上 manifest basenames 根级并集，ADR-0007），显式 files 会在浅替换
 # 语义下顶替默认清单、反把根 package.json 挤出发版面（ADR-0013）；嵌套
 # npm/napi 发版包由 -r 整树收集覆盖。
 [changelog]

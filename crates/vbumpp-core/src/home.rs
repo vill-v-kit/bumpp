@@ -1,4 +1,4 @@
-//! 全局配置目录（`~/.vbumpp/`）解析——Token 存储与全局配置文件共享的家（ADR-0015）。
+//! 全局配置目录（`~/.vbumpp/`）解析——Token 存储与全局配置文件共享的家（ADR-0013）。
 //! 优先级：`VBUMPP_HOME` > `~/.vbumpp`；不引入 XDG。
 
 use std::env;

@@ -107,7 +107,7 @@ pub fn bump_version(
   options: &BumpVersionOptions,
   cwd: &Path,
 ) -> Result<BumpVersionOutcome, OrchestrateError> {
-  // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013/0015）----
+  // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013）----
   let mut merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
 
   // ---- 版本确定三键（COL-60）：release / preid / currentVersion 自 merged 配置

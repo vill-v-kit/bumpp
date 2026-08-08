@@ -1,4 +1,4 @@
-//! changelog 版本节提取（ADR-0019）：`vbumpp release` 重试通路的 body 来源——
+//! changelog 版本节提取（ADR-0016）：`vbumpp release` 重试通路的 body 来源——
 //! 从 changelog 文件全文定位指定版本的 `## ` 节。匹配形状锚定生成侧
 //! （`markdown.rs`：`## ` 头 → compare 链接 → 类型分组），`###`/`####`
 //! 子节不终止节范围。

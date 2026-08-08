@@ -5,7 +5,7 @@
 仓库使用 [mise](https://mise.jdx.dev/) 统一管理工具链（Node、Rust 与 zig 交叉链，版本声明见根 `mise.toml`）：
 
 ```shell
-mise install     # node lts + rust stable（含 rustfmt/clippy）；linux 主机另装 zig / cargo-zigbuild（arm64 交叉链，ADR-0027）
+mise install     # node lts + rust stable（含 rustfmt/clippy）；linux 主机另装 zig / cargo-zigbuild（arm64 交叉链，ADR-0025）
 pnpm install     # 安装 workspace 依赖
 ```
 

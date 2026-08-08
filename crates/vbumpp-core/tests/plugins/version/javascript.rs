@@ -134,7 +134,7 @@ fn manifest_basename_matching_is_case_insensitive() {
   );
 }
 
-// ---- read_version（ADR-0009：版本解析生态化，经链分发公开面） ----
+// ---- read_version（ADR-0007：版本解析生态化，经链分发公开面） ----
 
 use vbumpp_core::plugins::dispatch_read_version;
 

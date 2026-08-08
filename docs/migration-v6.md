@@ -81,7 +81,7 @@ v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配
 - **`ResolveConfig.changelog` 为用户透传段**：解析统一发生在 Rust 内部
   （单一解析路径），JS 不再有 changelog 配置解析态
 
-## 平台 Release 独立创建迁移至 CLI（ADR-0019）
+## 平台 Release 独立创建迁移至 CLI（ADR-0016）
 
 四个平台变体包的 `createGithubRelease` / `createGitlabRelease` /
 `createGiteeRelease` / `createGitcodeRelease`（及 `CreateReleaseOptions`

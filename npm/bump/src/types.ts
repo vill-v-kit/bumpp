@@ -36,7 +36,7 @@ export interface ChangelogOptions {
 }
 
 /**
- * 用户配置信息：扁平镜像配置文件形状（ADR-0015）——bumpp 键居顶层，
+ * 用户配置信息：扁平镜像配置文件形状（ADR-0013）——bumpp 键居顶层，
  * `changelog` / `gitlab` 段并列；统一经 Rust 单一解析路径解析
  * （overrides > 项目 .vbumpprc.* > 全局 ~/.vbumpp/config.* > 内建默认）
  */

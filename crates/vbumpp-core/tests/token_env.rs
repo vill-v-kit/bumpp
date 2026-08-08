@@ -1,4 +1,4 @@
-//! 路径解析优先级（ADR-0015）：`VBUMPP_TOKEN_STORE` > `VBUMPP_HOME` > `~/.vbumpp`。
+//! 路径解析优先级（ADR-0013）：`VBUMPP_TOKEN_STORE` > `VBUMPP_HOME` > `~/.vbumpp`。
 //! env 修改为进程全局——本文件仅此一个测试函数，隔离并发竞态。
 
 use std::path::PathBuf;

@@ -44,7 +44,7 @@ const RETRY_DELAY_MS = Number.parseInt(process.env.CRATES_PUBLISH_RETRY_DELAY_MS
 // 上架顺序是硬约束：cli 依赖 core（ADR-0021）
 const CRATES = ['vbumpp-core', 'vbumpp']
 
-// 版本唯一维护点：根 Cargo.toml [workspace.package].version（ADR-0009 链）
+// 版本唯一维护点：根 Cargo.toml [workspace.package].version（ADR-0007 链）
 const toml = readFileSync(new URL('../Cargo.toml', import.meta.url), 'utf8')
 const versionMatch = toml.match(/\[workspace\.package\][^[]*?version\s*=\s*"([^"]+)"/s)
 if (!versionMatch) {

@@ -33,7 +33,7 @@ pub(crate) fn matches(rel_path: &Path) -> bool {
     .unwrap_or(false)
 }
 
-/// 版本解析（ADR-0009）：`[package].version` 字面量优先，其次
+/// 版本解析（ADR-0007）：`[package].version` 字面量优先，其次
 /// `[workspace.package].version` 字面量；继承形态（`version.workspace = true`）、
 /// 读取/解析失败均返回 None；semver 校验由编排层统一承担
 pub(crate) fn read_version(path: &Path) -> Option<String> {
@@ -50,7 +50,7 @@ pub(crate) fn read_version(path: &Path) -> Option<String> {
 }
 
 /// 保格式更新清单版本并按需定向同步 Cargo.lock（形态探测见模块头注释）；
-/// `cwd` 为错误消息中绝对路径（lock）的显示路径锚点（ADR-0023）
+/// `cwd` 为错误消息中绝对路径（lock）的显示路径锚点（ADR-0002）
 pub(crate) fn update(
   path: &Path,
   rel_path: &Path,

@@ -1,31 +1,21 @@
-# files 生态插件文件夹
+# 生态插件底座
 
-版本文件的解析与更新按**生态**组织于 `crates/bumpp-core/src/files/`：每个文件代表一个生态的版本更新逻辑（`js_manifest.rs` / `cargo_toml.rs` / `text.rs`），`files.rs` 为模块根（编排 + `VersionFilePlugin` trait + 静态插件链 + 错误类型）。maven / gradle 等未来生态以同 trait 插件加入本目录（Text 之前）。
+版本清单识别、版本读取与更新、install 适配和 recursive 收集统一归属 `crates/vbumpp-core/src/plugins/`。插件按生态组织，通过单一静态链提供各能力；Text 是仅承担版本文本替换的兜底通道。
 
 ## Decisions
 
-- **插件 trait + 内置静态插件链**：
-
-  ```rust
-  pub(crate) trait VersionFilePlugin: Sync {
-    fn matches(&self, rel_path: &Path) -> bool;
-    fn ecosystem(&self) -> Option<Ecosystem>;
-    fn update(&self, path: &Path, rel_path: &Path, current: &str, new: &str) -> Result<UpdateOutcome, FilesError>;
-  }
-  ```
-
-  内置有序链：`JsManifestPlugin`（8 种 basename + package-lock `packages[""].version` 规则）→ `CargoTomlPlugin`（ADR-0003）→ `TextPlugin`（上游 `(\b|v){version}\b` 替换，兜底，不归属任何生态）。按 `matches` 顺序分发，命中即走对应通道。
-- **静态分发**：开放注册 API 留待真实外部插件出现时再引（当前无注册方，不做运行时 registry）。
-- **生态归属挂在链上**：`ecosystem()` 使 install 侧（ADR-0008）无需重复 basename 规则——链是生态知识的单一事实源。
-- **清单收集知识同在链上**：`manifest_basenames()` 聚合为 recursive 整树收集模式表（`recursive_manifest_globs()`），经 napi 导出供 CLI 的 `-r` 使用（ADR-0003 opt-in 语义）；新增生态时收集与更新一并纳入，JS 侧零改动。
-- **错误模型单一**：`FilesError`（Io / Parse / Lock）贯通编排与插件，无跨边界映射层。
-
-## Considered Options
-
-- **独立 crate 承载插件层**：消费方只有 `bumpp-core` 一个时，crate 边界只有持续成本（双错误枚举与 From 映射、发版版本线、lock/元数据噪音）——拒绝；出现真实复用方时再议。
-- **运行时 registry**：无外部注册方，投机性设计——拒绝。
+- `plugins.rs` 持有 `VersionFilePlugin` trait、`Ecosystem`、静态插件链和编排；插件类型位于 `plugins/javascript.rs`、`plugins/cargo.rs`、`plugins/text.rs`，具体能力委托到 `version/`、`install/`、`recursive/` 子目录的同名实现。
+- 内置链顺序为 JavaScript → Cargo → Text，按 `matches` 首命中分发。当前没有外部注册方，不提供运行时 registry；出现真实复用方时再评估独立 crate 或注册 API。
+- trait 同时提供 `matches`、`ecosystem`、`manifest_basenames`、`read_version`、`update` 与 `install`，避免清单 basename、生态归属和 install 分发形成多份注册表。
+- JavaScript 插件识别其结构化清单并保格式更新版本；Cargo 插件处理 `Cargo.toml` 与 Cargo.lock（见 ADR-0003）；Text 插件使用版本文本替换规则兜底，不贡献生态、默认清单或版本来源。
+- 默认 files 是链上 `manifest_basenames` 的根级并集；recursive 模式是同一集合的 `**/` 并集。不存在的文件由 glob 展开自然消失，新增生态只需在插件链声明清单。
+- 当前版本从规范化后的文件列表依次经插件读取，首个合法 semver 为准。JavaScript 和 Cargo 清单可作为版本来源，Text 不提供版本来源。
+- 用户配置的 `files` 保留，用于限定范围或显式纳入 README、`.env` 等 Text 文件；显式值替换默认清单。
+- `--install` 只在本次存在实际更新文件时触发。按更新文件命中的生态、依链序去重执行：JavaScript 运行检测到的 `<pm> install`，Cargo 运行 `cargo check --workspace`。仅 Text 更新时回退 JavaScript；全 skip 时不执行 install。
+- 测试目录镜像插件能力结构，分别覆盖链分发、各生态版本行为、install 与 recursive/default 模式。
 
 ## Consequences
 
-- 新增生态 = `src/files/` 落一个实现同 trait 的文件 + 链上登记；编排层零改动。
-- `tests/files/` 目录单 target 镜像 `src/files/` 结构：编排矩阵 + 每生态一行为矩阵。
+- 新增生态需要定义插件类型并实现适用的 version、install、recursive 能力，再在静态链登记一次；编排层无需维护平行映射。
+- 纯 Cargo 项目默认可读取和更新根 `Cargo.toml`，混合项目可在一次 bump 中按实际更新生态执行多个 install 适配。
+- 默认清单和条件 install 有意超出上游 node-only 行为；Text 兜底保留用户自定义版本文件能力。

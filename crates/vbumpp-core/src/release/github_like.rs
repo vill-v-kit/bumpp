@@ -1,4 +1,4 @@
-//! github-like 共享机器（ADR-0018）：github / gitee / gitcode 的 release 请求体
+//! github-like 共享机器（ADR-0014）：github / gitee / gitcode 的 release 请求体
 //! 语义单一事实源——三家 API 同形（`POST /repos/{owner}/{repo}/releases`，
 //! name/tag_name/body/target_commitish/prerelease），差异仅 token 注入形态，
 //! 归各 provider 薄文件。

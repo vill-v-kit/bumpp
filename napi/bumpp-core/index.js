@@ -81,6 +81,6 @@ function requireNative() {
 
 const nativeBinding = requireNative()
 
-// ADR-0019：平台 Release 四导出已删（独立 release 由 CLI `vbumpp release` 承接）
+// ADR-0016：平台 Release 四导出已删（独立 release 由 CLI `vbumpp release` 承接）
 const { bumpVersion, cliRun } = nativeBinding
 export { bumpVersion, cliRun }

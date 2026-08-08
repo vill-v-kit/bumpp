@@ -352,7 +352,7 @@ pub fn version_bump(
     emit!(*event, None);
   }
 
-  // ---- install（ADR-0008：仅当本次有文件被实际更新时，按生态适配触发） ----
+  // ---- install（ADR-0007：仅当本次有文件被实际更新时，按生态适配触发） ----
   if options.install && !state.updated_files.is_empty() {
     plugins::run_installs(cwd, &state.updated_files)?;
   }
@@ -384,7 +384,7 @@ pub fn version_bump(
     let updated_files: &[String] = match &tracked_filter {
       Some(t) => {
         for f in state.updated_files.iter().filter(|f| !t.contains(f)) {
-          // 存储值保持绝对原生（pathspec 依据），打印走显示路径（ADR-0023）
+          // 存储值保持绝对原生（pathspec 依据），打印走显示路径（ADR-0002）
           println!(
             "{} skipping untracked file in commit (left modified on disk): {}",
             dialoguer::console::style("⚠").yellow(),
@@ -465,7 +465,7 @@ struct NormalizedTag<'a> {
 }
 
 /// 上游 normalizeOptions 的文件清单归一：空清单启用默认列表，随后 glob 展开（排序、忽略目录）。
-/// 默认列表 = 插件底座链上 manifest basenames 的根级并集（ADR-0009）；recursive 时
+/// 默认列表 = 插件底座链上 manifest basenames 的根级并集（ADR-0007）；recursive 时
 /// 升级为 `**/` 整树收集模式（替代上游 `packages/**/package.json` 硬编码）
 fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
   let patterns: Vec<String> = if options.files.is_empty() {

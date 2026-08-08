@@ -1,4 +1,4 @@
-//! GitHub release（ADR-0018 薄文件）：base_url + token 注入形态
+//! GitHub release（ADR-0014 薄文件）：base_url + token 注入形态
 //! （`authorization: Bearer` 头 + API 版本头）；请求体语义共享自 github_like。
 
 use std::path::Path;

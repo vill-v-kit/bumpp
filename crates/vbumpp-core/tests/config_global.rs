@@ -1,4 +1,4 @@
-//! 全局配置层（ADR-0015）：`~/.vbumpp/config.{json,jsonc,toml}` 与项目层的
+//! 全局配置层（ADR-0013）：`~/.vbumpp/config.{json,jsonc,toml}` 与项目层的
 //! 四层合并（overrides > 项目 > 全局 > 内建默认）。全程注入全局目录，
 //! 不碰 `VBUMPP_HOME` 环境变量（进程全局、并发竞态）。
 
@@ -121,7 +121,7 @@ fn global_malformed_config_errors_with_path() {
 
 #[test]
 fn config_file_path_layer_still_stacks_over_global() {
-  // configFilePath 仅替代项目层探测，全局层照常叠加（ADR-0015）
+  // configFilePath 仅替代项目层探测，全局层照常叠加（ADR-0013）
   let project = TempDir::new().unwrap();
   let home = TempDir::new().unwrap();
   write(&home, "config.json", r#"{ "sign": true, "push": true }"#);

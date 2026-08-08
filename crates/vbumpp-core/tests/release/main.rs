@@ -1,6 +1,6 @@
 //! 平台 Release（ADR-0014）：token 解析链 / gitlab.host schema 纯测 +
 //! 四家 API 的 mock server 行为测试（零外部依赖的手写 HTTP mock）。
-//! 目录镜像 src/release/（ADR-0018）：共享 mock 线束与共享层测试在根部，
+//! 目录镜像 src/release/（ADR-0014）：共享 mock 线束与共享层测试在根部，
 //! token 链与各 provider 行为各一文件。
 
 #[path = "../common/mod.rs"]

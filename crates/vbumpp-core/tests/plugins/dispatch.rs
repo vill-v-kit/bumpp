@@ -1,4 +1,4 @@
-//! 静态链分发：按 matches 顺序命中通道，TextPlugin 兜底（ADR-0007/0010）。
+//! 静态链分发：按 matches 顺序命中通道，TextPlugin 兜底（ADR-0007）。
 
 use std::fs;
 use std::path::Path;

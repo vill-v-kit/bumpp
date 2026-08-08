@@ -56,7 +56,7 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             triple: linux-x64-gnu
-          # ADR-0027：zig 链取代 --use-napi-cross（上古 gcc 4.8.5）。napi CLI 的
+          # ADR-0025：zig 链取代 --use-napi-cross（上古 gcc 4.8.5）。napi CLI 的
           # target 校验不收 glibc 后缀，故这条腿直呼 cargo zigbuild pin glibc，
           # 产物按 napi 命名规范落名；index.d.ts 由其余四腿供给
           - host: ubuntu-latest
@@ -135,7 +135,7 @@ jobs:
       - name: Upload artifact (zigbuild leg：.node only)
         # 不经 napi CLI 故无 dts 产出，其余四腿供给（publish-npm 经
         # merge-multiple 合并同名 dts，内容一致；前提是至少一条 napi CLI 腿存活
-        # ——若将来更多腿转 zigbuild，需另立 dts 供给步骤，见 ADR-0027）
+        # ——若将来更多腿转 zigbuild，需另立 dts 供给步骤，见 ADR-0025）
         if: ${{ matrix.settings.glibc }}
         uses: actions/upload-artifact@v7
         with:
