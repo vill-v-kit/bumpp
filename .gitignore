@@ -10,3 +10,5 @@ dist
 target
 *.node
 napi/bumpp-core/index.d.ts
+
+.zcode/plans
