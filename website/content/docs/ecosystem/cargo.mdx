@@ -1,0 +1,69 @@
+---
+title: Cargo 生态
+icon: Cargo
+description: vbumpp 如何读写 Cargo.toml 的版本号并同步 Cargo.lock
+---
+
+vbumpp 直接修改 `Cargo.toml` 的版本号并同步 `Cargo.lock`——不跑 `cargo` 来改版本。若启用 `install`，版本更新后执行 `cargo check --workspace` 校验。
+
+## 扫描
+
+仅 `Cargo.toml`。递归（`-r`）时收集整树 `**/Cargo.toml`，适合 workspace 下多个 crate 一次同步。
+
+## 版本号读写
+
+`Cargo.toml` 里版本号有三种写法，vbumpp 分别处理：
+
+### `[package].version` 直接写版本号
+
+```toml
+[package]
+name = "my-crate"
+version = "1.2.3"
+```
+
+- **读取**：取 `[package].version`。
+- **写入**：更新版本号；已是新值则跳过；按 crate name 同步 `Cargo.lock`。
+
+### `[workspace.package].version`（workspace 根）
+
+```toml
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+version = "1.2.3"
+```
+
+- **读取**：取 `[workspace.package].version`。
+- **写入**：更新版本号；按 workspace 下的 crate 同步 `Cargo.lock`——更新所有无 `source` 且版本号 == 当前版本的 `[[package]]` 条目。
+
+### `version.workspace = true`（从 workspace 继承版本号）
+
+```toml
+[package]
+name = "my-member"
+version.workspace = true
+```
+
+- **读取**：继承自 workspace 根，该 crate 不单独提供版本号。
+- **写入**：若该文件同时是 workspace 根（含 `[workspace.package].version`）则更新该字段，否则跳过。
+
+## Cargo.lock 同步
+
+从 `Cargo.toml` 所在目录逐级向上查找首个 `Cargo.lock`：
+
+- **找不到**：仅更新 `Cargo.toml`。
+- **找到**：同步对应的 `[[package]]` 条目。
+
+## 后续安装规则
+
+仅在 `install = true` **且至少有一个文件实际被更新**时触发；无文件更新则不执行。
+
+| 触发条件 | 动作 |
+| --- | --- |
+| 更新了 `Cargo.toml` | 执行 `cargo check --workspace` |
+| 混合 JS + Cargo 项目 | 先 JS、后 Cargo（固定顺序） |
+| 没有任何文件更新 | 不执行 |
+
+`cargo check --workspace` 的作用：校验 `Cargo.lock` 同步结果、补刷可能遗漏的条目，并验证 workspace 仍可编译。

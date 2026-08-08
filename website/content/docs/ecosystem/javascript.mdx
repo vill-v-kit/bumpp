@@ -1,0 +1,66 @@
+---
+title: JavaScript 生态
+icon: Npm
+description: vbumpp 如何扫描、读写 JavaScript 生态文件的版本号，并在版本更新后触发包管理器安装
+---
+
+vbumpp 的 JavaScript 生态插件覆盖整个 JS 工具链——Node.js、Deno、Bun、JSR 等。识别到文件后读写版本号；若启用 `install`，版本更新后自动执行你项目的包管理器安装。
+
+## 扫描文件
+
+识别以下文件：
+
+| 文件 | 说明 |
+| --- | --- |
+| `package.json` | npm / yarn / pnpm / bun / aube / nub 通用配置 |
+| `package-lock.json` | npm 锁文件 |
+| `bower.json` | Bower 配置 |
+| `component.json` | Component 配置 |
+| `jsr.json` / `jsr.jsonc` | JSR（Deno 注册表）配置 |
+| `deno.json` / `deno.jsonc` | Deno 配置 |
+
+### 根扫描 vs 递归
+
+- **默认（根扫描）**：在项目根目录探测上表文件。
+- **递归（`recursive = true` 或 `-r`）**：升级为 `**/<basename>` 整树收集，适合 monorepo 一次同步所有子包。
+
+## 读写版本号
+
+### 读取
+
+版本来源按你提供的 `files` 顺序探测；`files` 为空时自动探测默认文件。识别到 JS 文件后取顶层 `version` 字符串字段；缺失或为 `null` 时跳过该文件。
+
+### 写入
+
+- `version` 已是新值 → 跳过，不重写文件。
+- `version` 缺失或为 `null` → 跳过。
+- `package-lock.json` 额外更新 `packages[""].version`（根包条目），**不**改动依赖包的版本。
+
+## 后续安装规则
+
+仅在 `install = true` **且至少有一个文件实际被更新**时触发；无文件更新则不执行。
+
+| 触发条件 | 动作 |
+| --- | --- |
+| 更新了 JS 文件 | 执行检测到的包管理器 `<pm> install` |
+| 仅更新了文本模板文件（非 JS 文件） | 仍执行 JS 生态安装 |
+| 混合 JS + Cargo 项目 | 先 JS、后 Cargo（固定顺序，与 files 顺序无关） |
+| 没有任何文件更新 | 不执行 |
+
+### 包管理器检测
+
+从当前目录逐级向上查找；每级目录内先看 lockfile，再看 `packageManager` 字段；字段值不识别时继续尝试其他方式。
+
+**lockfile 顺序**（更具体者在前）：
+
+| 锁文件 | 包管理器 |
+| --- | --- |
+| `aube-lock.yaml` / `aube-workspace.yaml` | aube |
+| `bun.lock` / `bun.lockb` | bun |
+| `deno.lock` | deno |
+| `nub.lock` | nub |
+| `pnpm-lock.yaml` / `pnpm-workspace.yaml` | pnpm |
+| `yarn.lock` | yarn |
+| `package-lock.json` / `npm-shrinkwrap.json` | npm |
+
+**packageManager 字段**：取 name 部分匹配 `npm` / `yarn` / `pnpm` / `bun` / `deno` / `nub` / `aube`。

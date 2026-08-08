@@ -12,7 +12,7 @@ description: 配置文件的位置、合并规则与全部配置项
 | 项目级 | `.vbumpprc.{json,jsonc,toml}` | 本项目的发版配置（随仓库提交，推荐） |
 | 全局级 | `~/.vbumpp/config.{json,jsonc,toml}` | 你本机所有项目的公共默认 |
 
-三种后缀任选（`.jsonc` 支持注释和尾逗号；TOML 示例见下文）。同一目录下放多个配置文件会直接报错并全部列出，请只保留一个。
+三种后缀任选。同一目录下放多个配置文件会直接报错并全部列出，请只保留一个。
 
 合并规则（高优先级覆盖低优先级）：**命令行 / API 入参 > 项目级 > 全局级 > 内建默认**。其中 `changelog.types` 是逐组合并的——只写你想改的那几组即可，没写的组保持默认；其余配置项整体覆盖。
 
@@ -39,10 +39,6 @@ title = "🩹 修复"
 title = "🏡 框架"
 ```
 
-<Callout type="info">
-配置写错键名会直接报错并指出是哪个键——这是故意的，防止配置静默失效。
-</Callout>
-
 ## 顶层配置项
 
 | 键 | 默认 | 说明 |
@@ -55,7 +51,7 @@ title = "🏡 框架"
 | `all` | `false` | commit 时 `git add -A`（默认只提交实际更新的文件） |
 | `noVerify` | `false` | commit/tag 时跳过 git hooks |
 | `recursive` | `false` | monorepo 整树递归（等同 `-r`） |
-| `install` | `false` | 版本更新后自动执行包管理器 install（更新 lockfile） |
+| `install` | `false` | 版本更新后按生态执行安装：JavaScript 执行 `<包管理器> install`、Cargo 执行 `cargo check --workspace`（详见[生态集成](/docs/ecosystem)） |
 | `ignoreScripts` | `false` | 跳过 `scripts` 里的全部命令 |
 | `execute` | — | 版本更新后额外执行的一条命令 |
 | `release` | — | 跳过交互直接指定版本算法（如 `"patch"`）或具体版本号 |
@@ -66,6 +62,10 @@ title = "🏡 框架"
 | `changelog` | — | changelog 配置，见下节 |
 | `gitlab` | — | 自建 GitLab，见[平台 Release 指南](/docs/release) |
 
+<Callout type="info">
+`files` 为空时的自动识别、以及 `recursive` 整树收集，都遵循 `.gitignore`：在 Git 仓库内，被 Git 忽略的文件不会进入扫描结果；非 Git 目录不读取 `.gitignore`。
+</Callout>
+
 ## `scripts`：发版脚本
 
 ```toml
@@ -74,8 +74,6 @@ preversion = "npm test"        # 版本更新前
 version = ""                    # 版本文件更新后
 postversion = "npm run build"   # commit/tag 完成后、push 前
 ```
-
-三个槽位任意填写，任意 shell 命令均可。
 
 ## `changelog`：变更记录
 

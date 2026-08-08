@@ -1,0 +1,6 @@
+{
+  "title": "生态集成",
+  "icon": "Blocks",
+  "defaultOpen": false,
+  "pages": ["javascript", "cargo"]
+}

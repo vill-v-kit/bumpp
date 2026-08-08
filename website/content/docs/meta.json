@@ -8,6 +8,7 @@
     "cli",
     "configuration",
     "release",
+    "ecosystem",
     "--- 迁移 ---",
     "migration-v6",
     "external:[发布说明](https://github.com/vill-v-kit/bumpp/releases)"
