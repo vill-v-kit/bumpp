@@ -1,6 +1,6 @@
 //! 插件底座（ADR-0010）：生态知识（清单识别、版本更新、install 适配、recursive
 //! 收集）的单一事实源。静态链按 `matches` 首命中分发（ADR-0007）：
-//! node（JS manifest）→ cargo（Cargo 清单 + Cargo.lock 定向同步，ADR-0003）→
+//! JavaScript（JS manifest）→ Cargo（Cargo 清单 + Cargo.lock 定向同步，ADR-0003）→
 //! text（文本模板替换，兜底，仅有版本更新能力）。
 //!
 //! 布局（Rust 一致性限制：同 trait 同类型的 impl 块不可拆分，trait 实现只能与
@@ -21,7 +21,7 @@ use crate::progress::ProgressEvent;
 
 mod cargo;
 pub mod install;
-mod node;
+mod javascript;
 pub(crate) mod recursive;
 mod text;
 pub(crate) mod version;
@@ -29,7 +29,7 @@ pub(crate) mod version;
 /// 生态：一套工具链及其版本文件与安装机制的集合（ADR-0008）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ecosystem {
-  Node,
+  JavaScript,
   Cargo,
 }
 
@@ -110,9 +110,12 @@ pub(crate) trait VersionFilePlugin: Sync {
   fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>>;
 }
 
-/// 内置有序链（Node → Cargo → Text 兜底）
-static PLUGINS: &[&dyn VersionFilePlugin] =
-  &[&node::NodePlugin, &cargo::CargoPlugin, &text::TextPlugin];
+/// 内置有序链（JavaScript → Cargo → Text 兜底）
+static PLUGINS: &[&dyn VersionFilePlugin] = &[
+  &javascript::JavaScriptPlugin,
+  &cargo::CargoPlugin,
+  &text::TextPlugin,
+];
 
 /// 各生态清单的 recursive 收集模式表（`-r` 整树收集，ADR-0003 opt-in 语义）：
 /// 链上各插件声明的 manifest basenames 聚合为 `**/` glob 模式——生态清单知识的
@@ -175,7 +178,7 @@ pub fn run_installs(cwd: &Path, updated_files: &[String]) -> Result<(), InstallE
   Ok(())
 }
 
-/// 更新文件清单 → 待触发生态集合（链序；零生态命中回退 Node，ADR-0008）
+/// 更新文件清单 → 待触发生态集合（链序；零生态命中回退 JavaScript，ADR-0008）
 pub fn resolve_ecosystems(updated_files: &[String]) -> Vec<Ecosystem> {
   installs_to_run(updated_files)
     .iter()
@@ -184,8 +187,8 @@ pub fn resolve_ecosystems(updated_files: &[String]) -> Vec<Ecosystem> {
 }
 
 /// 待触发的插件集合：每个更新文件的首个命中插件按链序去重（Text 命中不触发
-/// 任何适配）；零生态命中（仅 Text 通道或无更新文件）回退 Node——与上游
-/// `--install`（无条件 node PM install）行为一致（ADR-0008）
+/// 任何适配）；零生态命中（仅 Text 通道或无更新文件）回退 JavaScript——与上游
+/// `--install`（无条件 JS PM install）行为一致（ADR-0008）
 fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlugin> {
   let mut indices: Vec<usize> = updated_files
     .iter()
@@ -196,7 +199,7 @@ fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlug
   let mut plugins: Vec<&'static dyn VersionFilePlugin> =
     indices.into_iter().map(|i| PLUGINS[i]).collect();
   if plugins.iter().all(|p| p.ecosystem().is_none()) {
-    plugins.push(&node::NodePlugin);
+    plugins.push(&javascript::JavaScriptPlugin);
   }
   plugins
 }

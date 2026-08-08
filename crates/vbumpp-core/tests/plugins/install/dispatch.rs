@@ -18,27 +18,30 @@ fn cargo_toml_maps_to_cargo() {
 }
 
 #[test]
-fn js_manifest_maps_to_node() {
-  assert_eq!(resolve(&["package.json"]), vec![Ecosystem::Node]);
-  assert_eq!(resolve(&["package-lock.json"]), vec![Ecosystem::Node]);
-  assert_eq!(resolve(&["sub/deno.jsonc"]), vec![Ecosystem::Node]);
+fn js_manifest_maps_to_javascript() {
+  assert_eq!(resolve(&["package.json"]), vec![Ecosystem::JavaScript]);
+  assert_eq!(
+    resolve(&["package-lock.json"]),
+    vec![Ecosystem::JavaScript]
+  );
+  assert_eq!(resolve(&["sub/deno.jsonc"]), vec![Ecosystem::JavaScript]);
 }
 
 #[test]
 fn both_ecosystems_in_fixed_order() {
-  // 固定顺序 Node → Cargo，与 files 清单内顺序无关
+  // 固定顺序 JavaScript → Cargo，与 files 清单内顺序无关
   assert_eq!(
     resolve(&["Cargo.toml", "package.json"]),
-    vec![Ecosystem::Node, Ecosystem::Cargo]
+    vec![Ecosystem::JavaScript, Ecosystem::Cargo]
   );
 }
 
 #[test]
-fn text_only_updates_fall_back_to_node() {
-  // 仅 Text 兜底通道的文件：零生态命中 → 回退 node（上游 --install 语义）
+fn text_only_updates_fall_back_to_javascript() {
+  // 仅 Text 兜底通道的文件：零生态命中 → 回退 JavaScript（上游 --install 语义）
   assert_eq!(
     resolve(&["VERSION.txt", "CHANGELOG.md"]),
-    vec![Ecosystem::Node]
+    vec![Ecosystem::JavaScript]
   );
 }
 

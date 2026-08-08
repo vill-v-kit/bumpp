@@ -4,7 +4,7 @@
 use std::fs;
 
 use tempfile::TempDir;
-use vbumpp_core::plugins::install::node::detect_package_manager;
+use vbumpp_core::plugins::install::javascript::detect_package_manager;
 
 fn write(dir: &TempDir, name: &str, content: &str) {
   fs::write(dir.path().join(name), content).unwrap();

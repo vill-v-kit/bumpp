@@ -1,4 +1,4 @@
-//! Node 生态 install 适配（ADR-0008）：检测包管理器后执行 `<pm> install`。
+//! JavaScript 生态 install 适配（ADR-0008）：检测包管理器后执行 `<pm> install`。
 //!
 //! 检测对齐上游 package-manager-detector 的默认行为（ADR-0006）：逐级向上爬
 //! 目录（目录为外层循环）；每级目录内按上游默认策略顺序 lockfile →
@@ -12,7 +12,7 @@ use std::path::Path;
 
 use crate::plugins::InstallError;
 
-/// node 适配入口：detect → `<pm> install`（上游 `options.install` 语义）
+/// JavaScript 适配入口：detect → `<pm> install`（上游 `options.install` 语义）
 pub fn install(cwd: &Path) -> Result<(), InstallError> {
   let pm = detect_package_manager(cwd).map_err(|e| InstallError {
     message: e.to_string(),

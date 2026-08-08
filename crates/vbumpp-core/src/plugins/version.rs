@@ -2,5 +2,5 @@
 //! text 为兜底通道（仅有更新能力）。各文件经插件类型的 trait 方法一行委托调用。
 
 pub(crate) mod cargo;
-pub(crate) mod node;
+pub(crate) mod javascript;
 pub(crate) mod text;

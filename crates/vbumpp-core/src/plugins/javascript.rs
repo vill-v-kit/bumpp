@@ -1,6 +1,6 @@
-//! Node 生态插件（ADR-0010）：trait 实现逐方法一行委托到能力子目录。
-//! 能力本体：`version/node`（清单识别 + 保格式更新）、`install/node`
-//! （PM 检测 + `<pm> install`）、`recursive/node`（清单 basename 常量）。
+//! JavaScript 生态插件（ADR-0010）：trait 实现逐方法一行委托到能力子目录。
+//! 能力本体：`version/javascript`（清单识别 + 保格式更新）、`install/javascript`
+//! （PM 检测 + `<pm> install`）、`recursive/javascript`（清单 basename 常量）。
 
 use std::path::Path;
 
@@ -9,23 +9,23 @@ use super::{
   VersionFilePlugin,
 };
 
-pub(crate) struct NodePlugin;
+pub(crate) struct JavaScriptPlugin;
 
-impl VersionFilePlugin for NodePlugin {
+impl VersionFilePlugin for JavaScriptPlugin {
   fn matches(&self, rel_path: &Path) -> bool {
-    version::node::matches(rel_path)
+    version::javascript::matches(rel_path)
   }
 
   fn ecosystem(&self) -> Option<Ecosystem> {
-    Some(Ecosystem::Node)
+    Some(Ecosystem::JavaScript)
   }
 
   fn manifest_basenames(&self) -> &'static [&'static str] {
-    &recursive::node::MANIFEST_BASENAMES
+    &recursive::javascript::MANIFEST_BASENAMES
   }
 
   fn read_version(&self, path: &Path) -> Option<String> {
-    version::node::read_version(path)
+    version::javascript::read_version(path)
   }
 
   /// 本通道错误消息只用 rel_path（显示路径的相对形态，ADR-0023），无需 cwd 锚点
@@ -37,10 +37,10 @@ impl VersionFilePlugin for NodePlugin {
     new: &str,
     _cwd: &Path,
   ) -> Result<UpdateOutcome, FilesError> {
-    version::node::update(path, rel_path, current, new)
+    version::javascript::update(path, rel_path, current, new)
   }
 
   fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>> {
-    Some(install::node::install(cwd))
+    Some(install::javascript::install(cwd))
   }
 }

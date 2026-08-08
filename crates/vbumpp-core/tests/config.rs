@@ -332,7 +332,7 @@ fn malformed_json_reports_path() {
   }
 }
 
-/// 插件底座链聚合的 recursive 模式表（node 8 清单 + Cargo.toml，链序 Node → Cargo）——
+/// 插件底座链聚合的 recursive 模式表（JavaScript 8 清单 + Cargo.toml，链序 JavaScript → Cargo）——
 /// 独立事实源：字面量断言，不经被测代码重算
 const EXPECTED_MANIFEST_GLOBS: [&str; 9] = [
   "**/package.json",

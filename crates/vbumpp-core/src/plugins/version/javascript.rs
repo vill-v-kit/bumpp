@@ -1,4 +1,4 @@
-//! Node 生态版本能力（上游 bumpp v11 `updateManifestFile` 纯迁移，ADR-0007/0010）：
+//! JavaScript 生态版本能力（上游 bumpp v11 `updateManifestFile` 纯迁移，ADR-0007/0010）：
 //! JSONC 容错解析后仅替换 `version` 值所在的文本区间（package-lock 另含
 //! `packages[""].version`），其余字节原样保留。
 
@@ -8,7 +8,7 @@ use jsonc_parser::ast::{Object, Value};
 use jsonc_parser::common::{Range, Ranged};
 use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
 
-use super::super::recursive::node::MANIFEST_BASENAMES;
+use super::super::recursive::javascript::MANIFEST_BASENAMES;
 use super::super::{read_text, write_text, FilesError, UpdateOutcome};
 use crate::jsonc::{get_prop, is_manifest};
 
