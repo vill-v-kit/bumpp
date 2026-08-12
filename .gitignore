@@ -11,6 +11,9 @@ target
 *.node
 napi/bumpp-core/index.d.ts
 
+# 发版/首发仪式的产物暂存(CI download-artifact 平铺落点,scripts/collect-artifacts.mjs 消费)
+.artifacts
+
 .zcode/plans
 
 # napi 平台包目录：由 napi create-npm-dirs 从 napi.targets 生成（ADR-0029），不提交
