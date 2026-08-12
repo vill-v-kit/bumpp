@@ -49,7 +49,7 @@ vbumpp 的 JavaScript 生态插件覆盖整个 JS 工具链——Node.js、Deno�
 
 ### 包管理器检测
 
-从当前目录逐级向上查找；每级目录内先看 lockfile，再看 `packageManager` 字段；字段值不识别时继续尝试其他方式。
+从当前目录逐级向上查找，最近目录先命中；每级目录内依次检测 lockfile → 顶层 `packageManager` 字段 → `devEngines.packageManager` 声明；当前信号不识别时继续尝试下一种信号与上一级目录。检测仅是包管理器检测信号，结果只用于选择 `<pm> install` 命令，不参与上文的版本文件扫描。
 
 **lockfile 顺序**（更具体者在前）：
 
@@ -63,4 +63,9 @@ vbumpp 的 JavaScript 生态插件覆盖整个 JS 工具链——Node.js、Deno�
 | `yarn.lock` | yarn |
 | `package-lock.json` / `npm-shrinkwrap.json` | npm |
 
-**packageManager 字段**：取 name 部分匹配 `npm` / `yarn` / `pnpm` / `bun` / `deno` / `nub` / `aube`。
+**包管理器声明**：`package.json` 中的两种结构化声明，名称均匹配 `npm` / `yarn` / `pnpm` / `bun` / `deno` / `nub` / `aube`。
+
+- 顶层 `packageManager`：取 `<name>@<version>` 的 name 部分。
+- `devEngines.packageManager`：只接受单个对象形态（如 `{ "name": "pnpm", "version": ">=10" }`），只消费 `name`；`version`、`onFail` 与其他属性不影响名称检测。字符串、数组、缺失或非字符串 `name`、未知名称等无效形式静默回退，不阻断其他信号与父目录检测。
+
+vbumpp 不复刻 Corepack 的完整语义——不做版本下载、范围校验、声明冲突与失败策略处理；两个声明冲突时由更高优先级的检测信号决定。

@@ -1,10 +1,11 @@
 //! JavaScript 生态 install 适配（ADR-0007）：检测包管理器后执行 `<pm> install`。
 //!
 //! 检测对齐上游 package-manager-detector 的默认行为（ADR-0006）：逐级向上爬
-//! 目录（目录为外层循环）；每级目录内按上游默认策略顺序 lockfile →
-//! packageManager 字段检测，字段值不识别时 fall through。agent / lockfile
-//! 名单对齐上游 `AGENTS` / `LOCKS` 常量；install 命令对名单内 agent 恒为
-//! `<agent> install`（无需上游 COMMANDS 映射）。
+//! 目录（目录为外层循环）；每级目录内依次检测 lockfile → 顶层 packageManager
+//! 字段 → devEngines.packageManager 声明，值不识别时 fall through。agent /
+//! lockfile 名单对齐上游 `AGENTS` / `LOCKS` 常量；devEngines 声明只消费
+//! `name`，不复刻 Corepack 的版本、onFail 或冲突校验语义。install 命令对
+//! 名单内 agent 恒为 `<agent> install`（无需上游 COMMANDS 映射）。
 
 use std::error::Error;
 use std::fmt;
@@ -55,7 +56,8 @@ const LOCKS: [(&str, &str); 11] = [
 /// 上游 `AGENTS` 的 name 部分（`packageManager` 字段值形如 `<name>@<version>`）
 const AGENTS: [&str; 7] = ["npm", "yarn", "pnpm", "bun", "deno", "nub", "aube"];
 
-/// 上游 `detect`（默认策略）：自 cwd 逐级上爬；每级先 lockfile 后 packageManager 字段
+/// 上游 `detect`（默认策略）：自 cwd 逐级上爬；每级先 lockfile，再 package.json
+/// 声明（顶层 packageManager → devEngines.packageManager）
 pub fn detect_package_manager(cwd: &Path) -> Result<&'static str, PmError> {
   for dir in cwd.ancestors() {
     for (lock, agent) in LOCKS {
@@ -63,7 +65,7 @@ pub fn detect_package_manager(cwd: &Path) -> Result<&'static str, PmError> {
         return Ok(agent);
       }
     }
-    if let Some(agent) = detect_from_package_manager_field(dir) {
+    if let Some(agent) = detect_from_package_json(dir) {
       return Ok(agent);
     }
   }
@@ -72,16 +74,40 @@ pub fn detect_package_manager(cwd: &Path) -> Result<&'static str, PmError> {
   })
 }
 
-/// 上游 `packageManager-field` 策略：JSONC 容错解析；字段值不识别返回 None
-/// （fall through 到其他策略，而非误判为 npm）
-fn detect_from_package_manager_field(dir: &Path) -> Option<&'static str> {
+/// 每级目录的 package.json 声明检测：JSONC 容错解析；两种声明均不识别返回
+/// None（fall through 到其他目录，而非误判为 npm）。同级顺序：顶层
+/// packageManager → devEngines.packageManager（ADR-0006）
+fn detect_from_package_json(dir: &Path) -> Option<&'static str> {
   let text = std::fs::read_to_string(dir.join("package.json")).ok()?;
   let jsonc_parser::ast::Value::Object(root) = crate::jsonc::parse(&text)? else {
     return None;
   };
-  let field = crate::jsonc::get_prop(&root, "packageManager")?
+  detect_from_package_manager_field(&root).or_else(|| detect_from_dev_engines_field(&root))
+}
+
+/// 支持名单匹配：name 不在上游 `AGENTS` 内返回 None（宽容回退）
+fn known_agent(name: &str) -> Option<&'static str> {
+  AGENTS.iter().copied().find(|agent| *agent == name)
+}
+
+/// 上游 `packageManager-field` 策略：字段值 `<name>@<version>` 的 name 部分
+fn detect_from_package_manager_field(root: &jsonc_parser::ast::Object) -> Option<&'static str> {
+  let field = crate::jsonc::get_prop(root, "packageManager")?
     .value
     .as_string_lit()?;
-  let name = field.value.split('@').next()?;
-  AGENTS.iter().copied().find(|agent| *agent == name)
+  known_agent(field.value.split('@').next()?)
+}
+
+/// devEngines.packageManager 声明（ADR-0006）：只接受单个对象且只消费
+/// `name`（version / onFail / 未知属性不参与调度）；字符串、数组、缺失或
+/// 非字符串 name、未知名称一律宽容回退 None
+fn detect_from_dev_engines_field(root: &jsonc_parser::ast::Object) -> Option<&'static str> {
+  let dev_engines = crate::jsonc::get_prop(root, "devEngines")?
+    .value
+    .as_object()?;
+  let pm = crate::jsonc::get_prop(dev_engines, "packageManager")?
+    .value
+    .as_object()?;
+  let name = crate::jsonc::get_prop(pm, "name")?.value.as_string_lit()?;
+  known_agent(&name.value)
 }
