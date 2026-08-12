@@ -51,7 +51,10 @@ mod tests {
 
   #[test]
   fn relative_input_stays_relative() {
-    assert_eq!(path(Path::new("/repo"), Path::new("package.json")), "package.json");
+    assert_eq!(
+      path(Path::new("/repo"), Path::new("package.json")),
+      "package.json"
+    );
   }
 
   #[test]

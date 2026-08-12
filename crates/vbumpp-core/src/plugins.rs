@@ -296,7 +296,13 @@ fn update_file(
   if !path.exists() {
     return Ok((false, vec![]));
   }
-  let outcome = dispatch_file(Path::new(rel_path), &path, current_version, new_version, cwd)?;
+  let outcome = dispatch_file(
+    Path::new(rel_path),
+    &path,
+    current_version,
+    new_version,
+    cwd,
+  )?;
   Ok(match outcome {
     UpdateOutcome::Updated => (true, vec![]),
     UpdateOutcome::UpdatedWith(extra_paths) => (true, extra_paths),

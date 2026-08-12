@@ -20,10 +20,7 @@ fn cargo_toml_maps_to_cargo() {
 #[test]
 fn js_manifest_maps_to_javascript() {
   assert_eq!(resolve(&["package.json"]), vec![Ecosystem::JavaScript]);
-  assert_eq!(
-    resolve(&["package-lock.json"]),
-    vec![Ecosystem::JavaScript]
-  );
+  assert_eq!(resolve(&["package-lock.json"]), vec![Ecosystem::JavaScript]);
   assert_eq!(resolve(&["sub/deno.jsonc"]), vec![Ecosystem::JavaScript]);
 }
 

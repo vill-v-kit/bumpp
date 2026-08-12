@@ -267,7 +267,10 @@ fn commit_lock(lock: Option<LockSync>, cwd: &Path) -> Result<UpdateOutcome, File
   match lock {
     Some(sync) => {
       std::fs::write(&sync.path, &sync.content).map_err(|e| FilesError::Lock {
-        message: format!("failed to write {}: {e}", crate::display::path(cwd, &sync.path)),
+        message: format!(
+          "failed to write {}: {e}",
+          crate::display::path(cwd, &sync.path)
+        ),
       })?;
       Ok(UpdateOutcome::UpdatedWith(vec![sync.path]))
     }
@@ -277,10 +280,16 @@ fn commit_lock(lock: Option<LockSync>, cwd: &Path) -> Result<UpdateOutcome, File
 
 fn parse_lock(lock_path: &Path, cwd: &Path) -> Result<DocumentMut, FilesError> {
   let text = std::fs::read_to_string(lock_path).map_err(|e| FilesError::Lock {
-    message: format!("failed to read {}: {e}", crate::display::path(cwd, lock_path)),
+    message: format!(
+      "failed to read {}: {e}",
+      crate::display::path(cwd, lock_path)
+    ),
   })?;
   text.parse::<DocumentMut>().map_err(|e| FilesError::Lock {
-    message: format!("failed to parse {}: {e}", crate::display::path(cwd, lock_path)),
+    message: format!(
+      "failed to parse {}: {e}",
+      crate::display::path(cwd, lock_path)
+    ),
   })
 }
 
