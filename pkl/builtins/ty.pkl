@@ -1,0 +1,20 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+import "./test/helpers.pkl"
+
+@Builtins.meta {
+  category = "Python"
+  description = "Fast Python type checker"
+}
+ty = new Config.Step {
+  glob = List("**/*.py", "**/*.pyi")
+  check = new Config.CommandSpec {
+    command = "ty check {{ files }}"
+    effect = "write"
+  }
+  tests {
+    local const testMaker = new helpers.TestMaker { filename = "test.py" }
+    ["check bad file"] = testMaker.checkFail("x: int = ''", 1)
+    ["check good file"] = testMaker.checkPass("x: str = ''")
+  }
+}

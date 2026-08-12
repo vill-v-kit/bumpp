@@ -1,0 +1,84 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+import "./test/helpers.pkl"
+
+@Builtins.meta {
+  category = "Shell"
+  description = "Shell formatter"
+  project_indicators {
+    new { glob = "*.sh" }
+  }
+}
+shfmt = new Config.Step {
+  batch = true
+  match_any =
+    List(
+      new Config.FileSelector {
+        glob = List("**/*.sh", "**/*.bash", "**/*.mksh", "**/*.bats", "**/*.zsh")
+      },
+      new Config.FileSelector { types = List("sh", "bash") },
+    )
+  check_diff = new Config.CommandSpec {
+    command = "shfmt -d --apply-ignore {{ files }}"
+    effect = "read"
+  }
+  check_list_files = new Config.CommandSpec {
+    command =
+      """
+      files=$(shfmt -l --apply-ignore {{ files }})
+      if [ -n "$files" ]; then
+      echo "$files"
+      exit 1
+      fi
+      """
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "shfmt -w --apply-ignore {{ files }}"
+    effect = "write"
+  }
+  tests {
+    local const testMaker = new helpers.TestMaker { filename = "test.sh" }
+    local const before =
+      """
+      foo() {
+        (( $bar ))
+      }
+      """
+    local const after =
+      """
+      foo() {
+      	(($bar))
+      }
+      """
+    ["check bad file"] = testMaker.checkFail(before, 1)
+    ["check good file"] = testMaker.checkPass(after)
+    ["fix bad file"] = testMaker.fixPass(before, after)
+    ["fix good file"] = testMaker.fixPass(after, after)
+
+    local const extensionlessTestMaker = new helpers.TestMaker {
+      filename = "script"
+      files = List("script")
+    }
+    ["check extensionless shell script"] =
+      extensionlessTestMaker.checkFail(
+        "#!/bin/sh\n" + before,
+        1,
+      )
+
+    local const ignoredTestMaker = new helpers.TestMaker {
+      filename = "test.sh"
+      extra_files {
+        [".editorconfig"] =
+          """
+          [test.sh]
+          ignore = true
+          """
+      }
+    }
+    ["check ignored bad file"] = ignoredTestMaker.checkPass(before)
+    ["check ignored good file"] = ignoredTestMaker.checkPass(after)
+    ["fix ignored bad file"] = ignoredTestMaker.fixPass(before, before)
+    ["fix ignored good file"] = ignoredTestMaker.fixPass(after, after)
+  }
+}

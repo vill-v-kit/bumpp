@@ -1,0 +1,18 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Data Formats"
+  description = "SQL linter and formatter"
+}
+sql_fluff = new Config.Step {
+  glob = "**/*.sql"
+  check = new Config.CommandSpec {
+    command = "sqlfluff lint {{ files }}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "sqlfluff fix {{ files }}"
+    effect = "write"
+  }
+}

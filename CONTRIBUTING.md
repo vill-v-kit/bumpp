@@ -13,7 +13,7 @@ pnpm install     # 安装 workspace 依赖；prepare 脚本自动执行 hk insta
 
 pnpm 由 nub（`nub pm`）或你自己的方式提供，版本以根 `package.json` 的 `packageManager` 字段为准（CI 用 `pnpm/action-setup` 读取同一字段）。
 
-工具链维护：rust 升版 = 改 `mise.toml` 版本号 + `mise lock`。macOS 主机临时复现 arm64 交叉产物，不改 `mise.toml`，用显式 spec 现取：
+工具链维护：rust 升版 = 改 `mise.toml` 版本号 + `mise lock`。hk 升版 = `mise.toml` 版本号 + 重下 hk@对应版本 zip 覆盖根 `pkl/`（vendored schema）+ `mise lock` 三处同步。macOS 主机临时复现 arm64 交叉产物，不改 `mise.toml`，用显式 spec 现取：
 
 ```shell
 mise exec zig@0.15.2 github:rust-cross/cargo-zigbuild@0.23.0 -- \

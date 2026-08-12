@@ -1,0 +1,26 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+import "./test/helpers.pkl"
+
+@Builtins.meta {
+  category = "Special Purpose"
+  description = "Ensure files end with newline"
+}
+newlines = new Config.Step {
+  types = List("text")
+  check_diff = new Config.CommandSpec {
+    command = "hk util end-of-file-fixer --diff {{files}}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "hk util end-of-file-fixer --fix {{files}}"
+    effect = "write"
+  }
+  tests {
+    local const testMaker = new helpers.TestMaker {}
+    ["check bad file"] = testMaker.checkFail("content", 1)
+    ["check good file"] = testMaker.checkPass("content\n")
+    ["fix bad file"] = testMaker.fixPass("content", "content\n")
+    ["fix good file"] = testMaker.fixPass("content\n", "content\n")
+  }
+}

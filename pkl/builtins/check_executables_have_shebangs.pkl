@@ -1,0 +1,34 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Special Purpose"
+  description = "Verify executable files have shebang lines"
+}
+check_executables_have_shebangs = new Config.Step {
+  types = List("text")
+  check = new Config.CommandSpec {
+    command = "hk util check-executables-have-shebangs {{files}}"
+    effect = "read"
+  }
+  tests {
+    ["detects executable without shebang"] {
+      run = "check"
+      write { ["{{tmp}}/script.sh"] = "echo hello" }
+      before = "chmod +x {{tmp}}/script.sh"
+      expect { code = 1 }
+    }
+    ["passes executable with shebang"] {
+      run = "check"
+      write { ["{{tmp}}/script.sh"] = "#!/bin/bash\necho hello" }
+      before = "chmod +x {{tmp}}/script.sh"
+      expect { code = 0 }
+    }
+    ["passes non-executable file"] {
+      run = "check"
+      write { ["{{tmp}}/script.sh"] = "echo hello" }
+      before = "chmod 644 {{tmp}}/script.sh"
+      expect { code = 0 }
+    }
+  }
+}

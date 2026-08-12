@@ -1,0 +1,14 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Data Formats"
+  description = "XML validator"
+}
+xmllint = new Config.Step {
+  glob = "**/*.xml"
+  check = new Config.CommandSpec {
+    command = "xmllint --noout {{ files }}"
+    effect = "read"
+  }
+}

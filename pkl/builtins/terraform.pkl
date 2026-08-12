@@ -1,0 +1,18 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Infrastructure"
+  description = "Terraform formatter"
+}
+terraform = new Config.Step {
+  glob = List("**/*.tf", "**/*.tfvars", "**/*.tftest.hcl")
+  check_list_files = new Config.CommandSpec {
+    command = "terraform fmt -check {{ files }}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "terraform fmt {{ files }}"
+    effect = "write"
+  }
+}

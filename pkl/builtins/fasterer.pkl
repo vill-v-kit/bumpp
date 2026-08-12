@@ -1,0 +1,14 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Ruby"
+  description = "Performance suggestions"
+}
+fasterer = new Config.Step {
+  types = List("ruby")
+  check = new Config.CommandSpec {
+    command = "fasterer {{ files }}"
+    effect = "read"
+  }
+}

@@ -1,0 +1,15 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Go"
+  description = "Security scanner"
+}
+go_sec = new Config.Step {
+  glob = "**/*.go"
+  workspace_indicator = "go.mod"
+  check = new Config.CommandSpec {
+    command = "cd {{workspace}} && gosec ./..."
+    effect = "write"
+  }
+}

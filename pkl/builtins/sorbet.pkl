@@ -1,0 +1,14 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Ruby"
+  description = "Type checker for Ruby"
+}
+sorbet = new Config.Step {
+  types = List("ruby")
+  check = new Config.CommandSpec {
+    command = "srb tc {{ files }}"
+    effect = "write"
+  }
+}

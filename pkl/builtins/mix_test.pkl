@@ -1,0 +1,15 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Elixir"
+  description = "Test Elixir with Mix"
+}
+mix_test = new Config.Step {
+  glob = List("**/*.ex", "**/*.exs")
+  exclude = List("deps/**/*")
+  check = new Config.CommandSpec {
+    command = "mix test --warnings-as-errors {{files}}"
+    effect = "write"
+  }
+}

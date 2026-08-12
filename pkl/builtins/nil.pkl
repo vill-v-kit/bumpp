@@ -1,0 +1,14 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Nix"
+  description = "Nix Language server"
+}
+nil = new Config.Step {
+  glob = "**/*.nix"
+  check = new Config.CommandSpec {
+    command = "nil diagnostics --deny-warnings {{ files }}"
+    effect = "read"
+  }
+}

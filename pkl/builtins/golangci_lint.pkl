@@ -1,0 +1,22 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Go"
+  description = "Go meta-linter"
+  project_indicators {
+    new { file = "go.mod" }
+  }
+}
+golangci_lint = new Config.Step {
+  glob = "**/*.go"
+  workspace_indicator = "go.mod"
+  check = new Config.CommandSpec {
+    command = "cd {{workspace}} && golangci-lint run --fix=false ./..."
+    effect = "write"
+  }
+  fix = new Config.CommandSpec {
+    command = "cd {{workspace}} && golangci-lint run --fix ./..."
+    effect = "write"
+  }
+}

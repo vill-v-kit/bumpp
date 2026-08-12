@@ -1,0 +1,18 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Nix"
+  description = "Nixpkgs formatter"
+}
+nixpkgs_format = new Config.Step {
+  glob = "**/*.nix"
+  check = new Config.CommandSpec {
+    command = "nixpkgs-fmt --check {{ files }}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "nixpkgs-fmt {{ files }}"
+    effect = "write"
+  }
+}

@@ -1,0 +1,18 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Other Languages"
+  description = "Source code formatter for cmake listfiles"
+}
+cmake_format = new Config.Step {
+  glob = List("**/CMakeLists.txt", "**/*.cmake")
+  check = new Config.CommandSpec {
+    command = "cmake-format --check {{ files }}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "cmake-format --in-place {{ files }}"
+    effect = "write"
+  }
+}

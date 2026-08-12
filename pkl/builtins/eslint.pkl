@@ -1,0 +1,22 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "JavaScript/TypeScript"
+  description = "Pluggable JavaScript linter"
+  project_indicators {
+    new { file = "package.json"; contains = "\"eslint\"" }
+  }
+}
+eslint = new Config.Step {
+  glob = List("**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx")
+  batch = true
+  check = new Config.CommandSpec {
+    command = "eslint {{ files }}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "eslint --fix {{ files }}"
+    effect = "write"
+  }
+}

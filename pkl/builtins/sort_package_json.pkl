@@ -1,0 +1,18 @@
+import "../Builtins.pkl"
+import "../Config.pkl"
+
+@Builtins.meta {
+  category = "Configuration"
+  description = "Sort package.json keys"
+}
+sort_package_json = new Config.Step {
+  glob = "**/package.json"
+  check = new Config.CommandSpec {
+    command = "sort-package-json --check {{ files }}"
+    effect = "read"
+  }
+  fix = new Config.CommandSpec {
+    command = "sort-package-json {{ files }}"
+    effect = "write"
+  }
+}
