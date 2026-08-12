@@ -29,6 +29,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Rust cache
+        # fmt/clippy/test 共用一个桶（同为 ubuntu 宿主、同 feature 集）
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: clippy-test
+          workspaces: ". -> target"
+
       - name: package LICENSE sync
         run: pnpm check:licenses
 
@@ -85,6 +92,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Rust cache
+        # 按 target 分桶：各腿宿主/工具链/target 三元组不同，串桶会互相污染
+        # （zigbuild 腿的 target/ 下是交叉产物，更不能与原生腿共享）
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: napi-${{ matrix.settings.triple }}
+          workspaces: ". -> target"
 
       - name: Build (napi CLI)
         if: ${{ !matrix.settings.glibc }}
