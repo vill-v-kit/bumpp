@@ -76,8 +76,12 @@ _Avoid_: Corepack 声明（这些字段可由其他工具消费）、包管理�
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:
-按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。目录（`napi/<triple>`，如 `napi/darwin-arm64`）由 `napi create-npm-dirs` 从 `napi.targets` 生成、不提交进 git（ADR-0029）。
+按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。目录（`napi/<triple>`，如 `napi/darwin-arm64`）不提交进 git——CI 与本地均经 `pnpm create:npm-dirs`（包装 `napi create-npm-dirs`）从 `napi.targets` 现场生成；fresh clone 目录缺失时 pnpm 对 optionalDependencies 里的 `workspace:*` silent skip，loader 走本地 `.node` fallback（ADR-0029）。
 _Avoid_: native package、binary package
+
+**napi.targets**:
+`napi/bumpp-core/package.json` 的 `napi.targets` 字段（7 条 rust triple）——"支持哪些平台"的单一真相源（ADR-0029）。真相源链：`napi.targets` → create-npm-dirs 生成平台目录 → optionalDependencies（`workspace:*`）→ loader 从 optionalDependencies 动态推导支持清单，无第二份手写平台清单。
+_Avoid_: 支持矩阵表（暗示存在独立维护的清单）
 
 **平台变体包 (Platform variant)**:
 面向用户的 npm 包 `@vill-v/bumpp-{github,gitlab,gitee,gitcode}`——与主包同形，差别仅在 provider 身份注入：bin 经 `cliRun(argv, provider)` 位置参数、编程式 API 经 `bumpVersion(options, provider)` 注入，bump 完成后接该平台 Release（ADR-0016）。
