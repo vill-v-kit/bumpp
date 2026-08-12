@@ -80,7 +80,7 @@ _Avoid_: Corepack 声明（这些字段可由其他工具消费）、包管理�
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:
-按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。目录（`napi/<triple>`，如 `napi/darwin-arm64`）不提交进 git——CI 与本地均经 `pnpm create:npm-dirs`（包装 `napi create-npm-dirs`）从 `napi.targets` 现场生成；fresh clone 目录缺失时 pnpm 对 optionalDependencies 里的 `workspace:*` silent skip，loader 走本地 `.node` fallback（ADR-0029）。
+按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。目录（`napi/<triple>`，如 `napi/darwin-arm64`）不提交进 git——CI 与本地均经 `pnpm create:npm-dirs`（包装 `napi create-npm-dirs`）从 `napi.targets` 现场生成；fresh clone 目录缺失时 pnpm 对 optionalDependencies 里的 `workspace:*` silent skip，loader 走本地 `.node` fallback（ADR-0029）。主包发布态不内置任何 `.node`——平台包是二进制唯一分发通道，包根 fallback 仅存于本地开发磁盘（ADR-0032）。
 _Avoid_: native package、binary package
 
 **napi.targets**:
