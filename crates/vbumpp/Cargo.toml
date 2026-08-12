@@ -6,6 +6,7 @@ license = "MIT"
 description = "Pure Rust vbumpp CLI binary (thin shell over vbumpp-core run_from_argv; zero napi dependencies)"
 homepage = "https://vill-v-kit.github.io/bumpp/"
 repository = "https://github.com/vill-v-kit/bumpp"
+readme = "README.md"
 
 [[bin]]
 name = "vbumpp"
