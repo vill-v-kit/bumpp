@@ -307,6 +307,15 @@ jobs:
           for d in napi/*/ npm/*/; do
             pnpm exec publint "$d"
           done
+          # core 发布包禁含 .node：napi artifacts 刻意把全架构副本写进包根（上游
+          # 兜底设计，无开关），files 字段正确≠产物正确，断在产物上防组合回归。
+          # 精确匹配 core 包名——平台包 vill-v-bumpp-core-<triple> 应当含 .node
+          core_tgz=$(ls .artifacts/pack/vill-v-bumpp-core-[0-9]*.tgz)
+          if tar -tzf "$core_tgz" | grep -q '\.node$'; then
+            echo "::error::core tarball must not bundle .node binaries:"
+            tar -tzf "$core_tgz" | grep '\.node$'
+            exit 1
+          fi
 
       - name: Publish (skip-if-published 守卫过滤后上架)
         # npm-publish.mjs：守卫过滤未上架包 → pnpm [--filter]×N publish -r --no-git-checks
