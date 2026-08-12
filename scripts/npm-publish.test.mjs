@@ -57,12 +57,14 @@ beforeAll(async () => {
 
 afterAll(() => server.close())
 
-function runPublish() {
+function runPublish({ dryRun = true, env = {} } = {}) {
   return new Promise((resolve) => {
     execFile(
       'node',
-      [script, '--dry-run'],
-      { env: { ...process.env, PUBLISH_GUARD_NPM_URL: base } },
+      [script, ...(dryRun ? ['--dry-run'] : [])],
+      // CI 显式置空：本测试自身就在 CI 的 test job 里跑，环境传染必须隔离，
+      // 各用例经 env 显式声明自己的 CI 状态
+      { env: { ...process.env, CI: '', ...env, PUBLISH_GUARD_NPM_URL: base } },
       (error, stdout, stderr) => {
         resolve({ code: error ? error.code : 0, stdout, stderr })
       },
@@ -116,5 +118,45 @@ describe('查询失败原子性', () => {
     expect(r.code).toBe(2)
     expect(r.stdout).not.toContain('📦')
     expect(r.stderr).toContain('ERROR')
+  })
+})
+
+describe('全新包名前置检测（首发仪式触发绑定）', () => {
+  // 守卫的 per-version 查询与前置检测的包级探针（/<name>/latest）同打到
+  // stub：404 = 未上架。全部 404 时 13 个包都是「全新包名」
+  const allNew = (_req, res) => res.writeHead(404).end()
+  // 包名已存在（包级探针 200）仅版本新（per-version 404 → GO）
+  const nameExists = (req, res) => res.writeHead(req.url.endsWith('/latest') ? 200 : 404).end()
+
+  it('CI + 全新包名 → exit 2 整体拦停、不发起 publish、指引含首发仪式', { timeout: 60000 }, async () => {
+    handler = allNew
+    const r = await runPublish({ dryRun: false, env: { CI: '1' } })
+    expect(r.code).toBe(2)
+    expect(r.stdout).not.toContain('run: pnpm')
+    expect(r.stderr).toContain('ERROR 发布计划含从未上架的全新包名')
+    expect(r.stderr).toContain('首发仪式')
+  })
+
+  it('CI + 包名已存在仅版本新 → 不拦，照常放行 publish', { timeout: 120000 }, async () => {
+    handler = nameExists
+    const r = await runPublish({ dryRun: false, env: { CI: '1' } })
+    expect(r.stderr).not.toContain('全新包名')
+    // publish 实际打到 stub registry 必然失败——本例只断言未被前置检测拦停
+    expect(r.stdout).toContain('run: pnpm')
+  })
+
+  it('非 CI + 全新包名 → 只警告不拦（本地手动首发仪式通路）', { timeout: 120000 }, async () => {
+    handler = allNew
+    const r = await runPublish({ dryRun: false })
+    expect(r.stderr).toContain('WARN 发布计划含从未上架的全新包名')
+    expect(r.stdout).toContain('run: pnpm')
+  })
+
+  it('dry-run 永不拦：CI 下全新包名也只警告、照常干跑', { timeout: 60000 }, async () => {
+    handler = allNew
+    const r = await runPublish({ env: { CI: '1' } })
+    expect(r.code).toBe(0)
+    expect(dryRunPackages(r.stdout)).toEqual([...PUBLISHABLE].sort())
+    expect(r.stderr).toContain('WARN 发布计划含从未上架的全新包名')
   })
 })

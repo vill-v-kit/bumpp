@@ -18,6 +18,9 @@
  *   - 守卫：GO/SKIP 行透传到 stderr；任一查询失败（guard exit 2）→ 不发起
  *     publish、本脚本 exit 2（原子性：绝不放行半个计划）
  *   - 全部已上架 → 打印 nothing to do、exit 0（不调用 pnpm publish）
+ *   - 全新包名：GO 包逐个查包级文档，404 = 包名从未上架 → CI（OIDC 上下文）
+ *     非 dry-run 整体拦停 exit 2 + 打印首发仪式指引；本地手动首发是仪式
+ *     本身，仅警告不拦（ADR-0031 首发仪式触发绑定的闭环）
  *   - 有未上架 → pnpm [--filter <包名>]×N publish -r --no-git-checks [--dry-run]
  *     （--filter 置于全局位：publish 子命令位上多个 --filter 会被 pnpm 参数解析
  *     当成非法；pnpm 原生拓扑序——平台包 → core → 用户包——不受影响），
@@ -35,6 +38,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const guard = fileURLToPath(new URL('./publish-guard.mjs', import.meta.url))
 const dryRun = process.argv.includes('--dry-run')
 const registryOverride = process.env.PUBLISH_GUARD_NPM_URL?.replace(/\/$/, '')
+const GUARD_UA = 'vill-v-kit/bumpp publish-guard (https://github.com/vill-v-kit/bumpp)'
 
 function exec(cmd, args) {
   return new Promise((resolve, reject) => {
@@ -90,7 +94,55 @@ if (todo.length === 0) {
   process.exit(0)
 }
 
-// 5. 放行：--filter 全局位 + pnpm 原生拓扑序
+// 5. 全新包名前置检测（首发仪式的触发绑定）：对 GO 包查包级文档（/latest
+// 端点，响应小），404 = 包名从未上架。npm OIDC trusted publishing 要求包
+// 已存在且已配置 trusted publisher，全新包名在 CI 必于拓扑序中段 404、
+// 造成部分上架（v6.1.0 musl 实例）——CI 上整体拦停 exit 2；本地手动首发
+// 是仪式本身，只警告不拦。查询失败同守卫语义 exit 2（不在未知态放行）
+const npmBase = registryOverride ?? 'https://registry.npmjs.org'
+const brandNew = []
+let probeFailed = false
+await Promise.all(
+  todo.map(async (name) => {
+    try {
+      const res = await fetch(`${npmBase}/${encodeURIComponent(name)}/latest`, {
+        headers: { 'user-agent': GUARD_UA },
+      })
+      await res.arrayBuffer() // 消费响应体，归还连接
+      if (res.status === 404) {
+        brandNew.push(name)
+      } else if (res.status !== 200) {
+        console.error(`ERROR npm package query failed: HTTP ${res.status} for ${name}`)
+        probeFailed = true
+      }
+    } catch (err) {
+      console.error(`ERROR npm package query failed: ${err.cause?.code ?? err.message} for ${name}`)
+      probeFailed = true
+    }
+  }),
+)
+if (probeFailed) {
+  process.exit(2)
+}
+if (brandNew.length > 0) {
+  // dry-run 是验证不是上架，与本地一样只警告
+  const blocking = process.env.CI && !dryRun
+  console.error(`${blocking ? 'ERROR' : 'WARN'} 发布计划含从未上架的全新包名：
+${brandNew.map((n) => `  - ${n}`).join('\n')}
+
+npm trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有
+配置页，CI/OIDC 无法首发。请执行首发仪式（CONTEXT.md「首发仪式」）：
+  1. 本地 pnpm login（OTP）后运行 node scripts/npm-publish.mjs——非 CI
+     环境只警告不拦停，守卫会过滤已上架包、只发未上架的（含全新包名）
+  2. npmjs.com 各新包设置页配置 trusted publisher（vill-v-kit/bumpp +
+     workflow 文件名）
+  3. CI「Re-run failed jobs」，由 OIDC 收后续版本`)
+  if (blocking) {
+    process.exit(2)
+  }
+}
+
+// 6. 放行：--filter 全局位 + pnpm 原生拓扑序
 const args = [
   ...todo.flatMap((name) => ['--filter', name]),
   'publish',

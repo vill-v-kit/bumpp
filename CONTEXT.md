@@ -44,7 +44,7 @@ _Avoid_: publish
 _Avoid_: publish（英文对应词，不作术语）、发布（过宽——兼指 Bump 与平台 Release）
 
 **首发仪式 (First-publish ceremony)**:
-全新 npm 包名的首次上架流程——npm OIDC trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有配置页，首发必走一次性经典认证：本地 `pnpm login`（OTP）手动首发 → npmjs.com 包设置配 trusted publisher → 重跑 CI 由 OIDC 收后续版本（ADR-0021 决策④、ADR-0029）。平台矩阵每扩一个新 target 即新增一个包名，首发仪式是该次发版的前置条件；漏做则 publish-npm 在拓扑序中段 404，造成部分上架（v6.1.0 实例）。
+全新 npm 包名的首次上架流程——npm OIDC trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有配置页，首发必走一次性经典认证：本地 `pnpm login`（OTP）手动首发 → npmjs.com 包设置配 trusted publisher → 重跑 CI 由 OIDC 收后续版本（ADR-0021 决策④、ADR-0029）。平台矩阵每扩一个新 target 即新增一个包名，首发仪式是该次发版的前置条件；漏做则 publish-npm 在拓扑序中段 404，造成部分上架（v6.1.0 实例）。触发绑定已由 npm-publish.mjs 前置检测闭环：发布计划含从未上架的包名时 CI 在上传任何包之前拦停并输出仪式指引，本地手动首发只警告不拦。
 _Avoid_: 首发（过宽——需含完整流程义）
 
 **免编译安装 (cargo-binstall 渠道)**:
