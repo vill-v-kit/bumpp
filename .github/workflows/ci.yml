@@ -36,6 +36,11 @@ jobs:
           shared-key: clippy-test
           workspaces: ". -> target"
 
+      - name: Generate platform packages (create-npm-dirs + LICENSE)
+        # 平台包目录不提交进 git（ADR-0029）：先生成，check-licenses 与
+        # npm-publish 契约测试才覆盖到 7 个平台包的真实发版态
+        run: pnpm create:npm-dirs
+
       - name: package LICENSE sync
         run: pnpm check:licenses
 
@@ -71,6 +76,17 @@ jobs:
             triple: linux-arm64-gnu
             # 存在即走 zigbuild 腿；值是 glibc 下限，同时供 target 后缀与断言取用
             glibc: '2.17'
+          # musl 两腿：napi CLI 原生 --cross-compile（内部路由 cargo-zigbuild，
+          # 自动 -C target-feature=-crt-static），无需像 arm64-gnu 那样绕过 CLI——
+          # musl 是合法 rust triple 无 glibc 后缀，target 校验直接收（ADR-0025）
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            triple: linux-x64-musl
+            crossCompile: true
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            triple: linux-arm64-musl
+            crossCompile: true
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             triple: win32-x64-msvc
@@ -103,7 +119,7 @@ jobs:
 
       - name: Build (napi CLI)
         if: ${{ !matrix.settings.glibc }}
-        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }}
+        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }} ${{ matrix.settings.crossCompile && '--cross-compile' }}
 
       - name: Build (cargo zigbuild, glibc pinned)
         # zig 链交叉：现代 clang + lld（ring/rustls 可编，无 ld.bfd 的 GNU
@@ -190,9 +206,8 @@ jobs:
           name: bindings-${{ matrix.settings.triple }}
           path: napi/bumpp-core
 
-      - name: Copy artifact into platform package
-        run: cp napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node napi/bumpp-core-${{ matrix.settings.triple }}/
-
+      # 平台包目录不再提交（ADR-0029）：loader 直接走本包根目录的本地 .node
+      # fallback，无需把产物拷进平台包目录
       - name: Test bindings
         run: pnpm exec vitest run napi/bumpp-core
 
@@ -253,21 +268,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Download artifacts (5 platform .node + index.d.ts)
+      - name: Download artifacts (7 platform .node + index.d.ts)
         uses: actions/download-artifact@v8
         with:
           pattern: bindings-*
           path: .artifacts
           merge-multiple: true
 
+      - name: Generate platform packages (create-npm-dirs + LICENSE)
+        # 平台包目录由 napi.targets 单一真相源生成，不提交进 git（ADR-0029）：
+        # create-npm-dirs 生成 napi/<triple>/（package.json + README），脚本补 LICENSE
+        run: pnpm create:npm-dirs
+
       - name: Inject binaries into platform packages (+ index.d.ts into core)
-        # 注入逻辑与 test-bindings job 同款：每个平台三元组一对「artifact → 平台包目录」
-        run: |
-          set -euo pipefail
-          for triple in darwin-arm64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc win32-arm64-msvc; do
-            cp ".artifacts/bumpp-core.$triple.node" "napi/bumpp-core-$triple/"
-          done
-          cp .artifacts/index.d.ts napi/bumpp-core/index.d.ts
+        # napi artifacts 把 .node 按名字分发进各平台包目录；它要求 napi.targets
+        # 全部 target 的产物齐备（缺一即硬失败），故只能在汇聚全腿产物的本 job 执行
+        run: pnpm collect:artifacts
 
       - name: Assert tag version == workspace version
         # 防手滑推错 tag：tag 去 v 前缀必须等于根 package.json 版本（npm 侧版本唯一维护点）
@@ -283,7 +299,7 @@ jobs:
       - name: Build user packages (tsdown → dist/)
         run: pnpm -r --filter './npm/**' run build
 
-      - name: Pre-validate (pack 11 packages + publint)
+      - name: Pre-validate (pack 13 packages + publint)
         # 任一失败都在上传动作之前拦下；website 与根 monorepo 为 private 不参与
         run: |
           set -euo pipefail
@@ -294,7 +310,7 @@ jobs:
 
       - name: Publish (skip-if-published 守卫过滤后上架)
         # npm-publish.mjs：守卫过滤未上架包 → pnpm [--filter]×N publish -r --no-git-checks
-        # （查询失败 exit 2 拦停；11 包全已上架则空计划收工；pnpm 拓扑序原生处理）
+        # （查询失败 exit 2 拦停；13 包全已上架则空计划收工；pnpm 拓扑序原生处理）
         # 认证：OIDC trusted publishing（ADR-0021 决策④终态）——pnpm 自动用
         # id-token 换短期 token（无需 ~/.npmrc 与长效 NPM_TOKEN；provenance 随 OIDC 自动附加）
         run: node scripts/npm-publish.mjs

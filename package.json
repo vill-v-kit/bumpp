@@ -7,6 +7,8 @@
   "scripts": {
     "build": "turbo run build",
     "check:licenses": "node scripts/check-licenses.mjs",
+    "collect:artifacts": "node scripts/collect-artifacts.mjs",
+    "create:npm-dirs": "node scripts/create-npm-dirs.mjs",
     "release": "vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
     "pretest": "turbo run build",
     "test": "vitest"

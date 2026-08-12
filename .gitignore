@@ -12,3 +12,12 @@ target
 napi/bumpp-core/index.d.ts
 
 .zcode/plans
+
+# napi 平台包目录：由 napi create-npm-dirs 从 napi.targets 生成（ADR-0029），不提交
+napi/darwin-arm64
+napi/linux-arm64-gnu
+napi/linux-arm64-musl
+napi/linux-x64-gnu
+napi/linux-x64-musl
+napi/win32-arm64-msvc
+napi/win32-x64-msvc

@@ -44,8 +44,8 @@ cargo fmt --all && cargo clippy --workspace --all-targets
 
 GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时触发**；日常直推 main 不触发。tag 由本地 `pnpm release`（vbumpp `-r` 全树版本 bump）刻意产生，tag 推送即授权（ADR-0021）：
 
-1. `test`（cargo fmt/clippy/test + vitest + `check:licenses`）→ `build`（5 平台原生 runner 矩阵）→ `test-bindings`（macOS / Ubuntu / Windows）全绿；
-2. `publish-npm` 与 `publish-crates` 并行自动**上架**，无人工批准门——npm 侧注入 5 平台 `.node` artifact 与 `index.d.ts`、断言 tag 版本 == 工作区版本、`pnpm -r pack` + publint 前置验证后 `pnpm publish -r`（11 包）；crates 侧对称断言后按 `vbumpp-core` → `vbumpp` 硬序 `cargo publish`（cli 依赖 core，各自 dry-run 先行）；
+1. `test`（cargo fmt/clippy/test + vitest + `check:licenses`，先经 `pnpm create:npm-dirs` 生成平台包目录）→ `build`（7 平台 runner 矩阵，含 musl ×2 交叉腿）→ `test-bindings`（macOS / Ubuntu / Windows）全绿；
+2. `publish-npm` 与 `publish-crates` 并行自动**上架**，无人工批准门——npm 侧 `pnpm create:npm-dirs` 生成 7 平台包目录、`napi artifacts` 注入 `.node` 与 `index.d.ts`（ADR-0029）、断言 tag 版本 == 工作区版本、`pnpm -r pack` + publint 前置验证后 `pnpm publish -r`（13 包）；crates 侧对称断言后按 `vbumpp-core` → `vbumpp` 硬序 `cargo publish`（cli 依赖 core，各自 dry-run 先行）；
 3. 任一 publish job 部分失败时，「Re-run failed jobs」即唯一恢复手段——`scripts/publish-guard.mjs` 的 skip-if-published 守卫让已上架版本自动跳过、未上架版本补发，两 job 可任意次重跑收敛。
 
 认证走 repo secrets（`NPM_TOKEN` / `CARGO_REGISTRY_TOKEN` 长效 token）首发，上架后迁 OIDC trusted publishing（ADR-0021 决策④）。设计与决策依据见 [ADR-0021](./docs/adr/0021-ci-registry-publish.md)；「上架」为术语基准（CONTEXT.md，与 Bump、平台 Release 三者分立）。

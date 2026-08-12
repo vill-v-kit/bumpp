@@ -76,7 +76,7 @@ _Avoid_: Corepack 声明（这些字段可由其他工具消费）、包管理�
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:
-按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`，`napi/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。
+按目标平台分发预编译 `.node` 二进制的 npm 包（如 `@vill-v/bumpp-core-darwin-arm64`），作为主包的 optionalDependencies 安装。目录（`napi/<triple>`，如 `napi/darwin-arm64`）由 `napi create-npm-dirs` 从 `napi.targets` 生成、不提交进 git（ADR-0029）。
 _Avoid_: native package、binary package
 
 **平台变体包 (Platform variant)**:

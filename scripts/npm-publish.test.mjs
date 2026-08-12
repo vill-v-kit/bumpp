@@ -11,13 +11,15 @@ import { fileURLToPath } from 'node:url'
 
 const script = fileURLToPath(new URL('./npm-publish.mjs', import.meta.url))
 
-// 当前仓库的 11 个可上架包（website 与根 monorepo 均 private，永不出现在放行集）；
+// 当前仓库的 13 个可上架包（website 与根 monorepo 均 private，永不出现在放行集）；
 // 新增发版包时此清单需同步——恰好全覆盖是 COL-53 的验收项
 const PUBLISHABLE = [
   '@vill-v/bumpp-core',
   '@vill-v/bumpp-core-darwin-arm64',
   '@vill-v/bumpp-core-linux-arm64-gnu',
+  '@vill-v/bumpp-core-linux-arm64-musl',
   '@vill-v/bumpp-core-linux-x64-gnu',
+  '@vill-v/bumpp-core-linux-x64-musl',
   '@vill-v/bumpp-core-win32-arm64-msvc',
   '@vill-v/bumpp-core-win32-x64-msvc',
   '@vill-v/bumpp',
@@ -32,11 +34,26 @@ let base
 // 每个测试替换此 handler 来模拟 registry 行为
 let handler = (_req, res) => res.writeHead(500).end()
 
+const root = fileURLToPath(new URL('..', import.meta.url))
+const exec = (cmd, args) =>
+  new Promise((resolve, reject) => {
+    execFile(cmd, args, { cwd: root }, (error, stdout, stderr) =>
+      error
+        ? reject(new Error(`${cmd} ${args.join(' ')} failed: ${stderr || error.message}`))
+        : resolve(stdout),
+    )
+  })
+
 beforeAll(async () => {
+  // 平台包目录不提交进 git（ADR-0029）：枚举前先生成并链接，否则 pnpm ls -r
+  // 看不到 7 个平台包、publish --dry-run 也无法完成 workspace:* 版本改写；
+  // frozen 保证测试永不把 lockfile 改写当副作用（提交的 lockfile 已含平台包记录）
+  await exec('node', ['scripts/create-npm-dirs.mjs'])
+  await exec('pnpm', ['install', '--frozen-lockfile'])
   server = createServer((req, res) => handler(req, res))
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   base = `http://127.0.0.1:${server.address().port}`
-})
+}, 120_000)
 
 afterAll(() => server.close())
 
@@ -59,7 +76,7 @@ function dryRunPackages(stdout) {
 }
 
 describe('守卫过滤 → 放行上架', () => {
-  it('全部未上架（404）→ 恰好 11 个包进入 publish', { timeout: 60000 }, async () => {
+  it('全部未上架（404）→ 恰好 13 个包进入 publish', { timeout: 60000 }, async () => {
     handler = (_req, res) => res.writeHead(404).end()
     const r = await runPublish()
     expect(r.code).toBe(0)

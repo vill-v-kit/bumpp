@@ -28,13 +28,11 @@ const importIsolated = (dir: string) =>
     encoding: 'utf8',
   })
 
-const SUPPORTED = [
-  'darwin-arm64',
-  'linux-x64-gnu',
-  'linux-arm64-gnu',
-  'win32-x64-msvc',
-  'win32-arm64-msvc',
-]
+// 平台清单的唯一真相源是 optionalDependencies 声明（loader 同源推导，ADR-0029），
+// 不再维护硬编码副本——新增平台包只需改 package.json
+const SUPPORTED = Object.keys(pkg.optionalDependencies).map((name) =>
+  name.replace('@vill-v/bumpp-core-', ''),
+)
 
 afterEach(() => {
   dirs.forEach((dir) => rmSync(dir, { recursive: true, force: true }))
@@ -65,11 +63,4 @@ it('平台包版本不匹配时报可读错误', () => {
   const result = importIsolated(dir)
   expect(result.status).toBe(1)
   expect(result.stderr).toMatch(expected)
-})
-
-it('loader 的平台清单与 optionalDependencies 声明一致', () => {
-  const declared = Object.keys(pkg.optionalDependencies).map((name) =>
-    name.replace('@vill-v/bumpp-core-', ''),
-  )
-  expect(declared.sort()).toEqual([...SUPPORTED].sort())
 })

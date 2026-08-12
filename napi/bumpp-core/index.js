@@ -39,7 +39,9 @@ function requireNative() {
   const errors = []
   for (const target of SUPPORTED_TARGETS) {
     if (target.platform !== process.platform || target.arch !== process.arch) continue
-    if (target.abi === 'gnu' && isMusl()) continue // musl 不在支持矩阵内
+    // musl 系统上跳过 gnu 包：musl 平台包在支持矩阵内（linux-{x64,arm64}-musl），
+    // 这里只是不让 glibc 构建在 musl 系统上抢兜底（旧包管理器可能双装 gnu/musl）
+    if (target.abi === 'gnu' && isMusl()) continue
 
     const packageName = `@vill-v/bumpp-core-${target.triple}`
     let binding

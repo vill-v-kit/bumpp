@@ -1,6 +1,7 @@
 /**
  * npm 上架（COL-53，ADR-0021 决策⑤的消费侧）：枚举 workspace 全部非 private 包
- * （当前恰好 11 个——website 与根 monorepo 为 private 自动排除），逐一过
+ * （当前恰好 13 个——website 与根 monorepo 为 private 自动排除；7 个平台包目录
+ * 由 create-npm-dirs 生成、不提交进 git，ADR-0029），逐一过
  * publish-guard（COL-51）查询 registry，只对未上架的包执行 `pnpm publish`。
  * 已上架包跳过、查询失败整体不放行——「Re-run failed jobs」重跑即收敛。
  *

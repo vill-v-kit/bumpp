@@ -8,13 +8,15 @@
 
 ## 支持平台
 
-以预编译 Platform package 分发（主包 + optionalDependencies）：
+以预编译 Platform package 分发（主包 + optionalDependencies；包目录由 `napi create-npm-dirs` 从 `napi.targets` 生成，ADR-0029）：
 
 | 平台包 | target |
 | --- | --- |
 | `@vill-v/bumpp-core-darwin-arm64` | aarch64-apple-darwin |
 | `@vill-v/bumpp-core-linux-x64-gnu` | x86_64-unknown-linux-gnu |
 | `@vill-v/bumpp-core-linux-arm64-gnu` | aarch64-unknown-linux-gnu |
+| `@vill-v/bumpp-core-linux-x64-musl` | x86_64-unknown-linux-musl |
+| `@vill-v/bumpp-core-linux-arm64-musl` | aarch64-unknown-linux-musl |
 | `@vill-v/bumpp-core-win32-x64-msvc` | x86_64-pc-windows-msvc |
 | `@vill-v/bumpp-core-win32-arm64-msvc` | aarch64-pc-windows-msvc |
 
