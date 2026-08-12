@@ -11,7 +11,7 @@
     "create:npm-dirs": "node scripts/create-npm-dirs.mjs",
     "prepare": "hk install",
     "pretest": "turbo run build",
-    "release": "vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
+    "release": "HK=0 vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
     "test": "vitest"
   },
   "devDependencies": {
