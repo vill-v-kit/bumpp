@@ -1,5 +1,56 @@
 # Changelog
 
+## v6.1.0
+
+[compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.0.0...v6.1.0)
+
+### 🚀 特性
+
+- **scripts:** 发版自检 verify-tag-ci——tag push 后轮询 Actions runs，GitHub 丢事件当场告警（COL-62） ([3558355](https://github.com/vill-v-kit/bumpp/commit/3558355))
+- **core:** 控制台显示路径统一——cwd 内相对、cwd 外绝对、一律 POSIX（ADR-0023） ([8ddf26c](https://github.com/vill-v-kit/bumpp/commit/8ddf26c))
+- **core:** Ecosystem::Node → Ecosystem::JavaScript 术语更正 ([2f9d093](https://github.com/vill-v-kit/bumpp/commit/2f9d093))
+- **ci:** 文档站部署前后冒烟验证——产物 basePath 断言 + 线上关键资源轮询 ([9112d09](https://github.com/vill-v-kit/bumpp/commit/9112d09))
+- **napi:** 平台包目录切 napi.targets 驱动的生成流，平台矩阵扩 musl ×2 对齐 7 target ([91f8030](https://github.com/vill-v-kit/bumpp/commit/91f8030))
+- **core:** Install 检测增列 devEngines.packageManager 包管理器声明——同级第三优先级只消费对象形态 name，无效形态静默回退（COL-76） ([70ed77d](https://github.com/vill-v-kit/bumpp/commit/70ed77d))
+
+### 🩹 修复
+
+- **core:** 配置 release 键接通 bump 编排 + 顶层键名白名单校验（COL-60） ([5fcc188](https://github.com/vill-v-kit/bumpp/commit/5fcc188))
+- **core:** -r 收集感知 gitignore + commit 过滤未跟踪 pathspec（COL-61，v6.0.0 发版中断根因） ([b418f56](https://github.com/vill-v-kit/bumpp/commit/b418f56))
+- **website:** 静态搜索客户端显式携带 basePath 抓取索引 ([c2ca697](https://github.com/vill-v-kit/bumpp/commit/c2ca697))
+
+### 📖 文档
+
+- **adr:** ADR-0022 收集器迁 ignore crate 暂缓记录——剪枝性能/非 git 目录两优势与重启信号存档，防未来大仓库性能问题重新调研 ([e353df7](https://github.com/vill-v-kit/bumpp/commit/e353df7))
+- **adr:** ADR-0027 补记良性 linker 警告的维护者裁定（COL-63 验收闭环） ([7ea25b7](https://github.com/vill-v-kit/bumpp/commit/7ea25b7))
+- **adr:** ADR-0025 cargo-binstall 免编译安装渠道——GitHub Release 挂预编译 CLI ([287faae](https://github.com/vill-v-kit/bumpp/commit/287faae))
+- **adr:** ADR-0026 napi 平台矩阵扩 musl ×2——修 Alpine npm 安装硬失败 ([b8ea1a6](https://github.com/vill-v-kit/bumpp/commit/b8ea1a6))
+- **website:** 删除首页「构建」区 ([73d0a52](https://github.com/vill-v-kit/bumpp/commit/73d0a52))
+- **website:** 新增「生态集成」文档（JavaScript / Cargo） ([d19f762](https://github.com/vill-v-kit/bumpp/commit/d19f762))
+- **website:** 清理程序员常识与设计意图文案 ([f0c76d8](https://github.com/vill-v-kit/bumpp/commit/f0c76d8))
+- Consolidate current architecture decisions ([607ed24](https://github.com/vill-v-kit/bumpp/commit/607ed24))
+- 明确 npm 渠道不支持 darwin-x64，安装文档引导 Intel Mac 用户走 cargo 渠道 ([e32af9c](https://github.com/vill-v-kit/bumpp/commit/e32af9c))
+- Darwin-x64 决策的替代路径表述对齐免编译安装（cargo-binstall 渠道）术语 ([fc80898](https://github.com/vill-v-kit/bumpp/commit/fc80898))
+- 裁定 private 包随整树收集锁步为既定行为——版本侧不按 private 过滤，收集器不新增过滤分支 ([9011a11](https://github.com/vill-v-kit/bumpp/commit/9011a11))
+- Vbumpp crate 补 README——crates.io 页面并列 binstall 免编译与 cargo install 通路，注明 7 target 覆盖与回退语义 ([cc55c49](https://github.com/vill-v-kit/bumpp/commit/cc55c49))
+- 网站安装文档增列 cargo-binstall 免编译渠道——快速上手安装段与 crates.io 页并列 npm/binstall/cargo install 通路 ([23560da](https://github.com/vill-v-kit/bumpp/commit/23560da))
+- CONTEXT 术语对齐平台包生成流——增 napi.targets 单一真相源条目，平台包目录改写为 create-npm-dirs 生成不提交（COL-75） ([55692f7](https://github.com/vill-v-kit/bumpp/commit/55692f7))
+
+### 🏡 框架
+
+- **meta:** 发布元数据批修——repository.url 补 .git ×11 + 平台包 type:commonjs ×5 + homepage 统一指向 GitHub Pages（npm 11 + crates 2） ([ae2ea3d](https://github.com/vill-v-kit/bumpp/commit/ae2ea3d))
+- **skills:** Tsdown skill 上游同步（rolldown/tsdown） ([2d66235](https://github.com/vill-v-kit/bumpp/commit/2d66235))
+- **gitignore:** 忽略 .zcode/plans ([4ab2316](https://github.com/vill-v-kit/bumpp/commit/4ab2316))
+
+### 📦 打包
+
+- **ci:** Linux-arm64 交叉链换 zig 淘汰 gcc 4.8.5，TLS 回 rustls（COL-63，ADR-0027） ([4749db6](https://github.com/vill-v-kit/bumpp/commit/4749db6))
+- **mise:** Zig/cargo-zigbuild 加 os=["linux"] 过滤——macOS/Windows 腿与本地免装 ([d5bfc03](https://github.com/vill-v-kit/bumpp/commit/d5bfc03))
+
+### ❤️ Contributors
+
+- Whitekite
+
 ## v6.0.0
 
 [compare changes](https://github.com/vill-v-kit/bumpp/compare/v5.1.0...v6.0.0)
