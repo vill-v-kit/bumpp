@@ -24,7 +24,7 @@ options:
 
 | flag | 说明 |
 | --- | --- |
-| `-r`, `--recursive` | 递归更新 monorepo 整树包的版本 |
+| `-r`, `--recursive` | 递归更新 monorepo 整树包的版本（含 `"private": true` 的包——private 仅表示不发布，版本号随整树一并锁步） |
 | `-o`, `--output <path>` | changelog 写入路径（默认 `CHANGELOG.md`） |
 | `--provider <name>` | 本次发版要创建 Release 的平台：`github` / `gitlab` / `gitee` / `gitcode`（优先级高于平台变体包的默认平台） |
 | `-h`, `--help` | 显示帮助 |

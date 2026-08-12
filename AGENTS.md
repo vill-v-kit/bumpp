@@ -19,7 +19,7 @@ Rust 代码按三个顶层目录分层：
 - cargo 对 glob 匹配到但没有 `Cargo.toml` 的目录也报错：`npm/`、`napi/` 下所有无 `Cargo.toml` 的包（纯 JS 包、平台二进制包等）必须同步加进根 `Cargo.toml` 的 `exclude`
 - `[profile.*]` 只在根 workspace 清单生效，成员 crate 内不写
 - 成员 crate 之间的引用一律走根 `[workspace.dependencies]` 声明 + 成员内 `xxx.workspace = true` 继承，成员清单里不写 `path`
-- 版本号唯一维护点是根 `[workspace.package].version`，成员 crate 一律 `version.workspace = true` 继承（成员清单不写版本字面量）；发版**不配置 files**——根 `Cargo.toml` 已在默认清单（ADR-0007 链上 manifest basenames 根级并集），显式 files 会顶替默认清单反而漏掉根 `package.json`（ADR-0013 浅替换语义）；嵌套 npm/napi 发版包版本由 `-r` 整树收集覆盖
+- 版本号唯一维护点是根 `[workspace.package].version`，成员 crate 一律 `version.workspace = true` 继承（成员清单不写版本字面量）；发版**不配置 files**——根 `Cargo.toml` 已在默认清单（ADR-0007 链上 manifest basenames 根级并集），显式 files 会顶替默认清单反而漏掉根 `package.json`（ADR-0013 浅替换语义）；嵌套 npm/napi 包版本由 `-r` 整树收集覆盖；private 包（website、根 workspace）随整树一并锁步是既定行为，不按 `"private": true` 排除（ADR-0030）
 
 ## Git 提交信息
 

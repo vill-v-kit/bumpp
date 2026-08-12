@@ -60,7 +60,7 @@ _Avoid_: platform（指 OS/CPU 平台）、registry（指发布平台）
 _Avoid_: files 插件链（ADR-0007 时代的旧称）
 
 **清单 (Manifest)**:
-生态认识的结构化版本文件（node：package.json 等 8 种 basename；cargo：Cargo.toml），以 basename 识别并走对应生态通道结构化更新、读取当前版本。其 basename 集合的单一事实源为插件底座链：默认清单（根级并集）与 recursive 模式表（`**/` 并集）均由链聚合（ADR-0007）。
+生态认识的结构化版本文件（node：package.json 等 8 种 basename；cargo：Cargo.toml），以 basename 识别并走对应生态通道结构化更新、读取当前版本。其 basename 集合的单一事实源为插件底座链：默认清单（根级并集）与 recursive 模式表（`**/` 并集）均由链聚合（ADR-0007）。recursive 收集不按 `"private": true` 过滤——private 仅表示不上架，private 包版本随整树一并锁步（ADR-0030）；过滤层仅内置目录排除与 gitignore 感知。
 _Avoid_: 版本文件（过宽——还含 text 通道的任意文本文件，如 README、.env）
 
 **包管理器检测信号 (Package-manager detection signal)**:
