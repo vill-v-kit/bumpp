@@ -1,5 +1,28 @@
 # Changelog
 
+## v6.1.1
+
+[compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.1.0...v6.1.1)
+
+### 🩹 修复
+
+- **napi:** Core 发布包剔除内置 .node——平台包为二进制唯一分发通道 ([9d54c53](https://github.com/vill-v-kit/bumpp/commit/9d54c53))
+
+### 📖 文档
+
+- 发版质量门前移决策与新 npm 包名首发仪式术语——v6.1.0 两起发版事故复盘 ([5099df8](https://github.com/vill-v-kit/bumpp/commit/5099df8))
+- 记录 core 发布包不内置 .node——optionalDependencies 为二进制唯一分发通道 ([e2544e4](https://github.com/vill-v-kit/bumpp/commit/e2544e4))
+
+### 🏡 框架
+
+- Rust 钉版 1.97.1 + hk git hook 质量门——pre-commit 跑 fmt check、pre-push 跑 clippy,prepare 自动装配 hook;v6.1.0 发版 fmt 漏检事故的前移防线 ([1184a32](https://github.com/vill-v-kit/bumpp/commit/1184a32))
+- Prepare 瘦身至裸 hk install——环境引导责任移入贡献指南,失败即提示先 mise install ([e66a8aa](https://github.com/vill-v-kit/bumpp/commit/e66a8aa))
+- Gitignore 增 .artifacts——首发仪式下载 CI 产物的暂存目录不再污染 git status ([931bb71](https://github.com/vill-v-kit/bumpp/commit/931bb71))
+
+### ❤️ Contributors
+
+- Whitekite
+
 ## v6.1.0
 
 [compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.0.0...v6.1.0)
