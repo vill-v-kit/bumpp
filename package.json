@@ -9,8 +9,9 @@
     "check:licenses": "node scripts/check-licenses.mjs",
     "collect:artifacts": "node scripts/collect-artifacts.mjs",
     "create:npm-dirs": "node scripts/create-npm-dirs.mjs",
-    "release": "vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
+    "prepare": "command -v hk >/dev/null 2>&1 && hk install || true",
     "pretest": "turbo run build",
+    "release": "vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
     "test": "vitest"
   },
   "devDependencies": {

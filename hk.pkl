@@ -1,0 +1,27 @@
+/// git hook 质量门（v6.1.0 事故复盘）：CI 只在 v* tag 触发（ADR-0021），
+/// fmt/clippy 的首次运行时机曾是发版当场。本文件把秒级/分钟级检查前移到
+/// 提交与推送时刻。装配：pnpm install 后 prepare 脚本自动 `hk install`。
+///
+/// 步骤均不设 glob——每次提交/推送无条件运行（命令本身全仓检查）。
+/// 注意 oxlint/oxfmt 不在门内：仓库现存 11 个 lint error 与 69 个 fmt diff,
+/// 未经全量清理就挂门会阻塞一切提交——留待清理后再议。
+amends "pkl:hk"
+
+hooks {
+  ["pre-commit"] {
+    steps {
+      // 秒级:rustfmt 检查(v6.1.0 tag CI 首挂的直接防线)
+      ["cargo-fmt"] {
+        check = "cargo fmt --all -- --check"
+      }
+    }
+  }
+  ["pre-push"] {
+    steps {
+      // 分钟级:clippy 全目标(防与 fmt 同类的「tag CI 首跑即挂」)
+      ["cargo-clippy"] {
+        check = "cargo clippy --workspace --all-targets"
+      }
+    }
+  }
+}

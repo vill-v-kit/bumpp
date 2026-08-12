@@ -1,6 +1,12 @@
 [tools]
 node = "lts"
-rust = "stable"
+# rust 钉版（v6.1.0 事故复盘）：mise.lock 对 core:rust 只锁 spec 字符串、锁不住
+# 解析版本，"stable" 浮动会让 rustfmt/clippy 规则漂移攒到发版 tag CI 才首爆；
+# 升版 = 手动改这里 + `mise lock`
+rust = "1.97.1"
+# hk：git hook runner，质量门前移到 pre-commit(fmt check)/pre-push(clippy)；
+# 由根 package.json 的 prepare 脚本在 pnpm install 后自动 `hk install` 装配
+hk = "1.54.1"
 
 # linux-arm64-gnu 交叉编译链（ADR-0025）：仅 linux 主机装——用途本身就只在
 # Linux 上成立（CI 的 arm64 腿跑 ubuntu-latest），macOS/Windows 三条腿与本地
