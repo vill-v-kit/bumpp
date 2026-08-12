@@ -337,3 +337,124 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: node scripts/crates-publish.mjs
+
+  # ADR-0025：7 target 预编译 CLI 追加到 bump 流程已建的 GitHub Release，接通
+  # cargo-binstall 免编译渠道。产物命名/归档结构是 binstall 默认探测模板的隐式
+  # 契约——vbumpp-{target}.tar.gz、归档顶层目录 vbumpp-{target}/、tag v{version}
+  # 直接命中，故 crates/vbumpp 零 [package.metadata.binstall]；偏差会令渠道
+  # 静默退化为源码编译且无人报错。每产物附 .sha256（binstall 不消费，供用户
+  # 手动校验）。失败不影响已上架的 npm/crates；「Re-run failed jobs」靠
+  # --clobber 幂等收敛（恢复模型与 ADR-0021 一致）
+  build-cli:
+    name: build-cli - ${{ matrix.settings.target }}
+    needs: [publish-crates]
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          # 交叉三腿统一走 zig 链（mise 装 zig + cargo-zigbuild，同 napi 腿注释）：
+          # 现代 clang + lld 可编 ring/rustls，绕开上古 gcc 4.8.5
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            # ADR-0025：arm64-gnu 必须 pin glibc 2.17——裸 target 把下限抬至
+            # 现代 glibc，等于静默砍老发行版用户
+            zig: true
+            glibc: '2.17'
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            zig: true
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            zig: true
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+          - host: windows-latest
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.settings.host }}
+    permissions:
+      # gh release upload 追加 assets 到既有 Release
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup toolchain (node + rust via mise.toml)
+        uses: jdx/mise-action@v4
+
+      - name: Add rust target
+        run: rustup target add ${{ matrix.settings.target }}
+
+      - name: Rust cache
+        # 与 napi build 同理按 target 分桶：交叉腿的 target/ 是交叉产物，串桶互污染
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: cli-${{ matrix.settings.target }}
+          workspaces: ". -> target"
+
+      - name: Build (cargo, native)
+        if: ${{ !matrix.settings.zig }}
+        run: cargo build --release -p vbumpp --target ${{ matrix.settings.target }}
+
+      - name: Build (cargo zigbuild)
+        # glibc 存在即拼后缀（aarch64-unknown-linux-gnu.2.17）；musl 两腿无后缀。
+        # CLI 是纯静态二进制，无 napi cdylib 的 -C target-feature=-crt-static 顾虑
+        if: ${{ matrix.settings.zig }}
+        run: |
+          set -euo pipefail
+          cargo zigbuild --release -p vbumpp \
+            --target "${{ matrix.settings.target }}${{ matrix.settings.glibc && format('.{0}', matrix.settings.glibc) }}"
+
+      - name: Assert glibc floor <= ${{ matrix.settings.glibc }}
+        # 与 napi zigbuild 腿同款判据：产物最高被引用 GLIBC 版本 ≤ pin 值
+        if: ${{ matrix.settings.zig && matrix.settings.glibc }}
+        run: |
+          set -euo pipefail
+          pin='${{ matrix.settings.glibc }}'
+          bin="target/${{ matrix.settings.target }}/release/vbumpp"
+          refs=$(objdump -T "$bin" | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -uV)
+          echo "$refs"
+          highest=$(printf '%s\n' "$refs" | tail -1 | sed 's/^GLIBC_//')
+          if [ "$(printf '%s\n%s\n' "$pin" "$highest" | sort -V | tail -1)" != "$pin" ]; then
+            echo "::error::glibc floor regressed: highest reference GLIBC_${highest} exceeds pinned ${pin}"
+            exit 1
+          fi
+
+      - name: Package archive + checksum (binstall default template)
+        # 归档顶层目录 vbumpp-{target}/ 内含 vbumpp{,.exe}——命中 bin-dir 候选
+        # `{ name }-{ target }/{ bin }{ binary-ext }`；sha256 输出统一为标准
+        # sha256sum 格式（hash + 两空格 + 文件名）：ubuntu/Git Bash 有 sha256sum，
+        # macOS 无 sha256sum 故回退内建 shasum（两命令输出格式一致）。
+        # 打包步骤三平台统一走 bash（Git Bash 自带 bsdtar 处理 .tar.gz）
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='${{ matrix.settings.target }}'
+          ext=''
+          case "$target" in *-windows-*) ext='.exe' ;; esac
+          bin="target/${target}/release/vbumpp${ext}"
+          test -f "$bin"
+          dir="vbumpp-${target}"
+          mkdir -p "$dir"
+          cp "$bin" "${dir}/vbumpp${ext}"
+          tar -czf "${dir}.tar.gz" "$dir"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "${dir}.tar.gz" > "${dir}.tar.gz.sha256"
+          else
+            shasum -a 256 "${dir}.tar.gz" > "${dir}.tar.gz.sha256"
+          fi
+
+      - name: Upload to GitHub Release (--clobber)
+        # 仅追加 assets：Release 本体由 bump 末段 create_release 建好（crates/vbumpp-core
+        # 的 release 模块）；不存在即 gh 非零退出硬失败，重跑靠 --clobber 覆盖同名
+        # 资产收敛。产物/校验和缺失在本步之前已因 set -e 拦停，流水线红
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          dir="vbumpp-${{ matrix.settings.target }}"
+          gh release upload "$GITHUB_REF_NAME" \
+            "${dir}.tar.gz" "${dir}.tar.gz.sha256" --clobber
