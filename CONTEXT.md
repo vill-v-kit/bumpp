@@ -43,6 +43,10 @@ _Avoid_: publish
 向 registry（npm / crates.io）上传包的发布动作——本仓 13 个 npm 包（ADR-0025 增 musl 平台包 ×2）与 2 个 crate（`vbumpp-core`、`vbumpp`）经 `ci.yml` 的 publish jobs 完成：tag 触发、无人工门、skip-if-published 幂等（ADR-0021）。与 Bump（含 commit/tag/push 的完整发布操作）、平台 Release（git 托管平台 release）三者分立。
 _Avoid_: publish（英文对应词，不作术语）、发布（过宽——兼指 Bump 与平台 Release）
 
+**首发仪式 (First-publish ceremony)**:
+全新 npm 包名的首次上架流程——npm OIDC trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有配置页，首发必走一次性经典认证：本地 `pnpm login`（OTP）手动首发 → npmjs.com 包设置配 trusted publisher → 重跑 CI 由 OIDC 收后续版本（ADR-0021 决策④、ADR-0029）。平台矩阵每扩一个新 target 即新增一个包名，首发仪式是该次发版的前置条件；漏做则 publish-npm 在拓扑序中段 404，造成部分上架（v6.1.0 实例）。
+_Avoid_: 首发（过宽——需含完整流程义）
+
 **免编译安装 (cargo-binstall 渠道)**:
 用户侧安装通路之一（与 npm 并列的一等渠道，ADR-0025）——`cargo binstall vbumpp` 依据 crates.io 元数据的 `repository` 字段探测 GitHub Release，拉取预编译 CLI 二进制免编译安装；无匹配平台的用户自动回退 `cargo install` 源码编译。产物约定跟随 binstall 默认模板（`vbumpp-{target}.tar.gz`、顶层目录 `vbumpp-{target}/`、tag `v{version}`），故 `crates/vbumpp` 的 Cargo.toml 零 binstall 元数据；覆盖 7 target（napi 5 平台 + linux musl×2），每产物附 `.sha256` 供用户手动校验（binstall 不消费）。与上架（向 registry 上传包）分立：本渠道消费的产物由 tag CI 的 build-cli job 构建、`gh release upload --clobber` 追加到 bump 流程已建的平台 Release，产物缺失令流水线硬失败。
 _Avoid_: 发布到 binstall（binstall 无 registry，纯按约定探测 GitHub Release）、预编译 npm 包（指 Platform package，机制不同）
