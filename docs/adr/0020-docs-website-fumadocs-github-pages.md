@@ -13,3 +13,4 @@
 - 仓库布局必须持续保留 `website/` 与 `docs/` 的受众边界；用户可见 flag、子命令和配置键的详细文档落在 `website/content/docs/`。
 - GitHub 仓库需一次性将 Pages source 设置为 GitHub Actions。站点部署失败不阻断 `ci.yml` 的构建与发布链路。
 - 新增站点发布面时，保持静态产物与应用代码版本同步；需要多语言或多版本时另行决策。
+- 子路径 `/bumpp` 部署下，所有运行时拼接的 URL 都必须显式带 `basePath`（`website/lib/shared.ts` 维护与 `next.config.mjs` 同步的常量）——包括生成物绝对链接（llms.txt 等）和客户端 fetch。fumadocs 的静态搜索客户端默认读 Vite 的 `import.meta.env.BASE_URL`，在 Next.js 下恒为 `/`，必须向 `staticClient` 显式传 `from`。
