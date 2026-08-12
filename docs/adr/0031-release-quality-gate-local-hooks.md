@@ -5,7 +5,7 @@ v6.1.0 发版接连两起事故。其一:COL-76 提交前未跑 `cargo fmt`,而 
 ## Decisions
 
 - 质量门前移到本地 git hook,runner 用 hk(经 mise.toml 装配):pre-commit 跑 `cargo fmt --all -- --check`(秒级,本次事故的直接防线),pre-push 跑 `cargo clippy --workspace --all-targets`(分钟级,防同类「tag CI 首跑即挂」)。`cargo test` 不进 hook——全量太慢,留给 tag CI。
-- hook 装配自动化:根 `package.json` 的 `prepare` 脚本跑 `hk install`(husky 同款模式),任何 `pnpm install` 后自动装好;对无 hk 的环境(外部贡献者裸 pnpm)`command -v hk || true` 软跳过,不阻塞装依赖。
+- hook 装配自动化:根 `package.json` 的 `prepare` 脚本跑 `hk install`(husky 同款模式),任何 `pnpm install` 后自动装好。脚本本体保持裸 `hk install` 不做环境探测——无 hk 环境(未过 mise 的裸 clone)在 install 时硬失败,引导责任由 CONTRIBUTING.md 承载,不把心智负担藏进 npm script。
 - 不设服务端门:不引入 main 分支 CI,ADR-0021 的 tag-only 触发面保持不变;tag CI 仍是上架的最终权威门(test + 7 平台 build + test-bindings 全绿才 publish),hook 只是提前量。`--no-verify` / `HK=0` 逃逸口保留给提交者个人判断。
 - rust 工具链钉版:mise.toml 写死 `rust = "1.97.1"`。实测 `mise lock` 对 core:rust 后端只锁 spec 字符串(写入 `version = "stable"`、零平台条目),锁不住解析版本——浮动 stable 会让 rustfmt/clippy 规则漂移攒到发版 tag CI 首爆,钉 toml 是唯一手段。升版 = 手动改 mise.toml + `mise lock`;hk(aqua 后端)与 zig 等由 mise.lock checksum 正常锁定。
 - oxlint/oxfmt 暂不入 hook:仓库现存 11 个 lint error 与 69 个 oxfmt diff,未经全量清理就挂门会阻塞一切提交;待专门清理后再议入门。

@@ -2,14 +2,25 @@
 
 ## 环境准备
 
-仓库使用 [mise](https://mise.jdx.dev/) 统一管理工具链（Node、Rust 与 zig 交叉链，版本声明见根 `mise.toml`）：
+仓库使用 [mise](https://mise.jdx.dev/) 统一管理工具链（Node、Rust 钉版、hk 与 zig 交叉链，版本声明见根 `mise.toml`）：
 
 ```shell
-mise install     # node lts + rust stable（含 rustfmt/clippy）；linux 主机另装 zig / cargo-zigbuild（arm64 交叉链，ADR-0025）
-pnpm install     # 安装 workspace 依赖
+mise install     # node lts + rust 钉版（含 rustfmt/clippy）+ hk（git hook runner）；linux 主机另装 zig / cargo-zigbuild（arm64 交叉链，ADR-0025）
+pnpm install     # 安装 workspace 依赖；prepare 脚本自动执行 hk install 装配 git hook
 ```
 
+两步都是必须的：`prepare` 假定 `hk` 已在 PATH（由 mise 提供），未经 `mise install` 的裸 clone 会在 install 时硬失败——先装工具链，再装依赖。
+
 pnpm 由 nub（`nub pm`）或你自己的方式提供，版本以根 `package.json` 的 `packageManager` 字段为准（CI 用 `pnpm/action-setup` 读取同一字段）。
+
+## git hook 质量门
+
+由 hk 驱动（配置见根 `hk.pkl`）：
+
+- `pre-commit`：`cargo fmt --all -- --check`（秒级）
+- `pre-push`：`cargo clippy --workspace --all-targets`（分钟级）
+
+CI 仅在 `v*` tag 推送时触发（见下文 CI 节），这两个 hook 让 fmt/clippy 问题在提交/推送时刻暴露，而不是攒到发版当场（ADR-0031）。确需绕过：`HK=0 git commit` / `git commit --no-verify`，责任自负。
 
 ## 日常开发
 
