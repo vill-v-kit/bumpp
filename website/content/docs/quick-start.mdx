@@ -4,9 +4,15 @@ icon: Rocket
 description: 第一条 vbumpp 命令
 ---
 
-<Callout type="info">
-还没安装？先看[安装](/docs/install/npm)（npm 包管理器 / crates.io / cargo 源码编译，任选其一）。
-</Callout>
+## 安装
+
+按你的环境任选一条安装通路，功能完全一致：
+
+- **npm**（Node.js 项目首选）：`npm install -D @vill-v/bumpp`，详见[安装 · npm](/docs/install/npm)
+- **cargo binstall**（免编译，推荐）：`cargo binstall vbumpp` 直接下载预编译原生 CLI，不需要 Node.js 环境，也无需本地编译
+- **cargo install**：`cargo install vbumpp` 从 crates.io 拉取源码本地编译
+
+预编译产物覆盖 7 个 target：macOS（Apple Silicon）、Linux（x64 / arm64，glibc 与 musl 静态产物）和 Windows（x64 / arm64）；不在覆盖列表的冷门平台（如 Intel Mac）由 binstall 自动回退源码编译，与 `cargo install` 等价。详见[安装 · crates.io](/docs/install/crates-io)；想跟进最新未发布改动，还可以[从源码编译安装](/docs/install/cargo)。
 
 ## 第一条命令
 

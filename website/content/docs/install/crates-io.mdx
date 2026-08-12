@@ -4,7 +4,19 @@ icon: CratesIo
 description: 从 crates.io 安装原生 CLI
 ---
 
-不需要 Node.js 环境时，原生 CLI（纯 Rust 编写，功能与 npm 版完全一致）可以直接从 crates.io 安装：
+不需要 Node.js 环境时，原生 CLI（纯 Rust 编写，功能与 npm 版完全一致）可以直接从 crates.io 安装。
+
+## 免编译安装（推荐）
+
+通过 [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) 直接下载 GitHub Release 上的预编译二进制，跳过本地源码编译：
+
+```sh
+cargo binstall vbumpp
+```
+
+预编译产物覆盖 7 个 target：macOS（Apple Silicon）、Linux（x64 / arm64，glibc 与 musl 静态产物，musl 版可在 Alpine 等环境直接运行）和 Windows（x64 / arm64）。不在覆盖列表里的平台（如 Intel Mac）会自动回退为源码编译，与下方的 `cargo install` 等价。
+
+## 源码编译安装
 
 ```sh
 cargo install vbumpp
@@ -16,4 +28,4 @@ cargo install vbumpp
 vbumpp --help
 ```
 
-升级重装同一条命令。
+升级重装同一条命令（binstall 亦然）。
