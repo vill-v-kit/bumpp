@@ -12,6 +12,10 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  # 站点线上 base URL（含 basePath 子路径），两道冒烟验证共用
+  SITE_URL: https://vill-v-kit.github.io/bumpp
+
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -35,6 +39,10 @@ jobs:
       - name: Build website
         run: pnpm --filter website build
 
+      # 部署前的产物断言：basePath 丢失类回归在此直接拦截
+      - name: Smoke check artifacts
+        run: node scripts/docs-smoke.mjs assert-artifacts website/out "$SITE_URL"
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
@@ -51,6 +59,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      # 冒烟脚本在仓库里，deploy job 也需要 checkout
+      - uses: actions/checkout@v7
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+      # 部署后的线上确认：Pages 传播有延迟，脚本内置轮询
+      - name: Smoke check live site
+        run: node scripts/docs-smoke.mjs check-live "$SITE_URL"
