@@ -1,13 +1,14 @@
 //! Cargo 生态插件（ADR-0007）：trait 实现逐方法一行委托到能力子目录。
-//! 能力本体：`version/cargo`（清单识别 + 保格式更新 + Cargo.lock 定向同步）、
-//! `install/cargo`（`cargo check --workspace`）、`recursive/cargo`（清单 basename 常量）。
+//! 能力本体：`version/cargo`（清单识别 + 保格式更新判定 + Cargo.lock 定向同步
+//! 预检）、`install/cargo`（`cargo check --workspace`）、`recursive/cargo`
+//! （清单 basename 常量）。
 
 use std::path::Path;
 
 use super::{
-  install, recursive, version, Ecosystem, FilesError, InstallError, UpdateOutcome,
-  VersionFilePlugin,
+  install, recursive, version, Ecosystem, FilePlan, FilesError, InstallError, VersionFilePlugin,
 };
+use crate::effects::Effects;
 
 pub(crate) struct CargoPlugin;
 
@@ -28,18 +29,18 @@ impl VersionFilePlugin for CargoPlugin {
     version::cargo::read_version(path)
   }
 
-  fn update(
+  fn plan(
     &self,
     path: &Path,
     rel_path: &Path,
     current: &str,
     new: &str,
     cwd: &Path,
-  ) -> Result<UpdateOutcome, FilesError> {
-    version::cargo::update(path, rel_path, current, new, cwd)
+  ) -> Result<FilePlan, FilesError> {
+    version::cargo::plan(path, rel_path, current, new, cwd)
   }
 
-  fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>> {
-    Some(install::cargo::install(cwd))
+  fn install(&self, eff: &dyn Effects, cwd: &Path) -> Option<Result<(), InstallError>> {
+    Some(install::cargo::install_with(eff, cwd))
   }
 }

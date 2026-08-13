@@ -11,6 +11,7 @@ use serde_json::{Map, Value};
 
 use crate::bump::BumpOptions;
 use crate::changelog::GenerateChangelogOutcome;
+use crate::effects::{Effects, RealEffects};
 use crate::info::BumpState;
 use crate::release::Provider;
 
@@ -107,6 +108,16 @@ pub fn bump_version(
   options: &BumpVersionOptions,
   cwd: &Path,
 ) -> Result<BumpVersionOutcome, OrchestrateError> {
+  bump_version_with(&RealEffects, options, cwd)
+}
+
+/// `bump_version` 的效应注入形态：changelog 写盘与提交、versionBump 全链、
+/// 平台 Release HTTP 统一经效应边界（预演与执行同路的注入位）
+pub fn bump_version_with(
+  eff: &dyn Effects,
+  options: &BumpVersionOptions,
+  cwd: &Path,
+) -> Result<BumpVersionOutcome, OrchestrateError> {
   // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013）----
   let mut merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
 
@@ -143,7 +154,8 @@ pub fn bump_version(
   // ---- changelog：存在 tag 才生成（spinner → 进度打印）----
   let changelog = match current_tag {
     Some(tag) => {
-      let outcome = crate::changelog::generate_changelog(
+      let outcome = crate::changelog::generate_changelog_with(
+        eff,
         &crate::changelog::GenerateChangelogOptions {
           overrides: options.overrides.clone(),
           from: tag,
@@ -163,7 +175,7 @@ pub fn bump_version(
 
   // ---- versionBump（merged + release 固定为已确定的新版本）----
   let bump_options = BumpOptions::from_merged(&merged, &state.new_version);
-  crate::bump::version_bump(&bump_options, cwd, &mut |_| {})?;
+  crate::bump::version_bump_with(eff, &bump_options, cwd, &mut |_| {})?;
 
   // ---- 平台 Release（spinner → 进度打印）----
   if let Some(provider) = options.provider {
@@ -171,7 +183,8 @@ pub fn bump_version(
       .as_ref()
       .map(|c| c.markdown.as_str())
       .unwrap_or("");
-    crate::release::create_release(
+    crate::release::create_release_with(
+      eff,
       provider,
       &state.new_version,
       markdown,

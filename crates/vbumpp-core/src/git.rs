@@ -7,7 +7,8 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::exec::{capture, capture_with_stdin, run, ExecError};
+use crate::effects::{Effects, RealEffects};
+use crate::exec::{capture, capture_with_stdin, ExecError};
 use crate::progress::ProgressEvent;
 
 /// gitignore 批量裁决（COL-61 收集层）：返回 `paths` 中被 gitignore 命中的
@@ -118,6 +119,15 @@ pub fn format_version_string(template: &str, new_version: &str) -> String {
 
 /// 上游 `gitCommit`：`--allow-empty [--all] [--no-verify] [--gpg-sign] --message <msg> [files...]`
 pub fn git_commit(cwd: &Path, spec: &CommitSpec) -> Result<(ProgressEvent, String), ExecError> {
+  git_commit_with(&RealEffects, cwd, spec)
+}
+
+/// `git_commit` 的效应注入形态：argv 构造为纯计算（本函数体内），spawn 经效应边界
+pub fn git_commit_with(
+  eff: &dyn Effects,
+  cwd: &Path,
+  spec: &CommitSpec,
+) -> Result<(ProgressEvent, String), ExecError> {
   let mut args = vec!["commit".to_string(), "--allow-empty".to_string()];
   if spec.all {
     args.push("--all".to_string());
@@ -134,7 +144,7 @@ pub fn git_commit(cwd: &Path, spec: &CommitSpec) -> Result<(ProgressEvent, Strin
   if !spec.all {
     args.extend(spec.updated_files.iter().cloned());
   }
-  run("git", &args, cwd)?;
+  eff.run("git", &args, cwd)?;
   Ok((ProgressEvent::GitCommit, message))
 }
 
@@ -380,6 +390,15 @@ fn js_truthy(value: &serde_json::Value) -> bool {
 /// 上游 `gitTag`：`--annotate --message <commit.message 格式化> <tagName> [--sign]`
 /// 注意：git tag 没有 hooks，上游不加 --no-verify
 pub fn git_tag(cwd: &Path, spec: &TagSpec) -> Result<(ProgressEvent, String), ExecError> {
+  git_tag_with(&RealEffects, cwd, spec)
+}
+
+/// `git_tag` 的效应注入形态（tag 名与附注信息的格式化为纯计算）
+pub fn git_tag_with(
+  eff: &dyn Effects,
+  cwd: &Path,
+  spec: &TagSpec,
+) -> Result<(ProgressEvent, String), ExecError> {
   let tag_name = format_version_string(spec.name, spec.new_version);
   let mut args = vec![
     "tag".to_string(),
@@ -391,15 +410,24 @@ pub fn git_tag(cwd: &Path, spec: &TagSpec) -> Result<(ProgressEvent, String), Ex
   if spec.sign {
     args.push("--sign".to_string());
   }
-  run("git", &args, cwd)?;
+  eff.run("git", &args, cwd)?;
   Ok((ProgressEvent::GitTag, tag_name))
 }
 
 /// 上游 `gitPush`：`git push`，启用 tag 时追加 `git push --tags`
 pub fn git_push(cwd: &Path, with_tags: bool) -> Result<ProgressEvent, ExecError> {
-  run("git", &["push".to_string()], cwd)?;
+  git_push_with(&RealEffects, cwd, with_tags)
+}
+
+/// `git_push` 的效应注入形态
+pub fn git_push_with(
+  eff: &dyn Effects,
+  cwd: &Path,
+  with_tags: bool,
+) -> Result<ProgressEvent, ExecError> {
+  eff.run("git", &["push".to_string()], cwd)?;
   if with_tags {
-    run("git", &["push".to_string(), "--tags".to_string()], cwd)?;
+    eff.run("git", &["push".to_string(), "--tags".to_string()], cwd)?;
   }
   Ok(ProgressEvent::GitPush)
 }

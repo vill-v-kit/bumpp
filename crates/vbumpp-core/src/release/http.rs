@@ -1,12 +1,14 @@
-//! 四家 provider 的共用原语（ADR-0014）：仓库信息解析与 HTTP 收发。
-//! 请求构造的语义归 github_like.rs / 各 provider 文件，本文件只管
-//! 「往哪发、怎么发、非 2xx 怎么报错」。
+//! 四家 provider 的共用原语（ADR-0014）：仓库信息解析与 HTTP 收发收尾。
+//! 请求构造的语义归 github_like.rs / 各 provider 文件；传输本体在效应边界
+//! （`effects.rs` 的 RealEffects），本文件只管「往哪发」的仓库推断、
+//! 「怎么发」的传输归口与「非 2xx 怎么报错」。
 
 use std::path::Path;
 
 use serde_json::Value;
 
 use super::{Provider, ReleaseError};
+use crate::effects::{Effects, HttpResponse};
 
 /// `owner/repo` 解析（package.json `repository` 优先、git remote 兜底）
 pub(crate) fn resolve_owner_repo(cwd: &Path) -> Result<(String, String), ReleaseError> {
@@ -23,58 +25,57 @@ pub(crate) fn resolve_owner_repo(cwd: &Path) -> Result<(String, String), Release
     })
 }
 
-/// 共享 Agent：30s 全局超时；状态码不当异常（手动检查以提取服务端错误信息）
-pub(crate) fn agent() -> ureq::Agent {
-  ureq::Agent::config_builder()
-    .timeout_global(Some(std::time::Duration::from_secs(30)))
-    .http_status_as_error(false)
-    .build()
-    .into()
-}
-
-/// 非 2xx 报错：提取服务端 `message` 字段（gitlab/gitee 错误体形态），
-/// 无法解析时回落原始响应体
-pub(crate) fn check_status(
-  resp: &mut ureq::http::Response<ureq::Body>,
+/// GET（经效应边界）：传输失败按各家共同的 `{provider} [open api] error : {e}` 归口；
+/// 状态码裁决与响应体消费归调用方
+pub(crate) fn get(
+  eff: &dyn Effects,
+  url: &str,
+  headers: &[(&str, String)],
   provider: Provider,
-) -> Result<(), ReleaseError> {
-  let status = resp.status().as_u16();
-  if (200..300).contains(&status) {
-    return Ok(());
-  }
-  let body = resp.body_mut().read_to_string().unwrap_or_default();
-  let server_message = serde_json::from_str::<Value>(&body)
-    .ok()
-    .and_then(|v| v.get("message").and_then(Value::as_str).map(str::to_owned))
-    .filter(|m| !m.is_empty())
-    .unwrap_or_else(|| {
-      if body.is_empty() {
-        "Unknown error".into()
-      } else {
-        body
-      }
-    });
-  Err(ReleaseError::Http {
-    message: format!(
-      "{} [open api] error : [{status}] {server_message}",
-      provider.display()
-    ),
+) -> Result<HttpResponse, ReleaseError> {
+  eff.http_get(url, headers).map_err(|e| ReleaseError::Http {
+    message: format!("{} [open api] error : {e}", provider.display()),
   })
 }
 
+/// POST JSON + 非 2xx 检查（经效应边界）：四家共用的收发收尾
 pub(crate) fn post_json(
-  agent: &ureq::Agent,
+  eff: &dyn Effects,
   url: &str,
   headers: &[(&str, String)],
   body: &Value,
   provider: Provider,
 ) -> Result<(), ReleaseError> {
-  let mut request = agent.post(url);
-  for (name, value) in headers {
-    request = request.header(*name, value);
+  let resp = eff
+    .http_post_json(url, headers, body)
+    .map_err(|e| ReleaseError::Http {
+      message: format!("{} [open api] error : {e}", provider.display()),
+    })?;
+  check_status(&resp, provider)
+}
+
+/// 非 2xx 报错：提取服务端 `message` 字段（gitlab/gitee 错误体形态），
+/// 无法解析时回落原始响应体
+pub(crate) fn check_status(resp: &HttpResponse, provider: Provider) -> Result<(), ReleaseError> {
+  if (200..300).contains(&resp.status) {
+    return Ok(());
   }
-  let mut resp = request.send_json(body).map_err(|e| ReleaseError::Http {
-    message: format!("{} [open api] error : {e}", provider.display()),
-  })?;
-  check_status(&mut resp, provider)
+  let server_message = serde_json::from_str::<Value>(&resp.body)
+    .ok()
+    .and_then(|v| v.get("message").and_then(Value::as_str).map(str::to_owned))
+    .filter(|m| !m.is_empty())
+    .unwrap_or_else(|| {
+      if resp.body.is_empty() {
+        "Unknown error".into()
+      } else {
+        resp.body.clone()
+      }
+    });
+  Err(ReleaseError::Http {
+    message: format!(
+      "{} [open api] error : [{}] {server_message}",
+      provider.display(),
+      resp.status
+    ),
+  })
 }

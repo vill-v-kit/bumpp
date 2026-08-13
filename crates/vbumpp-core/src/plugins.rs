@@ -5,18 +5,21 @@
 //!
 //! 布局（Rust 一致性限制：同 trait 同类型的 impl 块不可拆分，trait 实现只能与
 //! 类型同文件）：根部每文件一个插件类型，方法一行委托到能力子目录的纯函数——
-//! - `version/`   版本解析与版本更新
+//! - `version/`   版本解析与版本更新判定（只读）
 //! - `install/`   生态 install 适配（ADR-0007）
 //! - `recursive/` 清单 basename 常量（recursive 收集与默认清单的模式来源）
 //!
-//! 编排层职责：文件存在性、事件产出、路径归一、install 链走查。
-//! 插件附带同步的文件（如 Cargo.toml 带动的 Cargo.lock）紧随主文件补发
-//! FileUpdated——updated_files 是 git 提交暂存的依据。
+//! 编排层职责：文件存在性、事件产出、路径归一、install 链走查、写盘段执行。
+//! 逐文件更新拆为两段——判定段（插件 `plan`，只读：读取 + 形态判定 + 新版本
+//! 计算 + 全部校验）产出 `FilePlan`，写盘段（`execute_plan`）经效应边界消费
+//! 计划、零决策。插件附带同步的文件（如 Cargo.toml 带动的 Cargo.lock）紧随
+//! 主文件补发 FileUpdated——updated_files 是 git 提交暂存的依据。
 
 use std::error::Error;
 use std::fmt;
 use std::path::{Component, Path, PathBuf};
 
+use crate::effects::{Effects, RealEffects};
 use crate::progress::ProgressEvent;
 
 mod cargo;
@@ -41,6 +44,38 @@ pub enum UpdateOutcome {
   /// 主文件已更新，并附带同步更新了其他文件（绝对路径，已归一化）——
   /// 如 Cargo.toml 带动的 Cargo.lock 定向同步（ADR-0003）
   UpdatedWith(Vec<PathBuf>),
+}
+
+/// 逐文件更新计划（判定段 `plan` 的只读产物，写盘段 `execute_plan` 消费）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FilePlan {
+  /// 跳过（up-to-date / 非本生态形态 / 版本字段缺失等——与真实执行同一判定）
+  Skipped,
+  /// 待写盘文件序列：主文件在前，附带文件（Cargo.lock）随后。全部计算与
+  /// 校验已在判定段完成（含 lock 同步预检——失败即报错且清单不改写），
+  /// 写盘段零决策
+  Updated(Vec<FileWrite>),
+}
+
+/// 一次待执行的写盘（路径 + 全文内容 + 错误归口）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileWrite {
+  /// 绝对路径（归一化后）
+  pub path: PathBuf,
+  /// 写盘全文（保格式替换后的完整内容）
+  pub content: String,
+  /// 写失败的错误归口（各通道错误文案的现实形态）
+  pub kind: WriteKind,
+}
+
+/// 写失败的错误归口：清单/文本通道为 Io + 相对路径文案；Cargo.lock 定向
+/// 同步为 Lock + 绝对显示路径文案（ADR-0003 失败即报错）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WriteKind {
+  /// 清单/文本写盘：错误文案携用户清单中的原始相对路径
+  Manifest { rel_path: PathBuf },
+  /// Cargo.lock 写盘：错误文案携 cwd 锚定的绝对显示路径（ADR-0002）
+  CargoLock,
 }
 
 #[derive(Debug)]
@@ -95,19 +130,21 @@ pub(crate) trait VersionFilePlugin: Sync {
   /// 从 `path`（绝对路径）提取版本字面量（ADR-0007）；非本生态形态、缺字段、
   /// 读取失败均返回 None——semver 校验由编排层统一承担（上游 semver.valid 门）
   fn read_version(&self, path: &Path) -> Option<String>;
-  /// 更新 `path`（绝对路径）指向的文件；`current` / `new` 为当前与新版本号；
-  /// `rel_path` 为用户清单中的原始相对路径，仅用于错误消息文案；
-  /// `cwd` 为错误消息中绝对路径（如 Cargo.lock）的显示路径锚点（ADR-0002）
-  fn update(
+  /// 只读判定段：从 `path`（绝对路径）读取并判定更新计划；`current` / `new`
+  /// 为当前与新版本号；`rel_path` 为用户清单中的原始相对路径，仅用于错误
+  /// 消息文案；`cwd` 为错误消息中绝对路径（如 Cargo.lock）的显示路径锚点
+  /// （ADR-0002）。零写盘——写盘由编排层 `execute_plan` 消费计划执行
+  fn plan(
     &self,
     path: &Path,
     rel_path: &Path,
     current: &str,
     new: &str,
     cwd: &Path,
-  ) -> Result<UpdateOutcome, FilesError>;
-  /// 本生态的 install 适配（ADR-0007）；无适配能力的通道（Text）返回 None
-  fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>>;
+  ) -> Result<FilePlan, FilesError>;
+  /// 本生态的 install 适配（ADR-0007，spawn 经效应边界）；无适配能力的通道
+  /// （Text）返回 None
+  fn install(&self, eff: &dyn Effects, cwd: &Path) -> Option<Result<(), InstallError>>;
 }
 
 /// 内置有序链（JavaScript → Cargo → Text 兜底）
@@ -161,17 +198,90 @@ pub fn dispatch_file(
   new: &str,
   cwd: &Path,
 ) -> Result<UpdateOutcome, FilesError> {
+  dispatch_file_with(&RealEffects, rel_path, abs_path, current, new, cwd)
+}
+
+/// `dispatch_file` 的效应注入形态：判定段（`dispatch_plan`，只读）→
+/// 写盘段（`execute_plan`，经效应边界）
+pub fn dispatch_file_with(
+  eff: &dyn Effects,
+  rel_path: &Path,
+  abs_path: &Path,
+  current: &str,
+  new: &str,
+  cwd: &Path,
+) -> Result<UpdateOutcome, FilesError> {
+  let plan = dispatch_plan(rel_path, abs_path, current, new, cwd)?;
+  execute_plan(eff, plan, cwd)
+}
+
+/// 链分发判定段（只读）：首个命中插件产出更新计划，零写盘
+pub fn dispatch_plan(
+  rel_path: &Path,
+  abs_path: &Path,
+  current: &str,
+  new: &str,
+  cwd: &Path,
+) -> Result<FilePlan, FilesError> {
   PLUGINS
     .iter()
     .find(|p| p.matches(rel_path))
     .expect("the TextPlugin fallback always matches")
-    .update(abs_path, rel_path, current, new, cwd)
+    .plan(abs_path, rel_path, current, new, cwd)
 }
 
-/// 按生态适配触发 install（ADR-0007 的链走查实现）：逐个执行待触发插件的适配
-pub fn run_installs(cwd: &Path, updated_files: &[String]) -> Result<(), InstallError> {
+/// 写盘段：消费判定计划，经效应边界逐条写盘（主文件在前、附带文件随后），
+/// 零决策——计划内的全部校验已在判定段完成
+fn execute_plan(
+  eff: &dyn Effects,
+  plan: FilePlan,
+  cwd: &Path,
+) -> Result<UpdateOutcome, FilesError> {
+  match plan {
+    FilePlan::Skipped => Ok(UpdateOutcome::Skipped),
+    FilePlan::Updated(writes) => {
+      let mut extra_paths = Vec::new();
+      for (index, write) in writes.iter().enumerate() {
+        execute_write(eff, write, cwd)?;
+        if index > 0 {
+          extra_paths.push(write.path.clone());
+        }
+      }
+      Ok(if extra_paths.is_empty() {
+        UpdateOutcome::Updated
+      } else {
+        UpdateOutcome::UpdatedWith(extra_paths)
+      })
+    }
+  }
+}
+
+/// 单条写盘执行：错误归口随计划的 WriteKind（文案与现实各通道一致）
+fn execute_write(eff: &dyn Effects, write: &FileWrite, cwd: &Path) -> Result<(), FilesError> {
+  eff
+    .write_file(&write.path, &write.content)
+    .map_err(|e| match &write.kind {
+      WriteKind::Manifest { rel_path } => FilesError::Io {
+        message: format!("failed to write {}: {e}", crate::display::posix(rel_path)),
+      },
+      WriteKind::CargoLock => FilesError::Lock {
+        message: format!(
+          "failed to write {}: {e}",
+          crate::display::path(cwd, &write.path)
+        ),
+      },
+    })
+}
+
+/// `run_installs` 的效应注入形态（spawn 经效应边界；触发判定为纯计算）：
+/// 按生态适配触发 install（ADR-0007 的链走查实现）——逐个执行待触发插件的适配
+pub fn run_installs_with(
+  eff: &dyn Effects,
+  cwd: &Path,
+  updated_files: &[String],
+) -> Result<(), InstallError> {
   for plugin in installs_to_run(updated_files) {
-    if let Some(result) = plugin.install(cwd) {
+    if let Some(result) = plugin.install(eff, cwd) {
       result?;
     }
   }
@@ -207,12 +317,6 @@ fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlug
 pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {
   std::fs::read_to_string(path).map_err(|e| FilesError::Io {
     message: format!("failed to read {}: {e}", crate::display::posix(rel_path)),
-  })
-}
-
-pub(crate) fn write_text(path: &Path, rel_path: &Path, content: &str) -> Result<(), FilesError> {
-  std::fs::write(path, content).map_err(|e| FilesError::Io {
-    message: format!("failed to write {}: {e}", crate::display::posix(rel_path)),
   })
 }
 
@@ -262,9 +366,21 @@ pub fn update_files(
   current_version: &str,
   new_version: &str,
 ) -> Result<UpdateFilesOutcome, FilesError> {
+  update_files_with(&RealEffects, files, cwd, current_version, new_version)
+}
+
+/// `update_files` 的效应注入形态：逐文件「判定段只读 → 写盘段经效应边界」，
+/// 顺序与真实执行一致
+pub fn update_files_with(
+  eff: &dyn Effects,
+  files: &[String],
+  cwd: &Path,
+  current_version: &str,
+  new_version: &str,
+) -> Result<UpdateFilesOutcome, FilesError> {
   let mut outcome = UpdateFilesOutcome::default();
   for rel_path in files {
-    let (modified, extra_paths) = update_file(rel_path, cwd, current_version, new_version)?;
+    let (modified, extra_paths) = update_file(eff, rel_path, cwd, current_version, new_version)?;
     // 上游事件路径经 path.resolve(cwd, relPath) 归一化（消除 ./ 与 .. 段）
     let abs_path = resolve(cwd, rel_path).to_string_lossy().into_owned();
     let event = if modified {
@@ -283,9 +399,10 @@ pub fn update_files(
   Ok(outcome)
 }
 
-/// 上游 `updateFile`：文件不存在 → skipped；存在则经插件链分发更新。
+/// 上游 `updateFile`：文件不存在 → skipped；存在则「判定 → 写盘」两段执行。
 /// 返回 (主文件是否更新, 插件附带同步的文件路径)
 fn update_file(
+  eff: &dyn Effects,
   rel_path: &str,
   cwd: &Path,
   current_version: &str,
@@ -296,7 +413,8 @@ fn update_file(
   if !path.exists() {
     return Ok((false, vec![]));
   }
-  let outcome = dispatch_file(
+  let outcome = dispatch_file_with(
+    eff,
     Path::new(rel_path),
     &path,
     current_version,

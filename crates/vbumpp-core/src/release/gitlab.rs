@@ -7,11 +7,13 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use super::http::{agent, check_status, post_json, resolve_owner_repo};
+use super::http::{check_status, get, post_json, resolve_owner_repo};
 use super::{Provider, ReleaseError};
+use crate::effects::{Effects, RealEffects};
 
 /// 生产入口：读配置文档 → 解析 `gitlab.host`（缺省 gitlab.com）→ 创建
 pub(crate) fn create(
+  eff: &dyn Effects,
   token: &str,
   new_version: &str,
   markdown: &str,
@@ -22,7 +24,7 @@ pub(crate) fn create(
     crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
   let host = resolve_gitlab_host(document.as_ref(), overrides)?
     .unwrap_or_else(|| "https://gitlab.com".to_owned());
-  create_with_host(&host, token, new_version, markdown, cwd)
+  create_with_host_and(eff, &host, token, new_version, markdown, cwd)
 }
 
 /// `gitlab.host` 解析：四层语义——overrides 段 > 文件段（文件段已含全局←项目合并）
@@ -50,10 +52,23 @@ pub fn create_with_host(
   markdown: &str,
   cwd: &Path,
 ) -> Result<(), ReleaseError> {
-  send(host, token, new_version, markdown, cwd).map_err(|e| e.redact(token))
+  create_with_host_and(&RealEffects, host, token, new_version, markdown, cwd)
+}
+
+/// host + 效应边界双注入（dry-run 的记录型效应经此骑同一条发送链）
+pub(crate) fn create_with_host_and(
+  eff: &dyn Effects,
+  host: &str,
+  token: &str,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+) -> Result<(), ReleaseError> {
+  send(eff, host, token, new_version, markdown, cwd).map_err(|e| e.redact(token))
 }
 
 fn send(
+  eff: &dyn Effects,
   host: &str,
   token: &str,
   new_version: &str,
@@ -63,21 +78,17 @@ fn send(
   let (owner, repo) = resolve_owner_repo(cwd)?;
   let encoded_path: String =
     url::form_urlencoded::byte_serialize(format!("{owner}/{repo}").as_bytes()).collect();
-  let agent = agent();
-  let mut resp = agent
-    .get(&format!("{host}/api/v4/projects/{encoded_path}"))
-    .header("PRIVATE-TOKEN", token)
-    .call()
-    .map_err(|e| ReleaseError::Http {
-      message: format!("gitlab [open api] error : {e}"),
-    })?;
-  check_status(&mut resp, Provider::Gitlab)?;
-  let project: Value = resp
-    .body_mut()
-    .read_json()
-    .map_err(|e| ReleaseError::Http {
-      message: format!("gitlab [open api] error : failed to parse project info: {e}"),
-    })?;
+  let resp = get(
+    eff,
+    &format!("{host}/api/v4/projects/{encoded_path}"),
+    &[("PRIVATE-TOKEN", token.to_owned())],
+    Provider::Gitlab,
+  )?;
+  check_status(&resp, Provider::Gitlab)?;
+  // 解析失败的文案保持 ureq `read_json` 时代的 Display 形态（`json: {serde}`）
+  let project: Value = serde_json::from_str(&resp.body).map_err(|e| ReleaseError::Http {
+    message: format!("gitlab [open api] error : failed to parse project info: json: {e}"),
+  })?;
   let id = project
     .get("id")
     .and_then(Value::as_u64)
@@ -85,7 +96,7 @@ fn send(
       message: "cannot resolve the gitlab project id".into(),
     })?;
   post_json(
-    &agent,
+    eff,
     &format!("{host}/api/v4/projects/{id}/releases"),
     &[("PRIVATE-TOKEN", token.to_owned())],
     &json!({

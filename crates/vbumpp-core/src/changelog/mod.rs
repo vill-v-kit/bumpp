@@ -20,6 +20,7 @@ use regex::Regex;
 use serde_json::{Map, Value};
 
 use crate::commits::{parse_display_commit, DisplayCommit};
+use crate::effects::{Effects, RealEffects};
 use crate::git::RawCommit;
 
 use crate::changelog::config::{resolve_changelog_config, ChangelogConfig, ChangelogConfigError};
@@ -123,6 +124,16 @@ pub fn generate_changelog(
   options: &GenerateChangelogOptions,
   cwd: &Path,
 ) -> Result<GenerateChangelogOutcome, ChangelogError> {
+  generate_changelog_with(&RealEffects, options, cwd)
+}
+
+/// `generate_changelog` 的效应注入形态：写盘与 git add/commit 经效应边界，
+/// 插入/追加的全文计算为纯段（upsert 前置）
+pub fn generate_changelog_with(
+  eff: &dyn Effects,
+  options: &GenerateChangelogOptions,
+  cwd: &Path,
+) -> Result<GenerateChangelogOutcome, ChangelogError> {
   // 统一配置解析：同一份文档一次读取——bumpp 键（含 commit 开关）经
   // merge_bump_config，changelog 段经 resolve_changelog_config（ADR-0013）
   let document = crate::config::read_document(
@@ -151,7 +162,7 @@ pub fn generate_changelog(
   let markdown = render_changelog(&raw_commits, &config, &range);
 
   let output = cwd.join(&config.output);
-  let changelog_md = upsert_changelog(&output, &markdown, cwd)?;
+  let changelog_md = upsert_changelog(eff, &output, &markdown, cwd)?;
 
   // C2：提交跟随统一配置的 bumpp commit 开关（JS truthiness：`false` / `""` 为关，
   // 字符串即上游自定义提交信息形态、视为开启）；N1：仅 add 实际写出的 output 文件；
@@ -164,8 +175,8 @@ pub fn generate_changelog(
   };
   if commit_enabled {
     let message = config.commit_message.replace("{{output}}", &config.output);
-    crate::exec::run("git", &["add".into(), config.output.clone()], cwd)?;
-    crate::exec::run("git", &["commit".into(), "-m".into(), message], cwd)?;
+    eff.run("git", &["add".into(), config.output.clone()], cwd)?;
+    eff.run("git", &["commit".into(), "-m".into(), message], cwd)?;
   }
 
   Ok(GenerateChangelogOutcome {
@@ -177,7 +188,12 @@ pub fn generate_changelog(
 
 /// 读既有文件（缺失则以 `# Changelog\n\n` 起始）→ 首个 `^###?` 条目前插入
 /// （无则追加）→ 写盘；返回最终全文。`cwd` 为错误消息的显示路径锚点（ADR-0002）
-fn upsert_changelog(output: &Path, markdown: &str, cwd: &Path) -> Result<String, ChangelogError> {
+fn upsert_changelog(
+  eff: &dyn Effects,
+  output: &Path,
+  markdown: &str,
+  cwd: &Path,
+) -> Result<String, ChangelogError> {
   let mut changelog_md = match std::fs::read_to_string(output) {
     Ok(content) => content,
     Err(e) if e.kind() == std::io::ErrorKind::NotFound => "# Changelog\n\n".to_owned(),
@@ -195,8 +211,10 @@ fn upsert_changelog(output: &Path, markdown: &str, cwd: &Path) -> Result<String,
     ),
     None => format!("{changelog_md}\n{markdown}\n\n"),
   };
-  std::fs::write(output, &changelog_md).map_err(|e| ChangelogError::Io {
-    message: format!("failed to write {}: {e}", crate::display::path(cwd, output)),
-  })?;
+  eff
+    .write_file(output, &changelog_md)
+    .map_err(|e| ChangelogError::Io {
+      message: format!("failed to write {}: {e}", crate::display::path(cwd, output)),
+    })?;
   Ok(changelog_md)
 }

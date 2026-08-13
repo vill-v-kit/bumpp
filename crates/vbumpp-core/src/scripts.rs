@@ -4,7 +4,8 @@
 
 use std::path::Path;
 
-use crate::exec::{run, ExecError};
+use crate::effects::{Effects, RealEffects};
+use crate::exec::ExecError;
 
 /// 经系统 shell 执行命令串（Unix `sh -c`；Windows `cmd /d /s /c`——`/d /s`
 /// 对齐 npm 默认：跳过注册表 AutoRun 钩子，避免用户机器环境污染发版）。
@@ -12,6 +13,11 @@ use crate::exec::{run, ExecError};
 /// （ADR-0011；对齐 ADR-0003 失败即报错精神，有意偏离上游 npm scripts
 /// 未开 throwOnError 的不传播 parity）
 pub fn run_script(cwd: &Path, command: &str) -> Result<(), ExecError> {
+  run_script_with(&RealEffects, cwd, command)
+}
+
+/// `run_script` 的效应注入形态：shell 与参数构造为纯计算，spawn 经效应边界
+pub fn run_script_with(eff: &dyn Effects, cwd: &Path, command: &str) -> Result<(), ExecError> {
   #[cfg(windows)]
   let (shell, flags) = ("cmd", vec!["/d", "/s", "/c"]);
   #[cfg(not(windows))]
@@ -21,5 +27,5 @@ pub fn run_script(cwd: &Path, command: &str) -> Result<(), ExecError> {
     .map(str::to_string)
     .chain(std::iter::once(command.to_string()))
     .collect();
-  run(shell, &args, cwd).map(|_| ())
+  eff.run(shell, &args, cwd)
 }

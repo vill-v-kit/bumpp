@@ -9,12 +9,13 @@ use std::path::{Component, Path};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Confirm;
 
-use crate::exec::{run, ExecError};
-use crate::git::{git_commit, git_push, git_tag, CommitSpec, TagSpec};
+use crate::effects::{Effects, RealEffects};
+use crate::exec::ExecError;
+use crate::git::{git_commit_with, git_push_with, git_tag_with, CommitSpec, TagSpec};
 use crate::info::{get_current_version, resolve_new_version, BumpState, InfoError};
 use crate::plugins::{self, FilesError, InstallError};
 use crate::progress::ProgressEvent;
-use crate::scripts::run_script;
+use crate::scripts::run_script_with;
 
 /// commit 选项（上游 `boolean | string`，对象形态上游亦未支持）
 #[derive(Debug, Clone, Copy)]
@@ -233,6 +234,17 @@ pub fn version_bump(
   cwd: &Path,
   progress: &mut dyn FnMut(&Progress),
 ) -> Result<BumpResults, BumpError> {
+  version_bump_with(&RealEffects, options, cwd, progress)
+}
+
+/// `version_bump` 的效应注入形态：全部副作用（scripts / 文件写盘 / install /
+/// execute / git commit / tag / push）经效应边界执行，判定与计算留在本流水线
+pub fn version_bump_with(
+  eff: &dyn Effects,
+  options: &BumpOptions,
+  cwd: &Path,
+  progress: &mut dyn FnMut(&Progress),
+) -> Result<BumpResults, BumpError> {
   // ---- normalizeOptions ----
   let preid = options.preid.unwrap_or("beta");
   let tag = match &options.tag {
@@ -334,7 +346,7 @@ pub fn version_bump(
     ($slot:ident) => {
       if !options.ignore_scripts {
         if let Some(command) = options.scripts.as_ref().and_then(|s| s.$slot.as_deref()) {
-          run_script(cwd, command)?;
+          run_script_with(eff, cwd, command)?;
           emit!(ProgressEvent::Script, Some(command));
         }
       }
@@ -342,7 +354,8 @@ pub fn version_bump(
   }
   script_step!(preversion);
 
-  let outcome = plugins::update_files(&files, cwd, &state.current_version, &state.new_version)?;
+  let outcome =
+    plugins::update_files_with(eff, &files, cwd, &state.current_version, &state.new_version)?;
   for (event, path) in outcome.events() {
     if *event == ProgressEvent::FileUpdated {
       state.updated_files.push(path.clone());
@@ -354,7 +367,7 @@ pub fn version_bump(
 
   // ---- install（ADR-0007：仅当本次有文件被实际更新时，按生态适配触发） ----
   if options.install && !state.updated_files.is_empty() {
-    plugins::run_installs(cwd, &state.updated_files)?;
+    plugins::run_installs_with(eff, cwd, &state.updated_files)?;
   }
 
   if let Some(execute) = options.execute {
@@ -365,7 +378,7 @@ pub fn version_bump(
     let (program, args) = parts.split_first().ok_or_else(|| BumpError::Exec {
       message: "execute command is empty".to_string(),
     })?;
-    run(program, args, cwd)?;
+    eff.run(program, args, cwd)?;
   }
 
   script_step!(version);
@@ -395,7 +408,8 @@ pub fn version_bump(
       }
       None => &state.updated_files,
     };
-    let (_, message) = git_commit(
+    let (_, message) = git_commit_with(
+      eff,
       cwd,
       &CommitSpec {
         updated_files,
@@ -411,7 +425,8 @@ pub fn version_bump(
   }
 
   if let Some(tag) = &tag {
-    let (_, tag_name) = git_tag(
+    let (_, tag_name) = git_tag_with(
+      eff,
       cwd,
       &TagSpec {
         name: tag.name,
@@ -431,7 +446,7 @@ pub fn version_bump(
   script_step!(postversion);
 
   if options.push {
-    let _ = git_push(cwd, tag.is_some())?;
+    let _ = git_push_with(eff, cwd, tag.is_some())?;
     emit!(ProgressEvent::GitPush, None);
   }
 

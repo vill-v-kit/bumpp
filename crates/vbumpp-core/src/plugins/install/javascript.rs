@@ -11,18 +11,24 @@ use std::error::Error;
 use std::fmt;
 use std::path::Path;
 
+use crate::effects::{Effects, RealEffects};
 use crate::plugins::InstallError;
 
 /// JavaScript 适配入口：detect → `<pm> install`（上游 `options.install` 语义）
 pub fn install(cwd: &Path) -> Result<(), InstallError> {
+  install_with(&RealEffects, cwd)
+}
+
+/// `install` 的效应注入形态（spawn 经效应边界；PM 检测为只读计算）
+pub fn install_with(eff: &dyn Effects, cwd: &Path) -> Result<(), InstallError> {
   let pm = detect_package_manager(cwd).map_err(|e| InstallError {
     message: e.to_string(),
   })?;
-  crate::exec::run(pm, &["install".to_string()], cwd)
+  eff
+    .run(pm, &["install".to_string()], cwd)
     .map_err(|e| InstallError {
       message: e.to_string(),
     })
-    .map(|_| ())
 }
 
 #[derive(Debug)]

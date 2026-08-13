@@ -1,13 +1,13 @@
 //! JavaScript 生态插件（ADR-0007）：trait 实现逐方法一行委托到能力子目录。
-//! 能力本体：`version/javascript`（清单识别 + 保格式更新）、`install/javascript`
+//! 能力本体：`version/javascript`（清单识别 + 保格式更新判定）、`install/javascript`
 //! （PM 检测 + `<pm> install`）、`recursive/javascript`（清单 basename 常量）。
 
 use std::path::Path;
 
 use super::{
-  install, recursive, version, Ecosystem, FilesError, InstallError, UpdateOutcome,
-  VersionFilePlugin,
+  install, recursive, version, Ecosystem, FilePlan, FilesError, InstallError, VersionFilePlugin,
 };
+use crate::effects::Effects;
 
 pub(crate) struct JavaScriptPlugin;
 
@@ -29,18 +29,18 @@ impl VersionFilePlugin for JavaScriptPlugin {
   }
 
   /// 本通道错误消息只用 rel_path（显示路径的相对形态，ADR-0002），无需 cwd 锚点
-  fn update(
+  fn plan(
     &self,
     path: &Path,
     rel_path: &Path,
     current: &str,
     new: &str,
     _cwd: &Path,
-  ) -> Result<UpdateOutcome, FilesError> {
-    version::javascript::update(path, rel_path, current, new)
+  ) -> Result<FilePlan, FilesError> {
+    version::javascript::plan(path, rel_path, current, new)
   }
 
-  fn install(&self, cwd: &Path) -> Option<Result<(), InstallError>> {
-    Some(install::javascript::install(cwd))
+  fn install(&self, eff: &dyn Effects, cwd: &Path) -> Option<Result<(), InstallError>> {
+    Some(install::javascript::install_with(eff, cwd))
   }
 }

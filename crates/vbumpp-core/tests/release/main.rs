@@ -11,6 +11,7 @@ mod gitee;
 mod github;
 mod gitlab;
 mod token;
+mod token_source;
 
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener};

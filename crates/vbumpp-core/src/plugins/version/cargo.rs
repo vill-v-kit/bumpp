@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Formatted, Item, Table, Value};
 
-use super::super::{read_text, write_text, FilesError, UpdateOutcome};
+use super::super::{read_text, FilePlan, FileWrite, FilesError, WriteKind};
 
 /// Cargo 清单识别：basename `cargo.toml`（小写比较——与 MANIFEST_BASENAMES
 /// 常量的磁盘惯例名无关，识别面保持大小写不敏感）
@@ -49,15 +49,17 @@ pub(crate) fn read_version(path: &Path) -> Option<String> {
     .map(str::to_string)
 }
 
-/// 保格式更新清单版本并按需定向同步 Cargo.lock（形态探测见模块头注释）；
+/// 保格式更新判定段（只读，形态探测见模块头注释）：计算清单新版本全文并
+/// 完成 Cargo.lock 定向同步的全部预检（条目缺失 / 版本漂移 / lock 解析失败
+/// 均立即报错且清单不改写），产出写盘计划；写盘由编排层执行。
 /// `cwd` 为错误消息中绝对路径（lock）的显示路径锚点（ADR-0002）
-pub(crate) fn update(
+pub(crate) fn plan(
   path: &Path,
   rel_path: &Path,
   current: &str,
   new: &str,
   cwd: &Path,
-) -> Result<UpdateOutcome, FilesError> {
+) -> Result<FilePlan, FilesError> {
   let text = read_text(path, rel_path)?;
   // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
   // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
@@ -72,7 +74,7 @@ pub(crate) fn update(
     .and_then(Item::as_str)
   {
     if v == new {
-      return Ok(UpdateOutcome::Skipped);
+      return Ok(FilePlan::Skipped);
     }
     let name = package
       .and_then(|p| p.get("name"))
@@ -88,38 +90,36 @@ pub(crate) fn update(
     let lock = find_lock(path)
       .map(|lock_path| sync_lock_by_name(&lock_path, &name, current, new, cwd))
       .transpose()?;
-    return apply(
+    return Ok(plan_writes(
       &mut doc,
       VersionLocation::Package,
       lock,
       path,
       rel_path,
       new,
-      cwd,
-    );
+    ));
   }
 
   // version 非字面量（`version.workspace = true` 继承 / 缺失 / 其他形态）：
   // 本文件若含 `[workspace.package].version` 字面量（本文件即根）→ 更新该字段
   // （lock 按成员扫描同步）；否则跳过——真成员的根清单作为显式文件项自行处理
   let Some(v) = workspace_version_literal(&doc) else {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   };
   if v == new {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   }
   let lock = find_lock(path)
     .map(|lock_path| sync_lock_workspace_members(&lock_path, current, new, cwd))
     .transpose()?;
-  apply(
+  Ok(plan_writes(
     &mut doc,
     VersionLocation::WorkspacePackage,
     lock,
     path,
     rel_path,
     new,
-    cwd,
-  )
+  ))
 }
 
 /// 从清单所在目录向上发现首个 Cargo.lock（workspace 成员的 lock 位于仓库根）
@@ -148,16 +148,16 @@ enum VersionLocation {
   WorkspacePackage,
 }
 
-/// 应用更新：保格式改写目标表 version → 写清单 → 落 lock
-fn apply(
+/// 计划构造：保格式改写目标表 version → 清单写盘条目（+ lock 写盘条目）。
+/// 全部校验已在此之前完成（sync_lock_* 预检），本函数零决策
+fn plan_writes(
   doc: &mut DocumentMut,
   location: VersionLocation,
   lock: Option<LockSync>,
   path: &Path,
   rel_path: &Path,
   new: &str,
-  cwd: &Path,
-) -> Result<UpdateOutcome, FilesError> {
+) -> FilePlan {
   let table = match location {
     VersionLocation::Package => doc.get_mut("package").and_then(Item::as_table_like_mut),
     VersionLocation::WorkspacePackage => doc
@@ -167,8 +167,21 @@ fn apply(
       .and_then(Item::as_table_like_mut),
   };
   set_table_version(table, new);
-  write_text(path, rel_path, &doc.to_string())?;
-  commit_lock(lock, cwd)
+  let mut writes = vec![FileWrite {
+    path: path.to_path_buf(),
+    content: doc.to_string(),
+    kind: WriteKind::Manifest {
+      rel_path: rel_path.to_path_buf(),
+    },
+  }];
+  if let Some(sync) = lock {
+    writes.push(FileWrite {
+      path: sync.path,
+      content: sync.content,
+      kind: WriteKind::CargoLock,
+    });
+  }
+  FilePlan::Updated(writes)
 }
 
 /// 同步产物：更新后的 lock 文本与其路径（校验全部通过后才允许写盘）
@@ -260,22 +273,6 @@ fn sweep_lock(
     },
     synced,
   ))
-}
-
-/// 清单已写盘后落 lock；返回主文件 + 附带 lock 的更新结果
-fn commit_lock(lock: Option<LockSync>, cwd: &Path) -> Result<UpdateOutcome, FilesError> {
-  match lock {
-    Some(sync) => {
-      std::fs::write(&sync.path, &sync.content).map_err(|e| FilesError::Lock {
-        message: format!(
-          "failed to write {}: {e}",
-          crate::display::path(cwd, &sync.path)
-        ),
-      })?;
-      Ok(UpdateOutcome::UpdatedWith(vec![sync.path]))
-    }
-    None => Ok(UpdateOutcome::Updated),
-  }
 }
 
 fn parse_lock(lock_path: &Path, cwd: &Path) -> Result<DocumentMut, FilesError> {

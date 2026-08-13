@@ -19,6 +19,7 @@ use std::path::Path;
 
 use serde_json::{Map, Value};
 
+use crate::effects::{Effects, RealEffects};
 use crate::git::RepoConfig;
 
 pub mod gitcode;
@@ -156,7 +157,27 @@ pub fn create_release(
   cwd: &Path,
   overrides: Option<&Map<String, Value>>,
 ) -> Result<(), ReleaseError> {
-  let token = resolve_token_real(provider, cwd)?;
+  create_release_with(
+    &RealEffects,
+    provider,
+    new_version,
+    markdown,
+    cwd,
+    overrides,
+  )
+}
+
+/// `create_release` 的效应注入形态：平台 HTTP（含 gitlab 的 GET project id）
+/// 经效应边界；token 解析与仓库信息推断等只读计算留在本流水线
+pub fn create_release_with(
+  eff: &dyn Effects,
+  provider: Provider,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<(), ReleaseError> {
+  let resolved = resolve_token_real(provider, cwd)?;
   // 信息行（对齐 JS resolveRepoConfig 的 consola.info）
   if let Some(RepoConfig {
     domain,
@@ -172,16 +193,45 @@ pub fn create_release(
     );
   }
   match provider {
-    Provider::Github => github::create(&token, new_version, markdown, cwd),
-    Provider::Gitee => gitee::create(&token, new_version, markdown, cwd),
-    Provider::Gitcode => gitcode::create(&token, new_version, markdown, cwd),
-    Provider::Gitlab => gitlab::create(&token, new_version, markdown, cwd, overrides),
+    Provider::Github => github::create(eff, &resolved.token, new_version, markdown, cwd),
+    Provider::Gitee => gitee::create(eff, &resolved.token, new_version, markdown, cwd),
+    Provider::Gitcode => gitcode::create(eff, &resolved.token, new_version, markdown, cwd),
+    Provider::Gitlab => gitlab::create(eff, &resolved.token, new_version, markdown, cwd, overrides),
   }
 }
 
 // ---------------------------------------------------------------------------
 // token 解析链
 // ---------------------------------------------------------------------------
+
+/// token 来源（--dry-run 的来源报告消费；解析链各级一一对应）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TokenSource {
+  /// token 存储（`vbumpp token set`，加密落盘）
+  Store,
+  /// 环境变量（命中的具体变量名，如 `GH_TOKEN`）
+  Env(&'static str),
+  /// `gh auth token` CLI 兜底（仅 github）
+  GhCli,
+}
+
+impl TokenSource {
+  /// 用户可见的来源描述（ADR-0017 用户可见字符串英文唯一）
+  pub fn describe(&self) -> String {
+    match self {
+      Self::Store => "token store".to_owned(),
+      Self::Env(name) => format!("environment variable {name}"),
+      Self::GhCli => "gh CLI (`gh auth token`)".to_owned(),
+    }
+  }
+}
+
+/// 解析产物：token 明文 + 命中来源
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedToken {
+  pub token: String,
+  pub source: TokenSource,
+}
 
 /// 解析链纯核（ADR-0014）：store → 各家环境变量 →（仅 github）gh CLI。
 /// 三个数据源注入以便测试；空字符串按 JS `||` 语义视为缺失
@@ -192,22 +242,41 @@ pub fn resolve_token(
   env: &dyn Fn(&str) -> Option<String>,
   gh_cli: &dyn Fn() -> Option<String>,
 ) -> Option<String> {
+  resolve_token_sourced(provider, tokens, env, gh_cli).map(|r| r.token)
+}
+
+/// `resolve_token` 的来源携带形态：同一解析链，返回「token + 来源」
+pub fn resolve_token_sourced(
+  provider: Provider,
+  tokens: &BTreeMap<String, String>,
+  env: &dyn Fn(&str) -> Option<String>,
+  gh_cli: &dyn Fn() -> Option<String>,
+) -> Option<ResolvedToken> {
   if let Some(token) = tokens.get(provider.name()) {
     if !token.is_empty() {
-      return Some(token.clone());
+      return Some(ResolvedToken {
+        token: token.clone(),
+        source: TokenSource::Store,
+      });
     }
   }
   for var in provider.env_vars() {
     if let Some(value) = env(var) {
       if !value.is_empty() {
-        return Some(value);
+        return Some(ResolvedToken {
+          token: value,
+          source: TokenSource::Env(var),
+        });
       }
     }
   }
   if provider == Provider::Github {
     return gh_cli().and_then(|t| {
       let trimmed = t.trim().to_owned();
-      (!trimmed.is_empty()).then_some(trimmed)
+      (!trimmed.is_empty()).then_some(ResolvedToken {
+        token: trimmed,
+        source: TokenSource::GhCli,
+      })
     });
   }
   None
@@ -215,7 +284,7 @@ pub fn resolve_token(
 
 /// 生产数据源包装：真实 token 存储（读取失败警告后按空表继续，对齐 JS
 /// bump.ts 的 catch-warn 语义）→ `std::env::var` → `gh auth token`
-fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<String, ReleaseError> {
+fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<ResolvedToken, ReleaseError> {
   let tokens = match crate::token::read_token_store() {
     Ok(tokens) => tokens,
     Err(e) => {
@@ -226,7 +295,7 @@ fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<String, ReleaseE
       BTreeMap::new()
     }
   };
-  resolve_token(provider, &tokens, &|key| std::env::var(key).ok(), &|| {
+  resolve_token_sourced(provider, &tokens, &|key| std::env::var(key).ok(), &|| {
     crate::exec::capture("gh", &["auth".into(), "token".into()], cwd)
       .ok()
       .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())

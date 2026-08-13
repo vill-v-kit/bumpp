@@ -9,7 +9,7 @@ use jsonc_parser::common::{Range, Ranged};
 use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
 
 use super::super::recursive::javascript::MANIFEST_BASENAMES;
-use super::super::{read_text, write_text, FilesError, UpdateOutcome};
+use super::super::{read_text, FilePlan, FileWrite, FilesError, WriteKind};
 use crate::jsonc::{get_prop, is_manifest};
 
 /// manifest 通道识别：basename 小写比较命中清单常量表
@@ -40,36 +40,37 @@ pub(crate) fn read_version(path: &Path) -> Option<String> {
   )
 }
 
-/// 上游 `updateManifestFile`：只设置顶层 `version`（package-lock 另含嵌套路径），
-/// 通过文本区间替换保留原格式
-pub(crate) fn update(
+/// 上游 `updateManifestFile` 的判定段（只读）：只设置顶层 `version`
+/// （package-lock 另含嵌套路径），通过文本区间替换保留原格式；
+/// 产出写盘计划（新全文），写盘由编排层执行
+pub(crate) fn plan(
   path: &Path,
   rel_path: &Path,
   _current: &str,
   new: &str,
-) -> Result<UpdateOutcome, FilesError> {
+) -> Result<FilePlan, FilesError> {
   let text = read_text(path, rel_path)?;
   // 上游 jsonc.parse 容错：解析失败的文件按 skip 处理，批次继续
   let Ok(ast) = parse_to_ast(&text, &CollectOptions::default(), &ParseOptions::default()) else {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   };
   let Some(Value::Object(root)) = &ast.value else {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   };
   if !is_manifest(root) {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   }
   // version 缺失或为 null → 跳过
   let Some(version_prop) = get_prop(root, "version") else {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   };
   if matches!(&version_prop.value, Value::NullKeyword(_)) {
-    return Ok(UpdateOutcome::Skipped);
+    return Ok(FilePlan::Skipped);
   }
   // version 已是新值 → 跳过（不重写文件）
   if let Value::StringLit(s) = &version_prop.value {
     if s.value == new {
-      return Ok(UpdateOutcome::Skipped);
+      return Ok(FilePlan::Skipped);
     }
   }
 
@@ -79,8 +80,13 @@ pub(crate) fn update(
     edits.push((nested.range(), quote(new)));
   }
 
-  write_text(path, rel_path, &apply_edits(&text, &edits))?;
-  Ok(UpdateOutcome::Updated)
+  Ok(FilePlan::Updated(vec![FileWrite {
+    path: path.to_path_buf(),
+    content: apply_edits(&text, &edits),
+    kind: WriteKind::Manifest {
+      rel_path: rel_path.to_path_buf(),
+    },
+  }]))
 }
 
 /// 上游 `isPackageLockManifest` 的取值：`packages[""].version` 为 string 时返回该节点

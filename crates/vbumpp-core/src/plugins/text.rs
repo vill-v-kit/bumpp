@@ -3,7 +3,8 @@
 
 use std::path::Path;
 
-use super::{version, Ecosystem, FilesError, InstallError, UpdateOutcome, VersionFilePlugin};
+use super::{version, Ecosystem, FilePlan, FilesError, InstallError, VersionFilePlugin};
+use crate::effects::Effects;
 
 pub(crate) struct TextPlugin;
 
@@ -27,19 +28,19 @@ impl VersionFilePlugin for TextPlugin {
     None
   }
 
-  fn update(
+  fn plan(
     &self,
     path: &Path,
     rel_path: &Path,
     current: &str,
     new: &str,
     _cwd: &Path,
-  ) -> Result<UpdateOutcome, FilesError> {
-    version::text::update(path, rel_path, current, new)
+  ) -> Result<FilePlan, FilesError> {
+    version::text::plan(path, rel_path, current, new)
   }
 
   /// 兜底通道无 install 适配
-  fn install(&self, _cwd: &Path) -> Option<Result<(), InstallError>> {
+  fn install(&self, _eff: &dyn Effects, _cwd: &Path) -> Option<Result<(), InstallError>> {
     None
   }
 }
