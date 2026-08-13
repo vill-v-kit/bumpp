@@ -46,6 +46,16 @@ pub enum UpdateOutcome {
   UpdatedWith(Vec<PathBuf>),
 }
 
+/// 逐文件预演判定三态（COL-85 dry-run 消费）：与真实执行的逐文件判定同一
+/// 代码段产出——missing 为收集层存在性检查、up-to-date 为插件判定段
+/// `FilePlan::Skipped`、update 为 `FilePlan::Updated`（含附带同步）
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileVerdict {
+  Updated,
+  UpToDate,
+  Missing,
+}
+
 /// 逐文件更新计划（判定段 `plan` 的只读产物，写盘段 `execute_plan` 消费）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FilePlan {
@@ -324,16 +334,25 @@ pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesErr
 ///
 /// 以处理顺序的进度事件为唯一事实源（对应上游逐文件 `operation.update` 产生的
 /// FileUpdated / FileSkipped）；updated / skipped 路径列表为派生视图（对应上游
-/// operation.state 的 updatedFiles / skippedFiles）。
+/// operation.state 的 updatedFiles / skippedFiles）。verdicts 为逐文件三态判定
+/// （每个输入文件恰一条，处理顺序）——FileSkipped 事件不区分的 up-to-date /
+/// missing 在此分开（COL-85 dry-run 的预演判定行数据源）
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct UpdateFilesOutcome {
   events: Vec<(ProgressEvent, String)>,
+  verdicts: Vec<(String, FileVerdict)>,
 }
 
 impl UpdateFilesOutcome {
   /// 处理顺序的 (事件, 绝对路径) 序列，供内置打印与观察者闭包消费（ADR-0002）
   pub fn events(&self) -> &[(ProgressEvent, String)] {
     &self.events
+  }
+
+  /// 逐文件预演判定（绝对路径, 三态）：每个输入文件恰一条、处理顺序
+  /// （插件附带同步的 Cargo.lock 不在此列——它属于事件序列与写盘清单）
+  pub fn verdicts(&self) -> &[(String, FileVerdict)] {
+    &self.verdicts
   }
 
   /// 上游 operation.state.updatedFiles
@@ -380,15 +399,16 @@ pub fn update_files_with(
 ) -> Result<UpdateFilesOutcome, FilesError> {
   let mut outcome = UpdateFilesOutcome::default();
   for rel_path in files {
-    let (modified, extra_paths) = update_file(eff, rel_path, cwd, current_version, new_version)?;
+    let (verdict, extra_paths) = update_file(eff, rel_path, cwd, current_version, new_version)?;
     // 上游事件路径经 path.resolve(cwd, relPath) 归一化（消除 ./ 与 .. 段）
     let abs_path = resolve(cwd, rel_path).to_string_lossy().into_owned();
-    let event = if modified {
+    let event = if verdict == FileVerdict::Updated {
       ProgressEvent::FileUpdated
     } else {
       ProgressEvent::FileSkipped
     };
-    outcome.events.push((event, abs_path));
+    outcome.events.push((event, abs_path.clone()));
+    outcome.verdicts.push((abs_path, verdict));
     for extra in extra_paths {
       outcome.events.push((
         ProgressEvent::FileUpdated,
@@ -399,19 +419,19 @@ pub fn update_files_with(
   Ok(outcome)
 }
 
-/// 上游 `updateFile`：文件不存在 → skipped；存在则「判定 → 写盘」两段执行。
-/// 返回 (主文件是否更新, 插件附带同步的文件路径)
+/// 上游 `updateFile`：文件不存在 → missing；存在则「判定 → 写盘」两段执行。
+/// 返回 (三态判定, 插件附带同步的文件路径)
 fn update_file(
   eff: &dyn Effects,
   rel_path: &str,
   cwd: &Path,
   current_version: &str,
   new_version: &str,
-) -> Result<(bool, Vec<PathBuf>), FilesError> {
+) -> Result<(FileVerdict, Vec<PathBuf>), FilesError> {
   // 归一化后的绝对路径：插件由其向上派生的附带路径（如相邻 Cargo.lock）随之归一
   let path = resolve(cwd, rel_path);
   if !path.exists() {
-    return Ok((false, vec![]));
+    return Ok((FileVerdict::Missing, vec![]));
   }
   let outcome = dispatch_file_with(
     eff,
@@ -422,9 +442,9 @@ fn update_file(
     cwd,
   )?;
   Ok(match outcome {
-    UpdateOutcome::Updated => (true, vec![]),
-    UpdateOutcome::UpdatedWith(extra_paths) => (true, extra_paths),
-    UpdateOutcome::Skipped => (false, vec![]),
+    UpdateOutcome::Updated => (FileVerdict::Updated, vec![]),
+    UpdateOutcome::UpdatedWith(extra_paths) => (FileVerdict::Updated, extra_paths),
+    UpdateOutcome::Skipped => (FileVerdict::UpToDate, vec![]),
   })
 }
 

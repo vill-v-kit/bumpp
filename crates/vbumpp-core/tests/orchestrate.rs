@@ -167,3 +167,33 @@ fn config_release_prompt_value_forces_interactive_menu() {
     other => panic!("应为 Info（交互菜单失败），实际 {other:?}"),
   }
 }
+
+/// 上游 parity 钉定（COL-85 透传缝口）：versionBumpInfo 的候选文件清单 =
+/// options.files（收集前）——默认探测表（链上 manifest basenames 并集）
+/// 在显式清单为空时照常兜底，来源为探测到的清单文件名
+#[test]
+fn default_probe_table_supplies_current_version_source() {
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  let path = common::init_bump_repo(&dir, "release = \"minor\"\npush = false\n");
+
+  let options = BumpVersionOptions {
+    overrides: Some(
+      serde_json::json!({
+        "recursive": false,
+        "changelog": { "output": "CHANGELOG.md" },
+        "confirm": false
+      })
+      .as_object()
+      .unwrap()
+      .clone(),
+    ),
+    provider: None,
+  };
+  let outcome = bump_version(&options, &path).unwrap();
+  assert_eq!(outcome.state.current_version, "1.0.0");
+  assert_eq!(
+    outcome.state.current_version_source, "package.json",
+    "默认探测表兜底：来源为探测到的清单文件名"
+  );
+}

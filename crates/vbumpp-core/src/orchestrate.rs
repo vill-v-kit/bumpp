@@ -23,11 +23,14 @@ pub struct BumpVersionOptions {
   pub provider: Option<Provider>,
 }
 
-/// 编排产出（对齐 JS `BumpVersion` 收缩后的形状，ADR-0014）
+/// 编排产出（对齐 JS `BumpVersion` 收缩后的形状，ADR-0014）；
+/// `bump` 为 versionBump 的结果（commit message / tag 名 / 逐文件清单——
+/// COL-85 dry-run 的 git 动作与判定行数据源）
 #[derive(Debug)]
 pub struct BumpVersionOutcome {
   pub state: BumpState,
   pub changelog: Option<GenerateChangelogOutcome>,
+  pub bump: crate::bump::BumpResults,
 }
 
 #[derive(Debug)]
@@ -118,6 +121,18 @@ pub fn bump_version_with(
   options: &BumpVersionOptions,
   cwd: &Path,
 ) -> Result<BumpVersionOutcome, OrchestrateError> {
+  // 成功行打印为显示副作用：与进度行同理回传调用方注入的显示汇
+  bump_version_at(eff, options, cwd, &mut |line| println!("{line}"))
+}
+
+/// 可测内核：成功行打印经 `display` 汇注入；`bump_version_with` 以 stdout
+/// 透传（行为逐字节不变），dry-run 以捕获透传（行进入计划而非直接打印）
+pub fn bump_version_at(
+  eff: &dyn Effects,
+  options: &BumpVersionOptions,
+  cwd: &Path,
+  display: &mut dyn FnMut(&str),
+) -> Result<BumpVersionOutcome, OrchestrateError> {
   // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013）----
   let mut merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
 
@@ -141,10 +156,14 @@ pub fn bump_version_with(
   let current_tag = crate::git::get_last_git_tag(cwd)?;
 
   // ---- 版本确定（JS：`versionBumpInfo()`）----
+  // 上游 parity：operation.files = options.files（收集前清单；含未命中的
+  // 显式路径）——当前版本的来源探测随它（显式点名文件参与来源）；文件更新
+  // 判定清单在 bump 段另经 normalize_files 收集（上游同名量两者分开）
+  let info_files = info_files_of(&merged);
   let state = crate::info::version_bump_info(
     &crate::info::BumpInfoOptions {
       release: release.as_deref(),
-      files: &[],
+      files: &info_files,
       current_version: current_version.as_deref(),
       preid: preid.as_deref(),
     },
@@ -163,19 +182,20 @@ pub fn bump_version_with(
         },
         cwd,
       )?;
-      println!(
+      display(&format!(
         "{} Update {} success",
         dialoguer::console::style("✔").green(),
         outcome.output
-      );
+      ));
       Some(outcome)
     }
     None => None,
   };
 
-  // ---- versionBump（merged + release 固定为已确定的新版本）----
+  // ---- versionBump（merged + release 固定为已确定的新版本；
+  // 显示汇透传——其进度行与编排成功行汇入同一计划）----
   let bump_options = BumpOptions::from_merged(&merged, &state.new_version);
-  crate::bump::version_bump_with(eff, &bump_options, cwd, &mut |_| {})?;
+  let bump = crate::bump::version_bump_at(eff, &bump_options, cwd, display, &mut |_| {})?;
 
   // ---- 平台 Release（spinner → 进度打印）----
   if let Some(provider) = options.provider {
@@ -191,15 +211,19 @@ pub fn bump_version_with(
       cwd,
       options.overrides.as_ref(),
     )?;
-    println!(
+    display(&format!(
       "{} [{}] add release v{} success",
       dialoguer::console::style("✔").green(),
       provider.display(),
       state.new_version
-    );
+    ));
   }
 
-  Ok(BumpVersionOutcome { state, changelog })
+  Ok(BumpVersionOutcome {
+    state,
+    changelog,
+    bump,
+  })
 }
 
 /// 字符串型配置键提取（COL-60）：缺省 / null 为 None；空串与非字符串值报错——
@@ -215,4 +239,20 @@ fn config_str(merged: &Map<String, Value>, key: &str) -> Result<Option<String>, 
       ),
     }),
   }
+}
+
+/// `versionBumpInfo` 的候选文件清单（上游 `options.files` parity：收集前
+/// 原样清单——含未命中的显式路径；`BumpOptions::from_merged` 的 files
+/// 同一提取规则）
+fn info_files_of(merged: &Map<String, Value>) -> Vec<String> {
+  merged
+    .get("files")
+    .and_then(Value::as_array)
+    .map(|a| {
+      a.iter()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
+    })
+    .unwrap_or_default()
 }

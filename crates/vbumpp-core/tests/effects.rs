@@ -281,6 +281,23 @@ fn update_files_planning_is_read_only_and_writes_flow_through_boundary() {
     ]
   );
 
+  // 逐文件三态判定（COL-85 dry-run 数据源）：每个输入文件恰一条、处理顺序——
+  // FileSkipped 事件不区分的 up-to-date / missing 在此分开
+  let verdicts: Vec<_> = outcome
+    .verdicts()
+    .iter()
+    .map(|(p, v)| (p.rsplit('/').next().unwrap().to_owned(), *v))
+    .collect();
+  use vbumpp_core::plugins::FileVerdict;
+  assert_eq!(
+    verdicts,
+    vec![
+      ("Cargo.toml".to_string(), FileVerdict::Updated),
+      ("package.json".to_string(), FileVerdict::UpToDate),
+      ("ghost.txt".to_string(), FileVerdict::Missing),
+    ]
+  );
+
   // 写盘条目 = 判定计划产物（主文件 + 附带 lock），内容为判定段算出的全文
   let writes = spy.writes();
   assert_eq!(writes.len(), 2);

@@ -153,7 +153,8 @@ pub struct Progress<'a> {
   pub skipped_files: &'a [String],
 }
 
-/// 上游 `operation.results`
+/// 上游 `operation.results`；`verdicts` 为逐文件三态判定（每个收集文件
+/// 恰一条、处理顺序）——COL-85 dry-run 的预演判定行数据源
 #[derive(Debug, PartialEq, Eq)]
 pub struct BumpResults {
   pub release: Option<String>,
@@ -163,6 +164,7 @@ pub struct BumpResults {
   pub tag: Option<String>,
   pub updated_files: Vec<String>,
   pub skipped_files: Vec<String>,
+  pub verdicts: Vec<(String, crate::plugins::FileVerdict)>,
 }
 
 #[derive(Debug)]
@@ -245,6 +247,20 @@ pub fn version_bump_with(
   cwd: &Path,
   progress: &mut dyn FnMut(&Progress),
 ) -> Result<BumpResults, BumpError> {
+  // 内置进度打印（ADR-0002）为显示副作用：回传调用方注入的显示汇
+  // （COL-85 dry-run 以闭包捕获为计划行——预演与真实共用同一份打印格式）
+  version_bump_at(eff, options, cwd, &mut |line| println!("{line}"), progress)
+}
+
+/// 可测内核：进度行打印经 `display` 汇注入；`version_bump_with` 以 stdout
+/// 透传（行为逐字节不变），dry-run 以捕获透传（行进入计划而非直接打印）
+pub fn version_bump_at(
+  eff: &dyn Effects,
+  options: &BumpOptions,
+  cwd: &Path,
+  display: &mut dyn FnMut(&str),
+  progress: &mut dyn FnMut(&Progress),
+) -> Result<BumpResults, BumpError> {
   // ---- normalizeOptions ----
   let preid = options.preid.unwrap_or("beta");
   let tag = match &options.tag {
@@ -272,6 +288,22 @@ pub fn version_bump_with(
     _ => None,
   };
   let files = normalize_files(options, cwd);
+  // 未命中显式路径的 Missing 判定（收集清单丢弃不存在的字面路径，真实
+  // 执行零事件；dry-run 需要这条 Missing——在收集处钉定，与判定行序合并）
+  let missing: Vec<(String, crate::plugins::FileVerdict)> = options
+    .files
+    .iter()
+    .filter(|f| !f.contains(['*', '?', '[']))
+    .filter_map(|f| {
+      let abs = crate::plugins::resolve(cwd, f);
+      (!abs.exists()).then(|| {
+        (
+          abs.to_string_lossy().into_owned(),
+          crate::plugins::FileVerdict::Missing,
+        )
+      })
+    })
+    .collect();
 
   // ---- 版本确定（上游时序：commits → getCurrentVersion → getNewVersion） ----
   let commits = crate::commits::get_recent_commits(cwd, None, None);
@@ -328,13 +360,20 @@ pub fn version_bump_with(
         updated_files: &state.updated_files,
         skipped_files: &state.skipped_files,
       };
-      // 内置打印（ADR-0002）：仿 consola 样式，文件事件取最后一个（本次事件的文件）
+      // 内置打印（ADR-0002）：仿 consola 样式，文件事件取最后一个（本次事件的文件）；
+      // 行经注入的显示汇（真实 stdout / dry-run 捕获同一份格式）
       let file = match p.event {
         ProgressEvent::FileUpdated => p.updated_files.last().map(String::as_str),
         ProgressEvent::FileSkipped => p.skipped_files.last().map(String::as_str),
         _ => None,
       };
-      crate::progress::print_line(p.event, p.script, p.new_version, file, cwd);
+      display(&crate::progress::format_line(
+        p.event,
+        p.script,
+        p.new_version,
+        file,
+        cwd,
+      ));
       progress(&p);
     }};
   }
@@ -397,12 +436,13 @@ pub fn version_bump_with(
     let updated_files: &[String] = match &tracked_filter {
       Some(t) => {
         for f in state.updated_files.iter().filter(|f| !t.contains(f)) {
-          // 存储值保持绝对原生（pathspec 依据），打印走显示路径（ADR-0002）
-          println!(
+          // 存储值保持绝对原生（pathspec 依据），打印走显示路径（ADR-0002）；
+          // 行经注入的显示汇（真实 stdout / dry-run 捕获同一份格式）
+          display(&format!(
             "{} skipping untracked file in commit (left modified on disk): {}",
             dialoguer::console::style("⚠").yellow(),
             crate::display::path(cwd, Path::new(f))
-          );
+          ));
         }
         t.as_slice()
       }
@@ -466,6 +506,10 @@ pub fn version_bump_with(
     },
     updated_files: state.updated_files,
     skipped_files: state.skipped_files,
+    // 逐文件三态判定：updateFiles 收集文件的判定 + 未命中显式路径的
+    // Missing 补行（收集清单丢弃不存在文件、真实执行事件流零 missing——
+    // 该补行仅喂 COL-85 dry-run 的预演判定渲染）
+    verdicts: outcome.verdicts().iter().cloned().chain(missing).collect(),
   })
 }
 

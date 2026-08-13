@@ -125,6 +125,46 @@ fn host_of(provider: Provider, requests: &[PlannedRequest]) -> String {
   }
 }
 
+/// 拦截 URL 脱敏后装配计划（真实创建链已走完）。`dispatch` 主体与
+/// `bump_plan` 的宽容编排共用——token 缺失以空串占位续走同一条链
+/// （占位值只落在不展示的头部/请求体字段）
+pub fn assemble_plan(
+  provider: Provider,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+  resolved: Option<&super::ResolvedToken>,
+  requests: Vec<PlannedRequest>,
+) -> Result<ReleasePlan, ReleaseError> {
+  let empty = String::new();
+  let token = resolved
+    .as_ref()
+    .map(|r| r.token.as_str())
+    .unwrap_or(&empty);
+  // owner/repo 与链内同源（只读推断；dispatch 已成功即此步必成，仍按可错处理）
+  let (owner, repo) = http::resolve_owner_repo(cwd)?;
+  // 拦截条目脱敏（gitcode 经 query 注入 token）——与报错同一脱敏原语
+  let requests: Vec<PlannedRequest> = requests
+    .into_iter()
+    .map(|r| PlannedRequest {
+      method: r.method,
+      url: super::scrub_token(&r.url, token),
+    })
+    .collect();
+  let host = host_of(provider, &requests);
+  Ok(ReleasePlan {
+    provider,
+    token_source: resolved.map(|r| r.source.clone()),
+    host,
+    owner,
+    repo,
+    tag_name: format!("v{new_version}"),
+    prerelease: github_like::is_prerelease(new_version),
+    body: markdown.to_owned(),
+    requests,
+  })
+}
+
 /// release dry-run 的计划装配：token 宽容解析（缺失不报错）→ 记录型效应骑
 /// 真实创建链（校验与请求构造全走，HTTP 零收发）→ 收集展示字段
 pub fn plan_release(
@@ -136,43 +176,64 @@ pub fn plan_release(
 ) -> Result<ReleasePlan, ReleaseError> {
   let resolved = super::resolve_token_tolerant(provider, cwd);
   let preview = PreviewEffects::new();
-  // token 缺失以空串占位续走同一条链——占位值只落在不展示的头部/请求体字段
-  let empty = String::new();
-  let token = resolved
-    .as_ref()
-    .map(|r| r.token.as_str())
-    .unwrap_or(&empty);
-  super::dispatch(
+  dispatch_plan(
     &preview,
     provider,
-    token,
+    resolved.as_ref(),
     new_version,
     markdown,
     cwd,
     overrides,
   )?;
-
-  // owner/repo 与链内同源（只读推断；dispatch 已成功即此步必成，仍按可错处理）
-  let (owner, repo) = http::resolve_owner_repo(cwd)?;
-  // 拦截条目脱敏（gitcode 经 query 注入 token）——与报错同一脱敏原语
-  let requests: Vec<PlannedRequest> = preview
-    .into_requests()
-    .into_iter()
-    .map(|r| PlannedRequest {
-      method: r.method,
-      url: super::scrub_token(&r.url, token),
-    })
-    .collect();
-  let host = host_of(provider, &requests);
-  Ok(ReleasePlan {
+  assemble_plan(
     provider,
-    token_source: resolved.map(|r| r.source),
-    host,
-    owner,
-    repo,
-    tag_name: format!("v{new_version}"),
-    prerelease: github_like::is_prerelease(new_version),
-    body: markdown.to_owned(),
-    requests,
-  })
+    new_version,
+    markdown,
+    cwd,
+    resolved.as_ref(),
+    preview.into_requests(),
+  )
+}
+
+/// 宽容 dispatch（token 不出模块的入口，ADR-0014）：宽容解析（缺失不报错，
+/// 空串占位续走同一条链——占位值只落在不展示的头部/请求体字段）→ 同一
+/// dispatch 链（效应经 `eff` 注入）。bump dry-run 的 release 段经此骑线
+/// （COL-85）；调用方随后以 `assemble_plan` 消费同一宽容解析的产物
+pub(crate) fn plan_release_dispatch(
+  eff: &dyn Effects,
+  provider: Provider,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<Option<super::ResolvedToken>, ReleaseError> {
+  let resolved = super::resolve_token_tolerant(provider, cwd);
+  dispatch_plan(
+    eff,
+    provider,
+    resolved.as_ref(),
+    new_version,
+    markdown,
+    cwd,
+    overrides,
+  )?;
+  Ok(resolved)
+}
+
+/// 宽容解析 → dispatch 的共享步（token 占位在本模块内消费，不跨边界）
+fn dispatch_plan(
+  eff: &dyn Effects,
+  provider: Provider,
+  resolved: Option<&super::ResolvedToken>,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<(), ReleaseError> {
+  let empty = String::new();
+  let token = resolved
+    .as_ref()
+    .map(|r| r.token.as_str())
+    .unwrap_or(&empty);
+  super::dispatch(eff, provider, token, new_version, markdown, cwd, overrides)
 }

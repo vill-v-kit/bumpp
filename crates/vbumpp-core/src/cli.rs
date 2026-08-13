@@ -59,7 +59,7 @@ pub fn run_at(
     Ok(Command::Help) => print_help(out),
     Ok(Command::Version) => print_version(out),
     Ok(Command::Token(args)) => token_command(&args, env, out, err),
-    Ok(Command::Bump(args)) => bump_command(&args, provider, env, err),
+    Ok(Command::Bump(args)) => bump_command(&args, provider, env, out, err),
     Ok(Command::Release(args)) => release_command(&args, provider, env, out, err),
     Err(message) => {
       error_line(err, &message);
@@ -88,6 +88,7 @@ struct BumpArgs {
   recursive: bool,
   output: String,
   provider: Option<String>,
+  dry_run: bool,
 }
 
 /// release 子命令（`vbumpp release <version>`，ADR-0016）的解析产物
@@ -124,6 +125,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
     recursive: false,
     output: "CHANGELOG.md".to_string(),
     provider: None,
+    dry_run: false,
   };
   let mut positional_only = false;
   let mut i = 0;
@@ -137,6 +139,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
     match arg.as_str() {
       "--" => positional_only = true,
       "-r" | "--recursive" => args.recursive = true,
+      "--dry-run" => args.dry_run = true,
       "-o" | "--output" => {
         let Some(value) = argv.get(i) else {
           return Err(format!("option {arg} requires a value"));
@@ -154,8 +157,10 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
       _ if arg.starts_with("--") => match arg.split_once('=') {
         Some(("--output", value)) => args.output = value.to_string(),
         Some(("--provider", value)) => args.provider = Some(value.to_string()),
-        // 布尔 flag 带值按 mri 惯例视为 truthy（--recursive=false 亦开启）
+        // 布尔 flag 带值按 mri 惯例视为 truthy（--recursive=false 与
+        // --dry-run=false 亦开启）
         Some(("--recursive", _)) => args.recursive = true,
+        Some(("--dry-run", _)) => args.dry_run = true,
         _ => return Err(format!("unknown option: {arg}")),
       },
       _ if arg.starts_with('-') && arg.len() > 1 => {
@@ -279,7 +284,9 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
 
 /// argv → overrides（旧 cli.ts 的 JS 对象构造原样收编）：`recursive` 与
 /// `changelog.output` 始终传（cac 默认值语义）；`files` 仅在非空时注入——
-/// ADR-0013 浅合并语义，空 files 整体替换掉配置文件的 files 是旧 defu 行为
+/// ADR-0013 浅合并语义，空 files 整体替换掉配置文件的 files 是旧 defu 行为。
+/// dry-run 注入 confirm=false——`Bump?` 确认在预览语义下跳过（零写盘无需
+/// 二次确认），经配置浅合并在流水线内生效，流水线零预览分支
 fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
   let mut overrides = Map::new();
   if !args.files.is_empty() {
@@ -287,6 +294,9 @@ fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
   }
   overrides.insert("recursive".to_string(), json!(args.recursive));
   overrides.insert("changelog".to_string(), json!({ "output": args.output }));
+  if args.dry_run {
+    overrides.insert("confirm".to_string(), json!(false));
+  }
   overrides
 }
 
@@ -310,6 +320,7 @@ fn bump_command(
   args: &BumpArgs,
   provider: Option<&str>,
   env: &RunEnv,
+  out: &mut impl Write,
   err: &mut impl Write,
 ) -> i32 {
   let provider = match resolve_provider(args.provider.as_deref(), provider) {
@@ -333,12 +344,122 @@ fn bump_command(
     overrides: Some(bump_overrides(args)),
     provider,
   };
+  // dry-run：全链只读计算照走（校验失败照常 exit 1），打印执行计划
+  if args.dry_run {
+    return bump_dry_run(&options, &cwd, out, err);
+  }
   match crate::orchestrate::bump_version(&options, &cwd) {
     Ok(_) => 0,
     Err(e) => {
       error_line(err, &e.to_string());
       1
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// bump dry-run（COL-85）：计划装配骑完整编排（预演与执行同路），此处只负责
+// 渲染——开头标识 dry run（全程无 success 行）、逐文件预演判定、版本与来源、
+// 将写盘清单、脚本与命令文本、git 动作完整文本、changelog 全文预览、
+// --provider 时的平台 Release 预览（COL-84 渲染同形）
+// ---------------------------------------------------------------------------
+
+fn bump_dry_run(
+  options: &crate::orchestrate::BumpVersionOptions,
+  cwd: &Path,
+  out: &mut impl Write,
+  err: &mut impl Write,
+) -> i32 {
+  match crate::bump_plan::plan_bump(options, cwd) {
+    Ok(plan) => {
+      info_line(out, "bump plan (dry run — no changes made)");
+      // 逐文件预演判定（与真实执行同一代码段产出的三态）
+      for (file, verdict) in &plan.verdicts {
+        let line = match verdict {
+          crate::plugins::FileVerdict::Updated => {
+            format!("{file}: update → {}", plan.new_version)
+          }
+          crate::plugins::FileVerdict::UpToDate => format!("{file}: up-to-date"),
+          crate::plugins::FileVerdict::Missing => format!("{file}: missing"),
+        };
+        info_line(out, &line);
+      }
+      info_line(
+        out,
+        &format!(
+          "current version: {} (source: {})",
+          plan.current_version, plan.current_version_source
+        ),
+      );
+      info_line(out, &format!("new version: {}", plan.new_version));
+      if !plan.writes.is_empty() {
+        info_line(out, "files to write:");
+        for path in &plan.writes {
+          info_line(out, &format!("  {}", crate::display::path(cwd, path)));
+        }
+      }
+      if !plan.scripts.is_empty() || !plan.installs.is_empty() || plan.execute.is_some() {
+        info_line(out, "commands to run:");
+      }
+      for (slot, command) in &plan.scripts {
+        info_line(out, &format!("  {slot}: {command}"));
+      }
+      for install in &plan.installs {
+        info_line(out, &format!("  install: {install}"));
+      }
+      if let Some(execute) = &plan.execute {
+        info_line(out, &format!("  execute: {execute}"));
+      }
+      if plan.commit_message.is_some() || plan.tag_name.is_some() || !plan.pushes.is_empty() {
+        info_line(out, "git actions:");
+      }
+      if let Some(message) = &plan.commit_message {
+        info_line(out, &format!("  commit: {message}"));
+      }
+      if let Some(tag) = &plan.tag_name {
+        info_line(out, &format!("  tag: {tag}"));
+      }
+      for push in &plan.pushes {
+        info_line(out, &format!("  {push}"));
+      }
+      match &plan.changelog {
+        Some(markdown) => {
+          info_line(out, "changelog preview:");
+          let _ = writeln!(out, "{markdown}");
+        }
+        None => info_line(out, "changelog: skipped (no previous git tag)"),
+      }
+      // --provider 组合：平台 Release 预览（COL-84 渲染同形）
+      if let Some(release) = &plan.release {
+        print_release_plan(release, out);
+      }
+      0
+    }
+    Err(e) => {
+      error_line(err, &e.to_string());
+      1
+    }
+  }
+}
+
+/// bump dry-run 的平台 Release 计划行渲染（与 `release_dry_run` 同一份行格式）
+fn print_release_plan(plan: &crate::release::ReleasePlan, out: &mut impl Write) {
+  info_line(out, "release plan (dry run — no changes made)");
+  match &plan.token_source {
+    Some(source) => info_line(out, &format!("token source: {}", source.describe())),
+    // 警告行复用真实执行的报错文案（仅降级不改动措辞，同一事实源）
+    None => warn_line(out, &crate::release::missing_token_message(plan.provider)),
+  }
+  info_line(out, &format!("provider: {}", plan.provider.display()));
+  info_line(out, &format!("host: {}", plan.host));
+  info_line(out, &format!("repo: {}/{}", plan.owner, plan.repo));
+  info_line(out, &format!("tag_name: {}", plan.tag_name));
+  info_line(out, &format!("prerelease: {}", plan.prerelease));
+  info_line(out, "body:");
+  let _ = writeln!(out, "{}", plan.body);
+  info_line(out, "requests:");
+  for request in &plan.requests {
+    info_line(out, &format!("  {} {}", request.method, request.url));
   }
 }
 
@@ -445,9 +566,7 @@ fn release_command(
 }
 
 /// release dry-run（COL-84）：计划装配骑真实创建链（预演与执行同路），
-/// 此处只负责渲染——token 来源报告（缺失降级为警告行、不报错）+ 平台
-/// Release 预览（provider / host / owner/repo / tag_name / prerelease /
-/// changelog 版本节全文 / 拦截到的请求行）
+/// 渲染与 bump dry-run 的 release 块共用 `print_release_plan`
 fn release_dry_run(
   provider: crate::release::Provider,
   version: &str,
@@ -458,23 +577,7 @@ fn release_dry_run(
 ) -> i32 {
   match crate::release::plan_release(provider, version, markdown, cwd, None) {
     Ok(plan) => {
-      info_line(out, "release plan (dry run — no changes made)");
-      match &plan.token_source {
-        Some(source) => info_line(out, &format!("token source: {}", source.describe())),
-        // 警告行复用真实执行的报错文案（仅降级不改动措辞，同一事实源）
-        None => warn_line(out, &crate::release::missing_token_message(provider)),
-      }
-      info_line(out, &format!("provider: {}", plan.provider.display()));
-      info_line(out, &format!("host: {}", plan.host));
-      info_line(out, &format!("repo: {}/{}", plan.owner, plan.repo));
-      info_line(out, &format!("tag_name: {}", plan.tag_name));
-      info_line(out, &format!("prerelease: {}", plan.prerelease));
-      info_line(out, "body:");
-      let _ = writeln!(out, "{}", plan.body);
-      info_line(out, "requests:");
-      for request in &plan.requests {
-        info_line(out, &format!("  {} {}", request.method, request.url));
-      }
+      print_release_plan(&plan, out);
       0
     }
     Err(e) => {
@@ -623,7 +726,7 @@ fn print_help(out: &mut impl Write) -> i32 {
      -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)\n  \
      -r, --recursive             recursively\n  \
      --provider <provider>       release provider (github / gitlab / gitee / gitcode)\n  \
-     --dry-run                   preview the release plan without side effects (release only)\n  \
+     --dry-run                   preview the bump/release plan without side effects\n  \
      -h, --help                  show help\n  \
      -v, --version               show version"
   );
@@ -778,6 +881,7 @@ mod tests {
       recursive: false,
       output: "CHANGELOG.md".to_string(),
       provider: None,
+      dry_run: false,
     });
     assert!(!overrides.contains_key("files"));
     assert_eq!(overrides["recursive"], json!(false));
@@ -791,6 +895,7 @@ mod tests {
       recursive: true,
       output: "OUT.md".to_string(),
       provider: None,
+      dry_run: false,
     });
     assert_eq!(overrides["files"], json!(["a.json"]));
     assert_eq!(overrides["recursive"], json!(true));
@@ -880,6 +985,38 @@ mod tests {
       parse(&argv(&["release", "1.0.0", "-r"])).unwrap_err(),
       "unknown option: -r".to_string()
     );
+  }
+
+  #[test]
+  fn bump_parses_dry_run_flag() {
+    // 无值 flag：缺省 false；`--dry-run` 与 `=值` 形态（mri truthy 惯例）均开启
+    assert!(!parse_bump_args(&[]).dry_run);
+    assert!(parse_bump_args(&["--dry-run"]).dry_run);
+    assert!(parse_bump_args(&["--dry-run=false"]).dry_run);
+    assert!(parse_bump_args(&["a.json", "--dry-run"]).dry_run);
+  }
+
+  #[test]
+  fn dry_run_overrides_disable_confirm() {
+    // Bump? 确认在 dry-run 跳过（零写盘无需二次确认）：经 overrides 注入
+    // confirm=false，流水线零预览分支
+    let overrides = bump_overrides(&BumpArgs {
+      files: vec![],
+      recursive: false,
+      output: "CHANGELOG.md".to_string(),
+      provider: None,
+      dry_run: true,
+    });
+    assert_eq!(overrides["confirm"], json!(false));
+    // 非 dry-run 不注入（交互语义与配置四层合并不受影响）
+    let overrides = bump_overrides(&BumpArgs {
+      files: vec![],
+      recursive: false,
+      output: "CHANGELOG.md".to_string(),
+      provider: None,
+      dry_run: false,
+    });
+    assert!(!overrides.contains_key("confirm"));
   }
 
   #[test]

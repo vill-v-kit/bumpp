@@ -68,17 +68,6 @@ pub fn format_line(
   }
 }
 
-/// 内置打印到 stdout（与 dialoguer prompt / printSummary 同通道）
-pub(crate) fn print_line(
-  event: ProgressEvent,
-  script: Option<&str>,
-  new_version: &str,
-  file: Option<&str>,
-  cwd: &Path,
-) {
-  println!("{}", format_line(event, script, new_version, file, cwd));
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;

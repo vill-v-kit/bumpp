@@ -30,7 +30,8 @@ pub mod gitlab;
 mod http;
 mod plan;
 
-pub use plan::{plan_release, PlannedRequest, ReleasePlan};
+pub(crate) use plan::plan_release_dispatch;
+pub use plan::{assemble_plan, plan_release, PlannedRequest, ReleasePlan};
 
 /// 四家托管平台
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -204,7 +205,7 @@ pub fn create_release_with(
 
 /// 创建分发（真实创建与 dry-run 计划共用同一条链，预演与执行同路）：
 /// token 已解析就绪，由调用方按场景选择严格（缺失报错）或宽容（缺失警告）解析
-fn dispatch(
+pub(crate) fn dispatch(
   eff: &dyn Effects,
   provider: Provider,
   token: &str,
@@ -319,7 +320,7 @@ pub fn resolve_token_sourced(
 
 /// 「未检测到 token」文案的单一事实源：严格报错（真实执行 exit 1）与
 /// dry-run 警告行逐字节一致，仅降级不改动措辞
-pub(crate) fn missing_token_message(provider: Provider) -> String {
+pub fn missing_token_message(provider: Provider) -> String {
   format!(
     "no {} token detected; run vbumpp token set {} to add one",
     provider.display(),
