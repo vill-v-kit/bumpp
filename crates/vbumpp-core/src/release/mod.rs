@@ -28,6 +28,9 @@ pub mod github;
 mod github_like;
 pub mod gitlab;
 mod http;
+mod plan;
+
+pub use plan::{plan_release, PlannedRequest, ReleasePlan};
 
 /// 四家托管平台
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,18 +106,28 @@ impl fmt::Display for ReleaseError {
 
 impl Error for ReleaseError {}
 
+/// 脱敏原语（ADR-0014）：token 的**原始形态与 form 编码形态**都替换为掩码——
+/// `ReleaseError::redact`（报错）与 dry-run 计划预览（拦截请求行）共用的
+/// 单一事实源；空 token 原样返回（replace 空串会处处插入掩码）
+pub(crate) fn scrub_token(text: &str, token: &str) -> String {
+  if token.is_empty() {
+    return text.to_owned();
+  }
+  const MASK: &str = "[redacted]";
+  let encoded: String = url::form_urlencoded::byte_serialize(token.as_bytes()).collect();
+  text.replace(token, MASK).replace(&encoded, MASK)
+}
+
 impl ReleaseError {
   /// 报错脱敏（ADR-0014："明文 token 不出本模块"对错误消息同样成立）：
-  /// token 的**原始形态与 form 编码形态**都替换为掩码——gitcode 经 query
-  /// 注入 token，ureq 传输报错可能含完整 URL；服务端错误回显（check_status
-  /// 提取的 message / 原始响应体）亦属不可控输入，两家形态都可能出现
+  /// gitcode 经 query 注入 token，ureq 传输报错可能含完整 URL；服务端错误
+  /// 回显（check_status 提取的 message / 原始响应体）亦属不可控输入，
+  /// 两家形态都可能出现
   fn redact(self, token: &str) -> Self {
     if token.is_empty() {
       return self;
     }
-    const MASK: &str = "[redacted]";
-    let encoded: String = url::form_urlencoded::byte_serialize(token.as_bytes()).collect();
-    let scrub = |message: String| message.replace(token, MASK).replace(&encoded, MASK);
+    let scrub = |message: String| scrub_token(&message, token);
     match self {
       Self::Token { message } => Self::Token {
         message: scrub(message),
@@ -178,6 +191,28 @@ pub fn create_release_with(
   overrides: Option<&Map<String, Value>>,
 ) -> Result<(), ReleaseError> {
   let resolved = resolve_token_real(provider, cwd)?;
+  dispatch(
+    eff,
+    provider,
+    &resolved.token,
+    new_version,
+    markdown,
+    cwd,
+    overrides,
+  )
+}
+
+/// 创建分发（真实创建与 dry-run 计划共用同一条链，预演与执行同路）：
+/// token 已解析就绪，由调用方按场景选择严格（缺失报错）或宽容（缺失警告）解析
+fn dispatch(
+  eff: &dyn Effects,
+  provider: Provider,
+  token: &str,
+  new_version: &str,
+  markdown: &str,
+  cwd: &Path,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<(), ReleaseError> {
   // 信息行（对齐 JS resolveRepoConfig 的 consola.info）
   if let Some(RepoConfig {
     domain,
@@ -193,10 +228,10 @@ pub fn create_release_with(
     );
   }
   match provider {
-    Provider::Github => github::create(eff, &resolved.token, new_version, markdown, cwd),
-    Provider::Gitee => gitee::create(eff, &resolved.token, new_version, markdown, cwd),
-    Provider::Gitcode => gitcode::create(eff, &resolved.token, new_version, markdown, cwd),
-    Provider::Gitlab => gitlab::create(eff, &resolved.token, new_version, markdown, cwd, overrides),
+    Provider::Github => github::create(eff, token, new_version, markdown, cwd),
+    Provider::Gitee => gitee::create(eff, token, new_version, markdown, cwd),
+    Provider::Gitcode => gitcode::create(eff, token, new_version, markdown, cwd),
+    Provider::Gitlab => gitlab::create(eff, token, new_version, markdown, cwd, overrides),
   }
 }
 
@@ -282,9 +317,28 @@ pub fn resolve_token_sourced(
   None
 }
 
-/// 生产数据源包装：真实 token 存储（读取失败警告后按空表继续，对齐 JS
-/// bump.ts 的 catch-warn 语义）→ `std::env::var` → `gh auth token`
+/// 「未检测到 token」文案的单一事实源：严格报错（真实执行 exit 1）与
+/// dry-run 警告行逐字节一致，仅降级不改动措辞
+pub(crate) fn missing_token_message(provider: Provider) -> String {
+  format!(
+    "no {} token detected; run vbumpp token set {} to add one",
+    provider.display(),
+    provider.name()
+  )
+}
+
+/// 生产数据源包装（严格形态）：真实 token 存储 → `std::env::var` →
+/// `gh auth token`；缺失即「未检测到 token」报错（文案不变）
 fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<ResolvedToken, ReleaseError> {
+  resolve_token_tolerant(provider, cwd).ok_or_else(|| ReleaseError::Token {
+    message: missing_token_message(provider),
+  })
+}
+
+/// 生产数据源包装（宽容形态，dry-run 消费）：同一解析链，缺失返回 None
+/// 由调用方降级为警告。真实 token 存储读取失败警告后按空表继续
+/// （对齐 JS bump.ts 的 catch-warn 语义）
+fn resolve_token_tolerant(provider: Provider, cwd: &Path) -> Option<ResolvedToken> {
   let tokens = match crate::token::read_token_store() {
     Ok(tokens) => tokens,
     Err(e) => {
@@ -299,12 +353,5 @@ fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<ResolvedToken, R
     crate::exec::capture("gh", &["auth".into(), "token".into()], cwd)
       .ok()
       .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-  })
-  .ok_or_else(|| ReleaseError::Token {
-    message: format!(
-      "no {} token detected; run vbumpp token set {} to add one",
-      provider.display(),
-      provider.name()
-    ),
   })
 }

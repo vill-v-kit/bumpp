@@ -15,6 +15,11 @@ pub(crate) fn releases_url(base_url: &str, owner: &str, repo: &str) -> String {
   format!("{base_url}/repos/{owner}/{repo}/releases")
 }
 
+/// prerelease 判定（beta/alpha 版本号）：请求体构造与 dry-run 计划预览共用单一事实源
+pub(crate) fn is_prerelease(new_version: &str) -> bool {
+  PRERELEASE_RE.is_match(new_version)
+}
+
 /// 共享请求体：beta/alpha 版本号判 prerelease
 pub(crate) fn release_body(new_version: &str, markdown: &str, branch: &str) -> Value {
   json!({
@@ -22,6 +27,6 @@ pub(crate) fn release_body(new_version: &str, markdown: &str, branch: &str) -> V
     "tag_name": format!("v{new_version}"),
     "body": markdown,
     "target_commitish": branch,
-    "prerelease": PRERELEASE_RE.is_match(new_version),
+    "prerelease": is_prerelease(new_version),
   })
 }

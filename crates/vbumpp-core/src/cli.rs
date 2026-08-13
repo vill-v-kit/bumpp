@@ -95,6 +95,7 @@ struct ReleaseArgs {
   version: String,
   output: String,
   provider: Option<String>,
+  dry_run: bool,
 }
 
 fn parse(argv: &[String]) -> Result<Command, String> {
@@ -199,6 +200,7 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
   let mut version = None;
   let mut output = "CHANGELOG.md".to_string();
   let mut provider = None;
+  let mut dry_run = false;
   let mut positional_only = false;
   let mut i = 0;
   while i < argv.len() {
@@ -212,6 +214,7 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
     }
     match arg.as_str() {
       "--" => positional_only = true,
+      "--dry-run" => dry_run = true,
       "-o" | "--output" => {
         let Some(value) = argv.get(i) else {
           return Err(format!("option {arg} requires a value"));
@@ -229,6 +232,8 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
       _ if arg.starts_with("--") => match arg.split_once('=') {
         Some(("--output", value)) => output = value.to_string(),
         Some(("--provider", value)) => provider = Some(value.to_string()),
+        // 布尔 flag 带值按 mri 惯例视为 truthy（--dry-run=false 亦开启）
+        Some(("--dry-run", _)) => dry_run = true,
         _ => return Err(format!("unknown option: {arg}")),
       },
       _ if arg.starts_with('-') && arg.len() > 1 => {
@@ -264,6 +269,7 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
     version,
     output,
     provider,
+    dry_run,
   }))
 }
 
@@ -417,12 +423,58 @@ fn release_command(
     return 1;
   };
 
+  // dry-run：校验已全走（上方任一失败照常 exit 1，可当 CI 预检门禁），
+  // 此处起拦截全部平台 HTTP，打印执行计划
+  if args.dry_run {
+    return release_dry_run(provider, version, &markdown, &cwd, out, err);
+  }
+
   match crate::release::create_release(provider, version, &markdown, &cwd, None) {
     Ok(()) => {
       success_line(
         out,
         &format!("[{}] add release {tag} success", provider.display()),
       );
+      0
+    }
+    Err(e) => {
+      error_line(err, &e.to_string());
+      1
+    }
+  }
+}
+
+/// release dry-run（COL-84）：计划装配骑真实创建链（预演与执行同路），
+/// 此处只负责渲染——token 来源报告（缺失降级为警告行、不报错）+ 平台
+/// Release 预览（provider / host / owner/repo / tag_name / prerelease /
+/// changelog 版本节全文 / 拦截到的请求行）
+fn release_dry_run(
+  provider: crate::release::Provider,
+  version: &str,
+  markdown: &str,
+  cwd: &Path,
+  out: &mut impl Write,
+  err: &mut impl Write,
+) -> i32 {
+  match crate::release::plan_release(provider, version, markdown, cwd, None) {
+    Ok(plan) => {
+      info_line(out, "release plan (dry run — no changes made)");
+      match &plan.token_source {
+        Some(source) => info_line(out, &format!("token source: {}", source.describe())),
+        // 警告行复用真实执行的报错文案（仅降级不改动措辞，同一事实源）
+        None => warn_line(out, &crate::release::missing_token_message(provider)),
+      }
+      info_line(out, &format!("provider: {}", plan.provider.display()));
+      info_line(out, &format!("host: {}", plan.host));
+      info_line(out, &format!("repo: {}/{}", plan.owner, plan.repo));
+      info_line(out, &format!("tag_name: {}", plan.tag_name));
+      info_line(out, &format!("prerelease: {}", plan.prerelease));
+      info_line(out, "body:");
+      let _ = writeln!(out, "{}", plan.body);
+      info_line(out, "requests:");
+      for request in &plan.requests {
+        info_line(out, &format!("  {} {}", request.method, request.url));
+      }
       0
     }
     Err(e) => {
@@ -571,6 +623,7 @@ fn print_help(out: &mut impl Write) -> i32 {
      -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)\n  \
      -r, --recursive             recursively\n  \
      --provider <provider>       release provider (github / gitlab / gitee / gitcode)\n  \
+     --dry-run                   preview the release plan without side effects (release only)\n  \
      -h, --help                  show help\n  \
      -v, --version               show version"
   );
@@ -827,5 +880,24 @@ mod tests {
       parse(&argv(&["release", "1.0.0", "-r"])).unwrap_err(),
       "unknown option: -r".to_string()
     );
+  }
+
+  #[test]
+  fn release_parses_dry_run_flag() {
+    // 无值 flag：缺省 false；`--dry-run` 与 `=值` 形态（mri truthy 惯例）均开启
+    match parse(&argv(&["release", "1.0.0"])) {
+      Ok(Command::Release(args)) => assert!(!args.dry_run),
+      other => panic!("应为 Release，实际 {other:?}"),
+    }
+    for forms in [
+      &["release", "1.0.0", "--dry-run"][..],
+      &["release", "1.0.0", "--dry-run=false"][..],
+      &["release", "--dry-run", "1.0.0"][..],
+    ] {
+      match parse(&argv(forms)) {
+        Ok(Command::Release(args)) => assert!(args.dry_run, "{forms:?}"),
+        other => panic!("应为 Release，实际 {other:?}"),
+      }
+    }
   }
 }
