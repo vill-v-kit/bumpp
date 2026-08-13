@@ -32,12 +32,16 @@ _Avoid_: bump.config.json（旧名）、vbumpp.config（esconf 旧制，已移�
 _Avoid_: XDG 目录（不引入）
 
 **Token 存储 (Token store)**:
-平台 access token 的加密凭证存储（`tokens.bin` + 同目录 `key.bin`），VBTK v1 二进制格式（magic + version + iv + authTag + AES-256-GCM 密文），Rust 全权管理且与 JS 时代逐字节兼容（ADR-0014）。防护级别为「防明文落盘」（非高安全保险柜）；明文 token 不跨 napi 边界进入 JS。
+平台 access token 的加密凭证存储（`tokens.bin` + 同目录 `key.bin`），VBTK v1 二进制格式（magic + version + iv + authTag + AES-256-GCM 密文），Rust 全权管理且与 JS 时代逐字节兼容（ADR-0014）。内部 JSON map 的键分两级：provider 级键（如 `gitlab`）与 host 作用域键（provider 无关格式 `provider@host`，如 `gitlab@https://gitlab-a.com`——host 为规范化 base URL：scheme/host 小写、去尾斜杠、保留端口与路径）；release 时 host 作用域键优先、provider 级键回落。防护级别为「防明文落盘」（非高安全保险柜）；明文 token 不跨 napi 边界进入 JS。
 _Avoid_: 凭证库（语义过强）
 
 **平台 Release**:
-向 git 托管平台（github / gitlab / gitee / gitcode）创建 release 的动作，Rust 内按 provider 适配（gitee / gitcode 复用 github-like 实现；gitlab 多一步项目 id 直查，自建实例经 `gitlab` 段的 `host` 配置，ADR-0014）。两通路：bump 流程末段自动创建（body 为当次生成的 changelog markdown）；`vbumpp release <version>` 独立重试（body 从 changelog 文件提取指定版本节，应对网络失败 / 密钥过期后的补发，ADR-0016）。token 解析链统一为：Token 存储 → 各家环境变量（`GH_TOKEN` → `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`）→ 仅 github 追加 `gh auth token` 兜底。
+向 git 托管平台（github / gitlab / gitee / gitcode）创建 release 的动作，Rust 内按 provider 适配（gitee / gitcode 复用 github-like 实现；gitlab 多一步项目 id 直查，自建实例经 `gitlab` 段的 `host` 配置，ADR-0014）。两通路：bump 流程末段自动创建（body 为当次生成的 changelog markdown）；`vbumpp release <version>` 独立重试（body 从 changelog 文件提取指定版本节，应对网络失败 / 密钥过期后的补发，ADR-0016）。token 解析链统一为：Token 存储（gitlab 先 host 作用域键精确匹配、再 provider 级键回落）→ 各家环境变量（`GH_TOKEN` → `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEE_TOKEN` / `GITCODE_TOKEN`）→ 仅 github 追加 `gh auth token` 兜底。
 _Avoid_: publish
+
+**Dry run**:
+`--dry-run` 预览模式（bump 与 release 子命令共用）——走完真实执行的全部只读计算与前置校验（校验失败照常报错 exit 1，可当 CI 预检门禁），拦截全部副作用（文件写盘、git commit/tag/push、scripts 与 install/execute、平台 release HTTP），改为逐行打印执行计划：glob 命中文件的预演判定（update → x.y.z / up-to-date / missing）、当前版本及其来源、新版本、将写盘文件、将执行的脚本与命令文本、格式化后的 commit message 与 tag 名、push 序列、平台 release 的目标与 body。版本选择交互保留（不定版本则无计划可预览），"Bump?" 确认跳过（零写盘无需二次确认）；changelog 生成全文预览、所见即所得；token 走解析链并报告来源（store / env / gh），缺失只警告不报错。
+_Avoid_: 试运行、pretend
 
 **上架 (Registry publish)**:
 向 registry（npm / crates.io）上传包的发布动作——本仓 13 个 npm 包（ADR-0025 增 musl 平台包 ×2）与 2 个 crate（`vbumpp-core`、`vbumpp`）经 `ci.yml` 的 publish jobs 完成：tag 触发、无人工门、skip-if-published 幂等（ADR-0021）。与 Bump（含 commit/tag/push 的完整发布操作）、平台 Release（git 托管平台 release）三者分立。
