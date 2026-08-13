@@ -66,7 +66,7 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 
 [[package]]
 name = "bumpp-core-napi"
-version = "6.1.1"
+version = "6.1.2"
 dependencies = [
  "napi",
  "napi-build",
@@ -1367,14 +1367,14 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "vbumpp"
-version = "6.1.1"
+version = "6.1.2"
 dependencies = [
  "vbumpp-core",
 ]
 
 [[package]]
 name = "vbumpp-core"
-version = "6.1.1"
+version = "6.1.2"
 dependencies = [
  "aes-gcm",
  "dialoguer",

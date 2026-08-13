@@ -22,7 +22,7 @@ exclude = [
 [workspace.package]
 # 版本字面量全仓唯一维护点；成员一律 version.workspace = true 继承
 # （vbumpp 发版即更新此字段，见 ADR-0003 与 .vbumpprc.json 的 files）
-version = "6.1.1"
+version = "6.1.2"
 
 [workspace.dependencies]
 # 成员间引用一律走 workspace 继承，成员清单内不再写 path
