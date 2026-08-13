@@ -70,7 +70,7 @@ jobs:
             triple: linux-x64-gnu
           # ADR-0025：zig 链取代 --use-napi-cross（上古 gcc 4.8.5）。napi CLI 的
           # target 校验不收 glibc 后缀，故这条腿直呼 cargo zigbuild pin glibc，
-          # 产物按 napi 命名规范落名；index.d.ts 由其余四腿供给
+          # 产物按 napi 命名规范落名；index.js/index.d.ts 由其余 napi CLI 腿供给
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             triple: linux-arm64-gnu
@@ -119,7 +119,7 @@ jobs:
 
       - name: Build (napi CLI)
         if: ${{ !matrix.settings.glibc }}
-        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --no-js --target ${{ matrix.settings.target }} ${{ matrix.settings.crossCompile && '--cross-compile' }}
+        run: pnpm --filter @vill-v/bumpp-core exec napi build --platform --release --esm --target ${{ matrix.settings.target }} ${{ matrix.settings.crossCompile && '--cross-compile' }}
 
       - name: Build (cargo zigbuild, glibc pinned)
         # zig 链交叉：现代 clang + lld（ring/rustls 可编，无 ld.bfd 的 GNU
@@ -151,22 +151,24 @@ jobs:
             exit 1
           fi
 
-      - name: Upload artifact (napi CLI legs：.node + dts)
+      - name: Upload artifact (napi CLI legs：.node + js + dts)
         if: ${{ !matrix.settings.glibc }}
         uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.triple }}
-          # index.d.ts 同车捎带：publish-npm 注入 @vill-v/bumpp-core 的 types 入口用
-          # （napi build --no-js 仍产出 dts；缺它 publint 报 pkg.types 指向不存在文件）
+          # index.js/index.d.ts 同车捎带：publish-npm 归位 @vill-v/bumpp-core 的
+          # main/types 入口用（缺 index.js 则发布包无入口，publint 报 pkg.types
+          # 指向不存在文件）；各腿生成物内容一致，merge-multiple 合并无冲突
           path: |
             napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node
+            napi/bumpp-core/index.js
             napi/bumpp-core/index.d.ts
           if-no-files-found: error
 
       - name: Upload artifact (zigbuild leg：.node only)
-        # 不经 napi CLI 故无 dts 产出，其余四腿供给（publish-npm 经
-        # merge-multiple 合并同名 dts，内容一致；前提是至少一条 napi CLI 腿存活
-        # ——若将来更多腿转 zigbuild，需另立 dts 供给步骤，见 ADR-0025）
+        # 不经 napi CLI 故无 js/dts 产出，由其余 napi CLI 腿供给（publish-npm 经
+        # merge-multiple 合并同名文件，内容一致；前提是至少一条 napi CLI 腿存活
+        # ——若将来更多腿转 zigbuild，需另立 js/dts 供给步骤，见 ADR-0025）
         if: ${{ matrix.settings.glibc }}
         uses: actions/upload-artifact@v7
         with:
@@ -207,9 +209,10 @@ jobs:
           path: napi/bumpp-core
 
       # 平台包目录不再提交（ADR-0029）：loader 直接走本包根目录的本地 .node
-      # fallback，无需把产物拷进平台包目录
+      # fallback，无需把产物拷进平台包目录。smoke 端到端跑生成物 loader：
+      # 加载 → 导出面 → cliRun 通路 → 平台变体 bin 注入
       - name: Test bindings
-        run: pnpm exec vitest run napi/bumpp-core
+        run: node napi/bumpp-core/smoke.mjs
 
   # COL-63 加分项：交叉产物过 qemu-arm64 容器实跑（加载 + 导出面）。
   # 不进 publish 的 needs——交叉腿实测是额外信心，非上架前置（napi-rs 生态含 oxc 均不测交叉腿）
@@ -268,7 +271,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Download artifacts (7 platform .node + index.d.ts)
+      - name: Download artifacts (7 platform .node + index.js + index.d.ts)
         uses: actions/download-artifact@v8
         with:
           pattern: bindings-*
@@ -280,7 +283,7 @@ jobs:
         # create-npm-dirs 生成 napi/<triple>/（package.json + README），脚本补 LICENSE
         run: pnpm create:npm-dirs
 
-      - name: Inject binaries into platform packages (+ index.d.ts into core)
+      - name: Inject binaries into platform packages (+ index.js/index.d.ts into core)
         # napi artifacts 把 .node 按名字分发进各平台包目录；它要求 napi.targets
         # 全部 target 的产物齐备（缺一即硬失败），故只能在汇聚全腿产物的本 job 执行
         run: pnpm collect:artifacts

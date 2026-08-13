@@ -9,6 +9,8 @@ dist
 # rust / napi build artifacts
 target
 *.node
+# napi build 的 JS 绑定与类型入口生成物，不提交
+napi/bumpp-core/index.js
 napi/bumpp-core/index.d.ts
 
 # 发版/首发仪式的产物暂存(CI download-artifact 平铺落点,scripts/collect-artifacts.mjs 消费)

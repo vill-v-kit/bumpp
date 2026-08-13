@@ -27,8 +27,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "napi build --platform --no-js --release",
-    "build:debug": "napi build --platform --no-js"
+    "build": "napi build --platform --esm --release",
+    "build:debug": "napi build --platform --esm"
   },
   "napi": {
     "binaryName": "bumpp-core",

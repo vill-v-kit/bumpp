@@ -4,7 +4,7 @@
 
 ## Decisions
 
-- `napi/bumpp-core/package.json` 的 `napi.targets`（7 条 rust triple）是支持平台的单一真相源。真相源链：`napi.targets` → `napi create-npm-dirs` 生成平台目录 → `optionalDependencies`（`workspace:*`）→ loader 从 optionalDependencies 动态推导支持清单。loader.test.ts 不再维护硬编码平台数组。
+- `napi/bumpp-core/package.json` 的 `napi.targets`（7 条 rust triple）是支持平台的单一真相源。真相源链：`napi.targets` → `napi create-npm-dirs` 生成平台目录 → `optionalDependencies`（`workspace:*`）。链在 optionalDependencies 处终止——【修订：末段反转】loader 回归 napi-rs 官方生成物后（ADR-0033）零手写代码、不再从 optionalDependencies 动态推导支持清单；其静态平台 require 集由 napi CLI 在构建时从 `napi.targets` 生成，仍无第二份手写平台清单。loader.test.ts 已随之删除。
 - 平台包目录固定为 `napi/<platformArchABI>/`（如 `napi/linux-x64-musl`）——目录名由 create-npm-dirs 按 target 派生，不可配置；包名仍是 `@vill-v/bumpp-core-<triple>` 不变。生成物为 `package.json` + `README.md`；`os`/`cpu`/`libc` 字段由 triple 自动派生（gnu → `libc: ["glibc"]`，musl → `libc: ["musl"]`）。
 - 平台包目录不提交进 git（`.gitignore` 整体忽略）。可行性经 pnpm 源码 + 复现双验证：`optionalDependencies` 里的 `workspace:*` 在目标 workspace 包不在磁盘时 silent skip（exit 0，不报错、不 registry fallback）。fresh clone `pnpm install --frozen-lockfile` 照常通过；本地开发 loader 走本包根目录的本地 `.node` fallback。提交的 lockfile 记录 7 个平台包 importer 与 `link:../<triple>`——fresh clone 上 link 目标暂缺无害（pnpm 不校验 link 目标存在性；目录生成后链接自动生效）。
 - 取 `create-npm-dirs` + `napi artifacts` 两件，不引入 `napi pre-publish` 全套。pre-publish 被否决：其版本/optionalDependencies 同步非原子、不清理 stale optionalDeps、`.node` 归属仅按文件名后缀信任；本仓库版本号唯一维护点是根 workspace 版本（-r 整树收集锁步），不需要它的版本同步。发布仍走 `pnpm publish -r`（ADR-0021 的 skip-if-published 幂等守卫不变）。
@@ -15,9 +15,9 @@
 
 ## Consequences
 
-- 新增/移除平台的触点收敛为一组小清单：`napi.targets`（真相源）+ CI build matrix + `optionalDependencies` 一条 `workspace:*` + `.gitignore` 与根 `Cargo.toml` `exclude` 各一条目录名（两者受目录枚举格式约束，无法进一步收敛）；loader、loader.test.ts 与生成物字段随之自动收敛。
+- 新增/移除平台的触点收敛为一组小清单：`napi.targets`（真相源）+ CI build matrix + `optionalDependencies` 一条 `workspace:*` + `.gitignore` 与根 `Cargo.toml` `exclude` 各一条目录名（两者受目录枚举格式约束，无法进一步收敛）；生成物 loader 的静态 require 集与平台包字段由 napi CLI 从同一字段自动收敛（ADR-0033 后 loader 为生成物、无手写代码可 drift）。
 - publish-npm job 的注入步骤从「手写 for 循环 cp .node 进 tracked 目录」变为「create:npm-dirs 生成目录 + napi artifacts 按名分发」；pack/publint/publish 的 glob 覆盖不变。
 - 本地执行 `pnpm create:npm-dirs` 后，平台目录存在于磁盘、frozen-lockfile 语义不受影响（lockfile 已含全部平台包记录）；该状态与 fresh clone 的差异只在于目录是否在磁盘。
 - `pnpm pack`/`publish` 的 `workspace:*` 版本改写要求平台包已安装（符号链接已建）：frozen install 预建的 link 在目录生成后自动生效，无需二次 install。
 - 首发新增平台包（如 musl ×2）仍按 ADR-0021 决策④的一次性 token 首发 → trusted publisher 配置 → 撤 token 闭环执行。
-- 参考锚点：ADR-0021（发布流与 OIDC）、ADR-0025（musl 平台包与 zig 交叉链）、ADR-0005（平台包归 `napi/` 的受众判别）。
+- 参考锚点：ADR-0021（发布流与 OIDC）、ADR-0025（musl 平台包与 zig 交叉链）、ADR-0005（平台包归 `napi/` 的受众判别）、ADR-0033（loader 回归生成物，真相源链末段反转的完整上下文）。

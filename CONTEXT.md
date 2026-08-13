@@ -84,8 +84,12 @@ _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已�
 _Avoid_: native package、binary package
 
 **napi.targets**:
-`napi/bumpp-core/package.json` 的 `napi.targets` 字段（7 条 rust triple）——"支持哪些平台"的单一真相源（ADR-0029）。真相源链：`napi.targets` → create-npm-dirs 生成平台目录 → optionalDependencies（`workspace:*`）→ loader 从 optionalDependencies 动态推导支持清单，无第二份手写平台清单。
+`napi/bumpp-core/package.json` 的 `napi.targets` 字段（7 条 rust triple）——"支持哪些平台"的单一真相源（ADR-0029）。真相源链：`napi.targets` → create-npm-dirs 生成平台目录 → optionalDependencies（`workspace:*`），链在此处终止；loader 为 napi-rs 官方生成物（零手写，ADR-0033），其静态平台 require 集由 napi CLI 构建时从同一字段生成，无第二份手写平台清单。
 _Avoid_: 支持矩阵表（暗示存在独立维护的清单）
+
+**loader**:
+`napi/bumpp-core/index.js` 的通称——Core 的 JS 绑定入口，按当前平台分派加载 `.node`（本地构建产物优先、平台包兜底，`NAPI_RS_NATIVE_LIBRARY_PATH` 为第一覆盖分支）。为 `napi build --platform --esm` 的官方生成物，零手写代码（ADR-0033）：不提交进 git，经 CI 构建腿产物捎带、publish 时归位 core；版本强校验、平台清单报错等手写增强均已删除，加载失败为生成物的 npm#4828 标准文案。
+_Avoid_: 自研 loader（曾存在，触发 Socket.dev 供应链告警，已删除）
 
 **平台变体包 (Platform variant)**:
 面向用户的 npm 包 `@vill-v/bumpp-{github,gitlab,gitee,gitcode}`——与主包同形，差别仅在 provider 身份注入：bin 经 `cliRun(argv, provider)` 位置参数、编程式 API 经 `bumpVersion(options, provider)` 注入，bump 完成后接该平台 Release（ADR-0016）。
