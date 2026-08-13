@@ -14,10 +14,11 @@ vbumpp token set gitlab
 
 token 加密后以二进制形式安全存储
 
-如果使用的是私有部署的 gitlab，可在 `.vbumpprc` 中设置访问的基础路径（默认：https://gitlab.com）
+如果使用的是私有部署的 gitlab，可在项目配置文件中设置访问的基础路径（默认：https://gitlab.com）——以 `.vbumpprc.toml` 为例：
 
-```npmrc
-gitlab.host=http://192.168.31.31
+```toml
+[gitlab]
+host = "http://192.168.31.31"
 ```
 
 ## 简单使用
@@ -46,4 +47,4 @@ vbumpp package.json packages/*/package.json
 
 ## License
 
-[MIT](https://gitee.com/vill-v/bump/blob/main/LICENSE)
+[MIT](https://github.com/vill-v-kit/bumpp/blob/main/LICENSE)

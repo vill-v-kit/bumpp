@@ -2,12 +2,9 @@
 
 遵循 semver 规范进行 release 的工具包（暂时只针对个人使用，并没有开放过多的配置项）
 
-本包为 [bumpp](https://github.com/antfu/bumpp) 与 [changelogen](https://github.com/unjs/changelogen) 的组合
+交互选择新版本号 → 生成 CHANGELOG.md → 更新版本文件（monorepo 可整树递归）→ git commit / tag / push → 在代码平台（GitHub / GitLab / Gitee / GitCode）创建 Release，一条命令完成。
 
-解决
-
-- 使用 [bumpp](https://github.com/antfu/bumpp) 无法生成 CHANGELOG.md
-- 使用 [changelogen](https://github.com/unjs/changelogen) 对 monorepo项目 无法进行有效的release
+引擎以预编译二进制分发，当前支持：macOS (arm64)、Linux (x64 / arm64，glibc 与 musl)、Windows (x64 / arm64)。完整文档见 <https://vill-v-kit.github.io/bumpp/>
 
 ## 简单使用
 
@@ -58,4 +55,4 @@ token 加密存储于 `~/.vbumpp/tokens.bin`（可用 `VBUMPP_TOKEN_STORE` 覆�
 
 ## License
 
-[MIT](https://gitee.com/vill-v/bump/blob/main/LICENSE)
+[MIT](https://github.com/vill-v-kit/bumpp/blob/main/LICENSE)

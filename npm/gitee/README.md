@@ -4,7 +4,7 @@
 
 为 [@vill-v/bumpp](https://npmx.dev/package/@vill-v/bumpp) 的拓展模块
 
-可以在 release 后在 gitee 上 添加发型说明
+可以在 release 后在 gitee 上 添加发行说明
 
 ## 设置 gitee access_token
 
@@ -40,4 +40,4 @@ vbumpp package.json packages/*/package.json
 
 ## License
 
-[MIT](https://gitee.com/vill-v/bump/blob/main/LICENSE)
+[MIT](https://github.com/vill-v-kit/bumpp/blob/main/LICENSE)

@@ -40,4 +40,4 @@ vbumpp package.json packages/*/package.json
 
 ## License
 
-[MIT](https://gitee.com/vill-v/bump/blob/main/LICENSE)
+[MIT](https://github.com/vill-v-kit/bumpp/blob/main/LICENSE)
