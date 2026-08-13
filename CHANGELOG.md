@@ -1,5 +1,30 @@
 # Changelog
 
+## v6.1.2
+
+[compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.1.1...v6.1.2)
+
+### 🚀 特性
+
+- **ci:** Npm-publish 前置检测全新包名——CI 发现从未上架包名即整体拦停并输出首发仪式指引 ([b039c3d](https://github.com/vill-v-kit/bumpp/commit/b039c3d))
+
+### 💅 重构
+
+- **napi:** Loader 退回 napi-rs 官方生成物消供应链告警——平台清单报错与版本强校验两条手写增强一并放弃 ([1af16bb](https://github.com/vill-v-kit/bumpp/commit/1af16bb))
+
+### 📖 文档
+
+- **website:** Install 两页增列 mise 安装通路——crates-io 页 cargo:vbumpp,npm 页 npm:@vill-v/bumpp ([524a329](https://github.com/vill-v-kit/bumpp/commit/524a329))
+
+### 🏡 框架
+
+- Node lts 解析漂移 24.18.1→24.19.0,mise.lock 跟进锁定 ([2f73ebc](https://github.com/vill-v-kit/bumpp/commit/2f73ebc))
+- Hk schema 改回官方包网络引用——pkl/ vendor 目录移除,vendor 化撤回 ([fa6b454](https://github.com/vill-v-kit/bumpp/commit/fa6b454))
+
+### ❤️ Contributors
+
+- Whitekite
+
 ## v6.1.1
 
 [compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.1.0...v6.1.1)
