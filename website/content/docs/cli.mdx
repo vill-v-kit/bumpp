@@ -27,10 +27,57 @@ options:
 | `-r`, `--recursive` | 递归更新 monorepo 整树包的版本（含 `"private": true` 的包——private 仅表示不发布，版本号随整树一并锁步） |
 | `-o`, `--output <path>` | changelog 写入路径（默认 `CHANGELOG.md`） |
 | `--provider <name>` | 本次发版要创建 Release 的平台：`github` / `gitlab` / `gitee` / `gitcode`（优先级高于平台变体包的默认平台） |
+| `--dry-run` | 预览模式：只打印执行计划，不产生任何副作用（见下文「预览模式」） |
 | `-h`, `--help` | 显示帮助 |
 | `-v`, `--version` | 显示版本号 |
 
 `-o` 的几种写法都可以：`-o OUT.md`、`-oOUT.md`、`--output OUT.md`、`--output=OUT.md`；短 flag 可合并写（如 `-ro OUT.md`）；`--` 之后的参数一律按文件处理。
+
+### 预览模式（`--dry-run`）
+
+`--dry-run` 走完真实发版的全部只读计算与前置校验，然后**只打印执行计划、不产生任何副作用**——零文件写盘、零 git 写操作、零网络请求。预览与真实执行骑同一条流水线，你看到的就是它要做的。
+
+```sh
+$ vbumpp --dry-run
+ℹ bump plan (dry run — no changes made)
+ℹ package.json: update → 1.1.0
+ℹ current version: 1.0.0 (source: package.json)
+ℹ new version: 1.1.0
+ℹ files to write:
+ℹ   CHANGELOG.md
+ℹ   package.json
+ℹ git actions:
+ℹ   commit: chore: release v1.1.0
+ℹ   tag: v1.1.0
+ℹ   git push
+ℹ   git push --tags
+ℹ changelog preview:
+## v1.1.0
+...
+```
+
+计划按真实执行序逐行给出：
+
+- **逐文件预演判定**：`update → {新版本}` / `up-to-date` / `missing`（与真实执行的逐文件判定同一份逻辑）
+- **版本**：当前版本及其来源（来源文件名，或配置显式 `currentVersion`）、将更新的新版本
+- **将写盘的文件清单**：含 CHANGELOG.md 与 Cargo.lock 的定向同步
+- **将执行的脚本与命令**：`scripts` 三槽位（preversion / version / postversion）、install（包管理器检测后的实际命令，如 `pnpm install`）、`execute`——逐条列出命令文本，均不执行
+- **git 动作完整文本**：`%s` 替换后的 commit message、tag 名、push 序列
+- **changelog 全文预览**：生成但不落盘、不提交；没有历史 git tag 时改为打印跳过原因
+
+**语义要点：**
+
+- 前置校验失败照常报错、退出码 `1`（与真实执行一致）——dry-run 可直接当 CI 预检门禁
+- 版本选择交互保留（不定版本则无计划可预览）；零写盘无需二次确认，`Bump?` 这一步跳过
+- 传 `--provider` 时，bump 计划之后追加平台 Release 预览与 token 来源报告（同 `vbumpp release --dry-run` 的输出，见下节）
+- 全程不打印任何 success 行（✔），与真实执行的成功收尾明确区分
+
+**CI 预检用法：** 整个 bump 流程也能先干跑一遍做发布前检查——版本号非法、当前版本无法确定等前置校验失败即 `exit 1`，可阻塞流水线。
+
+```sh
+# 发版前干跑：预览完整计划，校验失败即 exit 1
+vbumpp --dry-run
+```
 
 ## `vbumpp release <version> --provider <name>`
 
@@ -43,6 +90,39 @@ vbumpp release 5.1.0 --provider gitee
 它会从 changelog 文件（默认 `CHANGELOG.md`，可用 `-o` 换）里取出 `5.1.0` 这一节的全部内容作为 Release 描述。版本号写 `5.1.0` 或 `v5.1.0` 都行。
 
 执行前会检查本地存在 `v5.1.0` 这个 git tag、且 changelog 里能找到 `5.1.0` 这一节。
+
+### 预览模式（`--dry-run`）
+
+`vbumpp release <version> --dry-run` 走完真实执行的全部只读前置校验——本地 `v<version>` tag 存在性、changelog 版本节存在性——任一失败照常报错、退出码 `1`（与真实执行一致，可当 CI 预检门禁）。校验通过后打印执行计划，全程零网络请求（含 gitlab 的 GET project id）。
+
+```sh
+$ vbumpp release 5.1.0 --provider github --dry-run
+ℹ release plan (dry run — no changes made)
+ℹ token source: gh CLI (`gh auth token`)
+ℹ provider: Github
+ℹ host: https://api.github.com
+ℹ repo: owner/repo
+ℹ tag_name: v5.1.0
+ℹ prerelease: false
+ℹ body:
+## v5.1.0
+...
+ℹ requests:
+ℹ   POST https://api.github.com/repos/owner/repo/releases
+```
+
+计划含：
+
+- **token 来源报告**：token store / 具体环境变量名 / `gh auth token`；未配置 token 时降级为一行警告（不报错、退出码仍 `0`），预览照常输出
+- **平台 Release 预览**：provider、目标 host、owner/repo、`tag_name`、prerelease 判定（beta/alpha 版本号）、body 即提取的 changelog 版本节全文
+- **将发出的请求**：HTTP 方法与脱敏后的 URL（gitlab 为 GET project id → POST releases 两步；URL 里 url 编码的 `owner%2Frepo` 路径可见）
+
+**CI 预检用法：** 在真正发布前用 dry-run 做检查，校验失败即阻塞流水线。
+
+```sh
+# 发布前预检：tag / changelog 任一不满足即 exit 1
+vbumpp release "$VERSION" --provider "$PROVIDER" --dry-run
+```
 
 ## `vbumpp token <action> [name]`
 
@@ -58,5 +138,5 @@ vbumpp token remove gitee   # 删除
 
 | 码 | 含义 |
 | --- | --- |
-| `0` | 成功 |
-| `1` | 失败 |
+| `0` | 成功；`--dry-run` 下校验通过（token 缺失仅警告，仍为 `0`） |
+| `1` | 失败；`--dry-run` 下前置校验失败（tag 缺失 / changelog 无版本节 / 版本号非法等，与真实执行一致） |
