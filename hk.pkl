@@ -5,10 +5,7 @@
 /// 步骤均不设 glob——每次提交/推送无条件运行（命令本身全仓检查）。
 /// 注意 oxlint/oxfmt 不在门内：仓库现存 11 个 lint error 与 69 个 fmt diff,
 /// 未经全量清理就挂门会阻塞一切提交——留待清理后再议。
-///
-/// schema 为 vendor 进 pkl/ 的 hk@1.55.0 官方包（hk 自身仓库同款用法）：
-/// 升 hk 版 = mise.toml 版本号 + 重下 hk@<ver>.zip 覆盖 pkl/ + mise lock。
-amends "pkl/Config.pkl"
+amends "package://github.com/jdx/hk/releases/download/v1.55.0/hk@1.55.0#/Config.pkl"
 
 hooks {
   ["pre-commit"] {
