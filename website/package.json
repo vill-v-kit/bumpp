@@ -3,14 +3,16 @@
   "version": "6.1.2",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/sync-wterm-wasm.mjs && next build",
     "capture:home-demo": "bash scripts/capture-home-demo.sh",
     "capture:home-demo-cast": "bash scripts/capture-home-demo-cast.sh",
-    "dev": "next dev",
+    "dev": "node scripts/sync-wterm-wasm.mjs && next dev",
+    "postinstall": "node scripts/sync-wterm-wasm.mjs",
     "start": "serve out",
     "types:check": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@wterm/core": "0.3.4",
     "@wterm/dom": "0.3.4",
     "@wterm/react": "0.3.4",
     "cnfast": "^0.1.0",

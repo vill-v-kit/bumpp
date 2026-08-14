@@ -4,6 +4,9 @@
 # generated content
 .source
 
+# wterm wasm：由 scripts/sync-wterm-wasm.mjs 从 @wterm/core 拷贝生成
+/public/wterm.wasm
+
 # test & build
 /coverage
 /.next/
