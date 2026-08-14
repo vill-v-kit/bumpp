@@ -4,7 +4,7 @@
  * 删 tag 重推即恢复。本脚本在 tag 推送后轮询 Actions runs，把「事件丢失」
  * 从事后人工察觉（本实例滞后 8 分钟）变成发版当场告警。
  *
- * 用法：node scripts/verify-tag-ci.mjs [tag]
+ * 用法：node scripts/verify-tag-ci.ts [tag]
  *   tag 缺省取 `git describe --tags --abbrev=0`（最近一次 tag）
  *
  * 退出码契约：
@@ -34,12 +34,12 @@ const timeoutMs = Number(process.env.VERIFY_TAG_CI_TIMEOUT_MS ?? 180_000)
 const intervalMs = Number(process.env.VERIFY_TAG_CI_INTERVAL_MS ?? 10_000)
 const skewMs = Number(process.env.VERIFY_TAG_CI_SKEW_MS ?? 120_000)
 
-function fail(message) {
+function fail(message: string): never {
   console.error(`ERROR ${message}`)
   process.exit(2)
 }
 
-function git(args) {
+function git(args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
     execFile('git', args, { encoding: 'utf8' }, (error, stdout) => {
       resolve(error ? null : stdout.trim())
@@ -48,7 +48,7 @@ function git(args) {
 }
 
 /** origin URL → owner/repo；ssh（git@github.com:o/r.git）与 https 两形态，其余 null */
-function parseGithubRemote(url) {
+function parseGithubRemote(url: string | null): string | null {
   const m = /github\.com[:/](?<repo>[^/]+\/[^/]+?)(?:\.git)?$/.exec(url ?? '')
   return m?.groups?.repo ?? null
 }
@@ -69,7 +69,7 @@ const apiBase = (process.env.VERIFY_TAG_CI_API_URL ?? 'https://api.github.com').
 const url = `${apiBase}/repos/${repo}/actions/runs?event=push&per_page=30`
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
-const headers = { 'user-agent': GUARD_UA }
+const headers: Record<string, string> = { 'user-agent': GUARD_UA }
 if (token) headers.authorization = `Bearer ${token}`
 
 const startedMs = Date.now()
@@ -83,7 +83,7 @@ for (;;) {
     const res = await fetch(url, { headers })
     if (res.ok) {
       everOk = true
-      const body = await res.json()
+      const body = (await res.json()) as { workflow_runs?: { head_branch: string; created_at: string; name: string; id: number }[] }
       const runs = (body.workflow_runs ?? []).filter(
         (run) => run.head_branch === tag && Date.parse(run.created_at) >= floorMs,
       )
@@ -96,7 +96,8 @@ for (;;) {
       lastError = `HTTP ${res.status}`
     }
   } catch (err) {
-    lastError = err.cause?.code ?? err.message
+    const e = err as Error & { cause?: { code?: string } }
+    lastError = e.cause?.code ?? e.message
   }
 
   if (Date.now() >= deadlineMs) break

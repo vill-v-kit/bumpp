@@ -20,7 +20,7 @@ _Avoid_: bump type、version type
 预发行标识符（如 `1.0.0-beta.1` 中的 `beta`）。计算候选版本时沿用当前版本的预发行标识，否则用入参（上游 normalizeOptions 缺省为 `'beta'`）；预发行号从 1 开始（上游的 `0→1` 修正）。
 
 **Scripts**:
-bump 流程三时序槽位（`preversion` / `version` / `postversion`）的通用 shell 命令，声明于配置文件的 `scripts` 字段（ADR-0011）。
+bump 流程三时序槽位（`preversion` / `version` / `postversion`）的通用 shell 命令，声明于配置文件的 `scripts` 字段（ADR-0011）。是 vbumpp 用户侧概念，与仓库脚本（本仓维护用脚本）无关。
 _Avoid_: npm scripts（上游旧义——从 package.json scripts 读取经 `npm run`，通道已移除）
 
 **配置文件**:
@@ -48,7 +48,7 @@ _Avoid_: 试运行、pretend
 _Avoid_: publish（英文对应词，不作术语）、发布（过宽——兼指 Bump 与平台 Release）
 
 **首发仪式 (First-publish ceremony)**:
-全新 npm 包名的首次上架流程——npm OIDC trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有配置页，首发必走一次性经典认证：本地 `pnpm login`（OTP）手动首发 → npmjs.com 包设置配 trusted publisher → 重跑 CI 由 OIDC 收后续版本（ADR-0021 决策④、ADR-0029）。平台矩阵每扩一个新 target 即新增一个包名，首发仪式是该次发版的前置条件；漏做则 publish-npm 在拓扑序中段 404，造成部分上架（v6.1.0 实例）。触发绑定已由 npm-publish.mjs 前置检测闭环：发布计划含从未上架的包名时 CI 在上传任何包之前拦停并输出仪式指引，本地手动首发只警告不拦。
+全新 npm 包名的首次上架流程——npm OIDC trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有配置页，首发必走一次性经典认证：本地 `pnpm login`（OTP）手动首发 → npmjs.com 包设置配 trusted publisher → 重跑 CI 由 OIDC 收后续版本（ADR-0021 决策④、ADR-0029）。平台矩阵每扩一个新 target 即新增一个包名，首发仪式是该次发版的前置条件；漏做则 publish-npm 在拓扑序中段 404，造成部分上架（v6.1.0 实例）。触发绑定已由 npm-publish.ts 前置检测闭环：发布计划含从未上架的包名时 CI 在上传任何包之前拦停并输出仪式指引，本地手动首发只警告不拦。
 _Avoid_: 首发（过宽——需含完整流程义）
 
 **免编译安装 (cargo-binstall 渠道)**:
@@ -114,3 +114,7 @@ _Avoid_: 录屏(指视频/GIF 形态)、模拟演示(手写脚本,与真实输�
 **文档网站 (Docs website)**:
 面向用户的产品文档站（`website/`，fumadocs / Next.js 静态导出，ADR-0020）——与 `docs/` 的工程内部文档（ADR、agent 约定、迁移指南源稿）物理分离。纯中文、单版本（随最新 release）；内容板块：快速上手、CLI 参考、配置文件参考、平台 Release 指南、v5→v6 迁移指南、外链区（导航栏图标链接：npmx.dev 包页 + GitHub Releases）。部署 GitHub Pages（项目页子路径 `/bumpp`），接受国内访问不稳定的取舍、不做国内镜像。
 _Avoid_: docs（指 `docs/` 工程内部文档目录）
+
+**仓库脚本 (Repo scripts)**:
+本仓维护用的命令行脚本——`scripts/`、`website/scripts/`、napi 冒烟与 crates fixture 生成器等，一律 TypeScript 由 node 原生直跑（type stripping，node 版本由 mise 的 lts 保证下限），不经编译步骤、不引入转译器。例外两类：发布给用户执行的产物（`npm/*/bin/` 薄壳，用户 node 环境不可控）与工具生成物（napi loader）。
+_Avoid_: Scripts（指 `.vbumpprc` 的 `scripts` 字段，用户侧概念）、构建脚本（歧义——兼指 Rust build.rs 与包安装期脚本）

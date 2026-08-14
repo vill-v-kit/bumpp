@@ -15,7 +15,7 @@
 #
 # 管道：各段临时 fixture（git 仓库、提交与 tag 全部钉日期）
 #   → pty 实跑（保 TTY 着色输出，零击键投喂——dry-run / list 全程无 prompt）
-#   → 原始字节流（含 SGR 颜色序列）×4 → scripts/raw-to-cast.mjs 合并转
+#   → 原始字节流（含 SGR 颜色序列）×4 → scripts/raw-to-cast.ts 合并转
 #     asciicast v2 兼容事件流，产出单个 TS 模块（采集侧只做格式转换，
 #     屏幕仿真归渲染层）
 #
@@ -25,10 +25,10 @@
 #   - VBUMPP_HOME 指向 fixture 内目录，隔离全局 vbumpp 配置
 #   - token 环境变量与 VBUMPP_TOKEN_STORE 一律 unset——release 段必须命中预置
 #     keyring，宿主若恰好设了 GH_TOKEN 等会静默改写 token 来源
-#   - keyring 由 scripts/make-demo-keyring.mjs 钉密钥/IV 生成，字节恒定
+#   - keyring 由 scripts/make-demo-keyring.ts 钉密钥/IV 生成，字节恒定
 #   - TERM 钉 xterm-256color——着色判定不随宿主终端（宿主 TERM=dumb 会产出无色流）
 #   - pty 尺寸钉 80x24（stty），不随捕获终端变化
-#   - 事件切分与时间戳由 raw-to-cast.mjs 按内容确定，与采集耗时、分块时序无关
+#   - 事件切分与时间戳由 raw-to-cast.ts 按内容确定，与采集耗时、分块时序无关
 #
 # 依赖：macOS BSD script(1)（-q /dev/null 语法）、node、已构建的 target/release/vbumpp。
 # 用法：website/scripts/capture-home-demo-cast.sh（或 pnpm --filter website capture:home-demo-cast）
@@ -38,8 +38,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEBSITE="$(dirname "$SCRIPT_DIR")"
 ROOT="$(dirname "$WEBSITE")"
 BINARY="$ROOT/target/release/vbumpp"
-CAST_MJS="$SCRIPT_DIR/raw-to-cast.mjs"
-KEYRING_MJS="$SCRIPT_DIR/make-demo-keyring.mjs"
+CAST_TS="$SCRIPT_DIR/raw-to-cast.ts"
+KEYRING_TS="$SCRIPT_DIR/make-demo-keyring.ts"
 OUT_TS="$WEBSITE/app/(home)/demo-casts.ts"
 
 PIN_DATE='2026-08-05T10:00:00'
@@ -163,7 +163,7 @@ git commit -q -m 'chore: release v1.1.0'
 git tag v1.1.0
 
 # ---- 预置加密 keyring（假 token）——段 3 的 token 来源与段 4 的清单内容 ----
-node "$KEYRING_MJS" "$VBUMPP_HOME"
+node "$KEYRING_TS" "$VBUMPP_HOME"
 
 # ---- 四段 pty 实跑（dry-run / list 无 prompt，零击键投喂）----
 RAW_DRY="$WORK/raw-dry-run.txt"
@@ -189,7 +189,7 @@ gate "$RAW_TOK" 'github' ' github 清单项'
 gate "$RAW_TOK" 'gitlab (https://gitlab.com)' ' gitlab host 作用域清单项'
 
 # ---- 格式转换：四段合并 → 洗白绝对路径 → asciicast v2 事件流 → TS 模块 ----
-node "$CAST_MJS" "$OUT_TS" 80 24 xterm-256color "$WORK_PHYSICAL" "$WORK" -- \
+node "$CAST_TS" "$OUT_TS" 80 24 xterm-256color "$WORK_PHYSICAL" "$WORK" -- \
   dry-run 'vbumpp --dry-run' "$RAW_DRY" \
   recursive-dry-run 'vbumpp -r --dry-run' "$RAW_REC" \
   release-dry-run 'vbumpp release 1.1.0 --dry-run --provider github' "$RAW_REL" \

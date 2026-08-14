@@ -3,7 +3,7 @@
  * 为单一真相源，调 `napi create-npm-dirs` 在 `napi/<triple>/` 生成全部平台包
  * （package.json + README.md），再把根 LICENSE 同步进每个平台包目录——
  * create-npm-dirs 本身不写 LICENSE，而 MIT 要求发版副本携带许可文本
- * （check-licenses.mjs 在校验侧守着同一约定）。
+ * （check-licenses.ts 在校验侧守着同一约定）。
  *
  * 用法：pnpm create:npm-dirs（发版 CI 的 publish-npm job 与本地复现共用）
  *
@@ -27,14 +27,14 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1)
 }
 
-// create-npm-dirs 不产物 LICENSE：逐平台包目录同步根 LICENSE（与 check-licenses.mjs 同口径）
+// create-npm-dirs 不产物 LICENSE：逐平台包目录同步根 LICENSE（与 check-licenses.ts 同口径）
 const napiDir = join(root, 'napi')
 for (const entry of readdirSync(napiDir, { withFileTypes: true })) {
   if (!entry.isDirectory() || entry.name === 'bumpp-core') continue
   const pkgDir = join(napiDir, entry.name)
   const manifestPath = join(pkgDir, 'package.json')
   if (!existsSync(manifestPath)) continue
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: string }
   if (!manifest.name?.startsWith('@vill-v/bumpp-core-')) continue
   copyFileSync(join(root, 'LICENSE'), join(pkgDir, 'LICENSE'))
   console.log(`LICENSE synced: napi/${entry.name}`)

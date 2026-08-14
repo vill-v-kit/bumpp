@@ -8,12 +8,12 @@
  * 更新演示是一步显式操作（再生成 + 提交）。
  *
  * 用法：
- *   node scripts/demo-cast-drift.mjs
+ *   node scripts/demo-cast-drift.ts
  *     1. pnpm --filter website capture:home-demo-cast 重跑采集（原地重写产物，
  *        需已构建 target/release/vbumpp）
  *     2. git diff --exit-code 断言产物与提交内容一致（diff 原文进日志）
  *
- * 测试 stub（scripts/demo-cast-drift.test.mjs）：DEMO_CAST_CAPTURE_CMD 覆盖
+ * 测试 stub（scripts/demo-cast-drift.test.ts）：DEMO_CAST_CAPTURE_CMD 覆盖
  * 采集命令（真实采集依赖 release 二进制，契约测试不进那条路）。
  *
  * 退出码契约：0 一致；1 漂移 / 采集失败；2 环境错误（不在 git 仓库内）。
@@ -23,7 +23,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 const CAST_PATH = 'website/app/(home)/demo-casts.ts'
 const CAPTURE_CMD = process.env.DEMO_CAST_CAPTURE_CMD ?? 'pnpm --filter website capture:home-demo-cast'
 
-let root
+let root: string
 try {
   root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
 } catch {

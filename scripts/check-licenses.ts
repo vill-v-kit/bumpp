@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const rootLicense = readFileSync(join(root, 'LICENSE'), 'utf8')
 
-const drifts = []
+const drifts: string[] = []
 for (const scope of ['npm', 'napi']) {
   const scopeDir = join(root, scope)
   if (!existsSync(scopeDir)) continue

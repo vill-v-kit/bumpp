@@ -1,3 +1,22 @@
 {
-  "extends": "@vill-v/tsconfig/base.json"
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "scripts",
+    "napi/bumpp-core/smoke.ts",
+    "crates/vbumpp-core/tests/fixtures",
+    "vitest.config.ts"
+  ],
+  "exclude": ["website", "node_modules"]
 }

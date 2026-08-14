@@ -65,7 +65,7 @@ GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时
 
 1. `test`（cargo fmt/clippy/test + vitest + `check:licenses`，先经 `pnpm create:npm-dirs` 生成平台包目录）→ `build`（7 平台 runner 矩阵，含 musl ×2 交叉腿）→ `test-bindings`（macOS / Ubuntu / Windows）全绿；
 2. `publish-npm` 与 `publish-crates` 并行自动**上架**，无人工批准门——npm 侧 `pnpm create:npm-dirs` 生成 7 平台包目录、`napi artifacts` 注入 `.node` 与 `index.d.ts`（ADR-0029）、断言 tag 版本 == 工作区版本、`pnpm -r pack` + publint 前置验证后 `pnpm publish -r`（13 包）；crates 侧对称断言后按 `vbumpp-core` → `vbumpp` 硬序 `cargo publish`（cli 依赖 core，各自 dry-run 先行）；
-3. 任一 publish job 部分失败时，「Re-run failed jobs」即唯一恢复手段——`scripts/publish-guard.mjs` 的 skip-if-published 守卫让已上架版本自动跳过、未上架版本补发，两 job 可任意次重跑收敛。
+3. 任一 publish job 部分失败时，「Re-run failed jobs」即唯一恢复手段——`scripts/publish-guard.ts` 的 skip-if-published 守卫让已上架版本自动跳过、未上架版本补发，两 job 可任意次重跑收敛。
 
 认证走 repo secrets（`NPM_TOKEN` / `CARGO_REGISTRY_TOKEN` 长效 token）首发，上架后迁 OIDC trusted publishing（ADR-0021 决策④）。设计与决策依据见 [ADR-0021](./docs/adr/0021-ci-registry-publish.md)；「上架」为术语基准（CONTEXT.md，与 Bump、平台 Release 三者分立）。
 
@@ -73,7 +73,7 @@ GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时
 
 ### tag 推送后 CI 未触发（COL-62 实例）
 
-v6.0.0 首发时 GitHub 收到了 tag push（ref 创建成功），但其下游事件被丢失——两个 workflow 零 run、零 check-suite，上架静默不发生；删 tag 重推（同一 object）即恢复。此故障形态的唯一现场特征是 **tag 推送后 Actions 长时间无 CI run**。`pnpm release` 已内建 `scripts/verify-tag-ci.mjs` 自检（vbumpp 推送后轮询 Actions runs，无则告警并中断后续 build）；若告警或人工发现未触发，恢复手段：
+v6.0.0 首发时 GitHub 收到了 tag push（ref 创建成功），但其下游事件被丢失——两个 workflow 零 run、零 check-suite，上架静默不发生；删 tag 重推（同一 object）即恢复。此故障形态的唯一现场特征是 **tag 推送后 Actions 长时间无 CI run**。`pnpm release` 已内建 `scripts/verify-tag-ci.ts` 自检（vbumpp 推送后轮询 Actions runs，无则告警并中断后续 build）；若告警或人工发现未触发，恢复手段：
 
 ```shell
 git push origin :refs/tags/<tag>   # 删远端 tag

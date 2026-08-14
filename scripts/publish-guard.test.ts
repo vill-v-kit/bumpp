@@ -1,28 +1,37 @@
 /**
- * publish-guard.mjs 的 CLI 契约测试（COL-51）。
+ * publish-guard.ts 的 CLI 契约测试（COL-51）。
  * Seam：CLI 契约本身——spawn 真实脚本进程，打本地 stub registry 验证 exit code。
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-const script = fileURLToPath(new URL('./publish-guard.mjs', import.meta.url))
+const script = fileURLToPath(new URL('./publish-guard.ts', import.meta.url))
 
-let server
-let base
+type Handler = (req: IncomingMessage, res: ServerResponse) => void
+
+interface RunResult {
+  code: string | number | undefined
+  stdout: string
+  stderr: string
+}
+
+let server: Server
+let base: string
 // 每个测试替换此 handler 来模拟 registry 行为
-let handler = (_req, res) => res.writeHead(500).end()
+let handler: Handler = (_req, res) => res.writeHead(500).end()
 
 beforeAll(async () => {
   server = createServer((req, res) => handler(req, res))
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  base = `http://127.0.0.1:${server.address().port}`
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
 
 afterAll(() => server.close())
 
-function runGuard(args) {
+function runGuard(args: string[]): Promise<RunResult> {
   return new Promise((resolve) => {
     execFile(
       'node',
@@ -67,7 +76,7 @@ describe('npm registry', () => {
   })
 
   it('scoped 包名 URL 编码（@scope/name → %40scope%2Fname）', async () => {
-    let seenUrl
+    let seenUrl: string | undefined
     handler = (req, res) => {
       seenUrl = req.url
       res.writeHead(404).end()
@@ -86,7 +95,7 @@ describe('查询失败与「包不存在」可区分', () => {
   })
 
   it('网络不可达 → exit 2（fetch 抛错不得穿透成其他退出码）', async () => {
-    const r = await new Promise((resolve) => {
+    const r = await new Promise<RunResult>((resolve) => {
       execFile(
         'node',
         [script, 'npm', '@vill-v/bumpp', '6.0.0'],

@@ -1,20 +1,27 @@
 /**
- * docs-smoke.mjs 的 CLI 契约测试（COL-77）。
+ * docs-smoke.ts 的 CLI 契约测试（COL-77）。
  * Seam：CLI 契约本身——assert-artifacts 用临时目录搭产物 fixture，
  * check-live 打本地 stub 站点验证轮询与退出码。
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { execFile } from 'node:child_process'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const script = fileURLToPath(new URL('./docs-smoke.mjs', import.meta.url))
+const script = fileURLToPath(new URL('./docs-smoke.ts', import.meta.url))
 const SITE = 'https://vill-v-kit.github.io/bumpp'
 
-function runSmoke(args, env = {}) {
+interface RunResult {
+  code: string | number | undefined
+  stdout: string
+  stderr: string
+}
+
+function runSmoke(args: string[], env: Record<string, string> = {}): Promise<RunResult> {
   return new Promise((resolve) => {
     execFile('node', [script, ...args], { env: { ...process.env, ...env } }, (error, stdout, stderr) => {
       resolve({ code: error ? error.code : 0, stdout, stderr })
@@ -45,7 +52,7 @@ async function makeFixture() {
 }
 
 describe('assert-artifacts', () => {
-  let dir
+  let dir: string
   beforeAll(async () => {
     dir = await makeFixture()
   })
@@ -97,14 +104,14 @@ describe('assert-artifacts', () => {
 })
 
 describe('check-live', () => {
-  let server
-  let base
-  let handler = (_req, res) => res.writeHead(200).end('ok')
+  let server: Server
+  let base: string
+  let handler: (req: IncomingMessage, res: ServerResponse) => void = (_req, res) => res.writeHead(200).end('ok')
 
   beforeAll(async () => {
     server = createServer((req, res) => handler(req, res))
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-    base = `http://127.0.0.1:${server.address().port}`
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
   })
   afterAll(() => server.close())
 

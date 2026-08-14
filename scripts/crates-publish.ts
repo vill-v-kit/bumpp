@@ -4,8 +4,8 @@
  * 未上架的执行 `cargo publish --dry-run` 前置验证后真实上架，已上架的跳过。
  *
  * 用法（ci.yml publish-crates job）：
- *   CARGO_REGISTRY_TOKEN=… node scripts/crates-publish.mjs            # 实际上架
- *   node scripts/crates-publish.mjs --dry-run                         # 干跑（只做前置验证，不上传）
+ *   CARGO_REGISTRY_TOKEN=… node scripts/crates-publish.ts            # 实际上架
+ *   node scripts/crates-publish.ts --dry-run                         # 干跑（只做前置验证，不上传）
  *
  * 为什么是交错结构（dry-run core → 上架 core → dry-run cli → 上架 cli）而非
  * ticket 字面的「先全部 dry-run 再上架」：首发布蛋——cli 的 dry-run 要把改写后
@@ -35,7 +35,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const guard = fileURLToPath(new URL('./publish-guard.mjs', import.meta.url))
+const guard = fileURLToPath(new URL('./publish-guard.ts', import.meta.url))
 const dryRun = process.argv.includes('--dry-run')
 const CARGO = process.env.CRATES_PUBLISH_CARGO ?? 'cargo'
 const RETRY_MAX = Number.parseInt(process.env.CRATES_PUBLISH_RETRY_MAX ?? '10', 10)
@@ -53,13 +53,19 @@ if (!versionMatch) {
 }
 const version = versionMatch[1]
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+interface RunResult {
+  code: string | number | undefined
+  stdout: string
+  stderr: string
+}
 
 // 执行外部命令：exit code 进返回值（不 reject）。relay 控制输出落点——
 // 'stdio' 原样回 stdout/stderr（cargo 的输出是主体）；'stderr' 双流并 stderr
 // （守卫的 GO/SKIP/ERROR 均为信息行，保持 stdout 干净）；'none' 仅捕获
-function run(cmd, args, relay = 'none') {
-  return new Promise((resolve, reject) => {
+function run(cmd: string, args: string[], relay: 'stdio' | 'stderr' | 'none' = 'none') {
+  return new Promise<RunResult>((resolve, reject) => {
     execFile(cmd, args, { cwd: root }, (error, stdout, stderr) => {
       if (error && error.code === undefined) return reject(error) // spawn 本身失败
       if (relay === 'stdio') {
@@ -83,7 +89,7 @@ for (const name of CRATES) {
 
   // 2. dry-run 前置（本次运行已上架过 crate → 启用重试预算做 index 传播探针）
   const attempts = publishedThisRun ? RETRY_MAX : 1
-  let dr
+  let dr: RunResult | undefined
   for (let i = 1; i <= attempts; i += 1) {
     dr = await run(CARGO, ['publish', '--dry-run', '-p', name], 'stdio')
     if (dr.code === 0) break
@@ -95,9 +101,9 @@ for (const name of CRATES) {
       await sleep(RETRY_DELAY_MS)
     }
   }
-  if (dr.code !== 0) {
+  if (!dr || dr.code !== 0) {
     console.error(`ERROR cargo publish --dry-run -p ${name} failed — aborting before any upload`)
-    process.exit(typeof dr.code === 'number' ? dr.code : 1)
+    process.exit(typeof dr?.code === 'number' ? dr.code : 1)
   }
 
   // 3. 真实上架（--dry-run 模式跳过）

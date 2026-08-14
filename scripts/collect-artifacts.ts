@@ -5,7 +5,7 @@
  * `napi artifacts` 要求 `napi.targets` 全部 target 的产物齐备（缺一即硬失败），
  * 故只能在汇聚全腿产物的 publish-npm job 执行，各 build 腿不适用。
  *
- * 用法：node scripts/collect-artifacts.mjs [outputDir]
+ * 用法：node scripts/collect-artifacts.ts [outputDir]
  *   outputDir 缺省 .artifacts——publish-npm job download-artifact
  *   merge-multiple 的落点（7 个 .node + index.js + index.d.ts 同目录平铺）
  */

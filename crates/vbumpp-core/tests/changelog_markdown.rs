@@ -378,7 +378,7 @@ fn render_applies_gitmoji_and_uppercase() {
 
 // ---------------------------------------------------------------------------
 // golden fixtures：真 changelogen 0.6.2 产出经申报偏差变换（见 NOTES.md 与
-// tests/fixtures/changelog-gen.mjs 头注释；节标题中文化偏差已随 ADR-0017 移除），
+// tests/fixtures/changelog-gen.ts 头注释；节标题中文化偏差已随 ADR-0017 移除），
 // 逐字节比对
 // ---------------------------------------------------------------------------
 

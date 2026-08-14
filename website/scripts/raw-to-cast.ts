@@ -12,13 +12,20 @@
 //     既不可字节级复现也不适合演示；渲染层按时间戳重放即得该节奏
 //   - 演示提示符（`$ ` + 命令逐字符）为演示约定合成事件，非捕获内容
 //
-// 用法：node raw-to-cast.mjs <ts-output> <cols> <rows> <term> <abs-path> [<abs-path>...] -- <id> <command> <raw-input> [<id> <command> <raw-input> ...]
+// 用法：node raw-to-cast.ts <ts-output> <cols> <rows> <term> <abs-path> [<abs-path>...] -- <id> <command> <raw-input> [<id> <command> <raw-input> ...]
 //   `--` 前：产物路径、pty 参数（须与 capture 脚本 stty 钉死的值一致，事件头
 //   如实记录）与待洗白的绝对路径（→ ~，任一残留即报错）；`--` 后为段三元组：
 //   <id> 为稳定段标识（kebab-case，决定常量名 <ID>_CAST 与 DEMO_SEGMENTS.id），
 //   <command> 用于合成提示符，<raw-input> 为该段 pty 原始流。
 
 import { readFileSync, writeFileSync } from 'node:fs';
+
+function usage(): never {
+  console.error(
+    'usage: node raw-to-cast.ts <ts-output> <cols> <rows> <term> <abs-path> [<abs-path>...] -- <id> <command> <raw-input> [<id> <command> <raw-input> ...]',
+  );
+  process.exit(2);
+}
 
 const argv = process.argv.slice(2);
 const sep = argv.indexOf('--');
@@ -37,7 +44,13 @@ if (
   usage();
 }
 
-const segments = [];
+interface Segment {
+  id: string;
+  command: string;
+  inputPath: string;
+}
+
+const segments: Segment[] = [];
 for (let i = 0; i < segmentArgs.length; i += 3) {
   const [id, command, inputPath] = segmentArgs.slice(i, i + 3);
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
@@ -47,21 +60,16 @@ for (let i = 0; i < segmentArgs.length; i += 3) {
   segments.push({ id, command, inputPath });
 }
 
-function usage() {
-  console.error(
-    'usage: node raw-to-cast.mjs <ts-output> <cols> <rows> <term> <abs-path> [<abs-path>...] -- <id> <command> <raw-input> [<id> <command> <raw-input> ...]',
-  );
-  process.exit(2);
-}
-
 // 固定节奏（毫秒，整数累加后转秒，避免浮点累加误差破坏字节级可复现）：
 // 提示符逐字符 / 回车后首行输出 / 其余逐行
 const PROMPT_STEP_MS = 50;
 const FIRST_OUTPUT_DELAY_MS = 250;
 const LINE_STEP_MS = 50;
 
+type CastEventTuple = [time: number, type: 'o', data: string];
+
 // 单段原始流 → cast 事件流（切分、洗白、节奏全部按内容确定）
-function segmentEvents(id, command, inputPath) {
+function segmentEvents(id: string, command: string, inputPath: string): CastEventTuple[] {
   let text = readFileSync(inputPath, 'utf8');
 
   // BSD script(1) 在 stdin EOF 时向 pty 回显的 `^D` + 两次退格——捕获机制伪迹，
@@ -89,7 +97,7 @@ function segmentEvents(id, command, inputPath) {
   }
 
   // 行切分：每事件一行（保留行尾 \r\n），尾部无换行的残段自成事件
-  const lines = [];
+  const lines: string[] = [];
   let start = 0;
   while (start < text.length) {
     const nl = text.indexOf('\n', start);
@@ -103,7 +111,7 @@ function segmentEvents(id, command, inputPath) {
 
   // 时间戳：整数毫秒累加后转秒；每段从 0 起（段间节奏由前端步骤切换决定）
   let ms = 0;
-  const events = [];
+  const events: CastEventTuple[] = [];
   for (const ch of `$ ${command}`) {
     events.push([ms / 1000, 'o', ch]);
     ms += PROMPT_STEP_MS;
@@ -118,11 +126,11 @@ function segmentEvents(id, command, inputPath) {
 }
 
 // JSON.stringify 转双引号字面量，换成仓库 TS 风格的单引号
-const singleQuoted = (value) =>
+const singleQuoted = (value: string) =>
   `'${JSON.stringify(value).slice(1, -1).replace(/'/g, "\\'")}'`;
 
 // 段标识 → 常量名（dry-run → DRY_RUN_CAST）
-const constName = (id) => `${id.replace(/-/g, '_').toUpperCase()}_CAST`;
+const constName = (id: string) => `${id.replace(/-/g, '_').toUpperCase()}_CAST`;
 
 const linesOut = [
   '// 本文件由 website/scripts/capture-home-demo-cast.sh 生成，勿手改。',

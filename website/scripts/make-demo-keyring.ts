@@ -11,7 +11,7 @@
 // 确定性：密钥与 IV 全部钉死（真实运行是随机 IV——演示产物要求字节级可复现，
 // 且内容本来就是假 token，钉死 IV 无安全含义）。复跑产物字节一致。
 //
-// 用法：node make-demo-keyring.mjs <输出目录>
+// 用法：node make-demo-keyring.ts <输出目录>
 
 import { createCipheriv } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -19,7 +19,7 @@ import { join } from 'node:path';
 
 const dir = process.argv[2];
 if (!dir) {
-  console.error('usage: node make-demo-keyring.mjs <输出目录>');
+  console.error('usage: node make-demo-keyring.ts <输出目录>');
   process.exit(2);
 }
 

@@ -3,7 +3,7 @@
  * 是否已存在，供 publish-npm / publish-crates 两个 CI job 以同一语义消费——
  * 部分上架失败后「Re-run failed jobs」时，已上架的包自动跳过、未上架的补发。
  *
- * 用法：node scripts/publish-guard.mjs <npm|crates> <包名> <版本>
+ * 用法：node scripts/publish-guard.ts <npm|crates> <包名> <版本>
  *
  * 退出码契约：
  *   0 + stdout GO …   —— 未上架，放行 publish
@@ -21,7 +21,7 @@ const [registry, name, version] = process.argv.slice(2)
 
 const GUARD_UA = 'vill-v-kit/bumpp publish-guard (https://github.com/vill-v-kit/bumpp)'
 
-function targetUrl() {
+function targetUrl(): string {
   if (registry === 'npm') {
     const base = (process.env.PUBLISH_GUARD_NPM_URL ?? 'https://registry.npmjs.org').replace(/\/$/, '')
     // per-version 文档；scoped 名整体 percent-encode（@vill-v/x → %40vill-v%2Fx）
@@ -36,15 +36,16 @@ function targetUrl() {
 }
 
 if (!registry || !name || !version) {
-  console.error('usage: node scripts/publish-guard.mjs <npm|crates> <name> <version>')
+  console.error('usage: node scripts/publish-guard.ts <npm|crates> <name> <version>')
   process.exit(2)
 }
 
-let res
+let res: Response
 try {
   res = await fetch(targetUrl(), { headers: { 'user-agent': GUARD_UA } })
 } catch (err) {
-  console.error(`ERROR ${registry} query failed: ${err.cause?.code ?? err.message} for ${name}@${version}`)
+  const e = err as Error & { cause?: { code?: string } }
+  console.error(`ERROR ${registry} query failed: ${e.cause?.code ?? e.message} for ${name}@${version}`)
   process.exit(2)
 }
 if (res.status === 200) {

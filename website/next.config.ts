@@ -1,9 +1,9 @@
 import { createMDX } from 'fumadocs-mdx/next';
+import type { NextConfig } from 'next';
 
 const withMDX = createMDX();
 
-/** @type {import('next').NextConfig} */
-const config = {
+const config: NextConfig = {
   output: 'export',
   reactStrictMode: true,
   // GitHub Pages 项目页子路径（ADR-0020）：vill-v-kit.github.io/bumpp

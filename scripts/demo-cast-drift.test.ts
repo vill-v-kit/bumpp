@@ -1,5 +1,5 @@
 /**
- * demo-cast-drift.mjs 的 CLI 契约测试（COL-93）。
+ * demo-cast-drift.ts 的 CLI 契约测试（COL-93）。
  * Seam：CLI 契约本身——用临时 git 仓库搭 fixture（提交一份 cast 产物），
  * DEMO_CAST_CAPTURE_CMD stub 掉真实采集（真实采集要 release 二进制，太重），
  * 分别演「不改文件（一致）/ 改写文件（漂移）/ 直接失败」三种形态。
@@ -11,11 +11,17 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const script = fileURLToPath(new URL('./demo-cast-drift.mjs', import.meta.url))
+const script = fileURLToPath(new URL('./demo-cast-drift.ts', import.meta.url))
 const CAST_PATH = 'website/app/(home)/demo-casts.ts'
 const COMMITTED = '// committed cast artifact\n'
 
-function runDrift(cwd, captureCmd) {
+interface RunResult {
+  code: string | number | undefined
+  stdout: string
+  stderr: string
+}
+
+function runDrift(cwd: string, captureCmd: string): Promise<RunResult> {
   return new Promise((resolve) => {
     execFile(
       'node',
@@ -28,11 +34,11 @@ function runDrift(cwd, captureCmd) {
   })
 }
 
-const git = (cwd, args) =>
+const git = (cwd: string, args: string[]) =>
   execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args], { cwd })
 
 describe('demo-cast-drift', () => {
-  let dir
+  let dir: string
   beforeAll(async () => {
     dir = await mkdtemp(join(tmpdir(), 'demo-cast-drift-'))
     git(dir, ['init', '-q', '-b', 'main'])

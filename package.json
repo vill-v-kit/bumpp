@@ -6,13 +6,13 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
-    "check:home-demo-cast": "node scripts/demo-cast-drift.mjs",
-    "check:licenses": "node scripts/check-licenses.mjs",
-    "collect:artifacts": "node scripts/collect-artifacts.mjs",
-    "create:npm-dirs": "node scripts/create-npm-dirs.mjs",
+    "check:home-demo-cast": "node scripts/demo-cast-drift.ts",
+    "check:licenses": "node scripts/check-licenses.ts",
+    "collect:artifacts": "node scripts/collect-artifacts.ts",
+    "create:npm-dirs": "node scripts/create-npm-dirs.ts",
     "prepare": "hk install",
     "pretest": "turbo run build",
-    "release": "HK=0 vbumpp -r && node scripts/verify-tag-ci.mjs && pnpm build",
+    "release": "HK=0 vbumpp -r && node scripts/verify-tag-ci.ts && pnpm build",
     "test": "vitest"
   },
   "devDependencies": {

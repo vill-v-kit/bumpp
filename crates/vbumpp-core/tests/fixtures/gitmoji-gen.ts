@@ -1,8 +1,12 @@
 // 一次性生成器：convert-gitmoji@0.1.5 表 → changelog/gitmoji.rs（dev-only，勿提交产物依赖）
+//
+// 一次性依赖 convert-gitmoji@0.1.5 不经 workspace 清单安装（重生成时临时
+// pnpm add），仓库内无类型可解析，故 import 行以 @ts-expect-error 豁免
 import { writeFileSync } from 'node:fs'
+// @ts-expect-error —— 一次性依赖不经清单安装，无类型可查
 import { gitmojis } from '../../../../node_modules/.pnpm/convert-gitmoji@0.1.5/node_modules/convert-gitmoji/dist/index.mjs'
 
-const entries = Object.entries(gitmojis)
+const entries: [string, string][] = Object.entries(gitmojis)
 const table = entries.map(([k, v]) => `  ("${k}", "${v}"),`).join('\n')
 const keys = entries.map(([k]) => k.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('|')
 

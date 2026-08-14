@@ -246,7 +246,7 @@ jobs:
       # fallback，无需把产物拷进平台包目录。smoke 端到端跑生成物 loader：
       # 加载 → 导出面 → cliRun 通路 → 平台变体 bin 注入
       - name: Test bindings
-        run: node napi/bumpp-core/smoke.mjs
+        run: node napi/bumpp-core/smoke.ts
 
   # COL-63 加分项：交叉产物过 qemu-arm64 容器实跑（加载 + 导出面）。
   # 不进 publish 的 needs——交叉腿实测是额外信心，非上架前置（napi-rs 生态含 oxc 均不测交叉腿）
@@ -355,11 +355,11 @@ jobs:
           fi
 
       - name: Publish (skip-if-published 守卫过滤后上架)
-        # npm-publish.mjs：守卫过滤未上架包 → pnpm [--filter]×N publish -r --no-git-checks
+        # npm-publish.ts：守卫过滤未上架包 → pnpm [--filter]×N publish -r --no-git-checks
         # （查询失败 exit 2 拦停；13 包全已上架则空计划收工；pnpm 拓扑序原生处理）
         # 认证：OIDC trusted publishing（ADR-0021 决策④终态）——pnpm 自动用
         # id-token 换短期 token（无需 ~/.npmrc 与长效 NPM_TOKEN；provenance 随 OIDC 自动附加）
-        run: node scripts/npm-publish.mjs
+        run: node scripts/npm-publish.ts
 
   # ADR-0021 决策①③：与 publish-npm 并行、无人工批准门；可任意次重跑收敛
   publish-crates:
@@ -393,12 +393,12 @@ jobs:
         id: auth
 
       - name: Publish crates (守卫 → dry-run 前置 → core→cli 顺序上架)
-        # crates-publish.mjs：vbumpp-core → vbumpp 硬序逐一过守卫；GO 的先
+        # crates-publish.ts：vbumpp-core → vbumpp 硬序逐一过守卫；GO 的先
         # cargo publish --dry-run 再真实上架（dry-run 失败在上传前拦停）；
         # SKIP 跳过（部分失败重跑自动收敛）；查询失败 exit 2 零 cargo 调用
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-        run: node scripts/crates-publish.mjs
+        run: node scripts/crates-publish.ts
 
   # 7 target 预编译 CLI 产物追加到 bump 流程已建的 GitHub Release（cargo-binstall 免编译渠道）
   build-cli:

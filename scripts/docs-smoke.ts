@@ -5,7 +5,7 @@
  * 本脚本把它变成 CI 可执行的断言。
  *
  * 用法：
- *   node scripts/docs-smoke.mjs assert-artifacts <outDir> <siteBaseUrl>
+ *   node scripts/docs-smoke.ts assert-artifacts <outDir> <siteBaseUrl>
  *     构建后、部署前对导出产物做静态断言：
  *       1. <outDir>/api/search 存在且非空（静态搜索索引已导出）
  *       2. 产物 JS bundle 中出现 "<basePath>/api/search" 或模板字面量形态
@@ -16,7 +16,7 @@
  *       3. llms.txt / llms-full.txt 中所有同源绝对链接都以 siteBaseUrl
  *          为前缀（llms 生成物链接必须带 basePath）
  *
- *   node scripts/docs-smoke.mjs check-live <siteBaseUrl>
+ *   node scripts/docs-smoke.ts check-live <siteBaseUrl>
  *     部署后轮询线上关键资源直到全部 200（Pages 有传播延迟，需重试）：
  *       <siteBaseUrl>/、<siteBaseUrl>/api/search、<siteBaseUrl>/llms.txt
  *     轮询预算可用环境变量覆盖（测试 stub 用）：
@@ -32,16 +32,16 @@ const LIVE_PATHS = ['/', '/api/search', '/llms.txt']
 
 const [command, ...args] = process.argv.slice(2)
 
-function usage() {
+function usage(): never {
   console.error('usage:')
-  console.error('  node scripts/docs-smoke.mjs assert-artifacts <outDir> <siteBaseUrl>')
-  console.error('  node scripts/docs-smoke.mjs check-live <siteBaseUrl>')
+  console.error('  node scripts/docs-smoke.ts assert-artifacts <outDir> <siteBaseUrl>')
+  console.error('  node scripts/docs-smoke.ts check-live <siteBaseUrl>')
   process.exit(2)
 }
 
 /** 解析站点 base URL，返回 { origin, basePath, base }（base 无尾斜杠） */
-function parseSiteBase(raw) {
-  let url
+function parseSiteBase(raw: string) {
+  let url: URL
   try {
     url = new URL(raw)
   } catch {
@@ -52,9 +52,9 @@ function parseSiteBase(raw) {
   return { origin: url.origin, basePath, base: `${url.origin}${basePath}` }
 }
 
-async function assertArtifacts(outDir, siteBaseUrl) {
+async function assertArtifacts(outDir: string, siteBaseUrl: string): Promise<string[]> {
   const { origin, base, basePath } = parseSiteBase(siteBaseUrl)
-  const failures = []
+  const failures: string[] = []
 
   // 1. 搜索索引已导出且非空
   const indexPath = join(outDir, 'api', 'search')
@@ -92,7 +92,7 @@ async function assertArtifacts(outDir, siteBaseUrl) {
   // 3. llms 生成物的同源绝对链接必须带 basePath
   for (const name of ['llms.txt', 'llms-full.txt']) {
     const file = join(outDir, name)
-    let content
+    let content: string
     try {
       content = await readFile(file, 'utf8')
     } catch {
@@ -109,8 +109,8 @@ async function assertArtifacts(outDir, siteBaseUrl) {
   return failures
 }
 
-async function collectFiles(dir, predicate) {
-  const out = []
+async function collectFiles(dir: string, predicate: (name: string) => boolean): Promise<string[]> {
+  const out: string[] = []
   let entries
   try {
     entries = await readdir(dir, { withFileTypes: true })
@@ -125,12 +125,12 @@ async function collectFiles(dir, predicate) {
   return out
 }
 
-async function checkLive(siteBaseUrl) {
+async function checkLive(siteBaseUrl: string): Promise<string[]> {
   const { base } = parseSiteBase(siteBaseUrl)
   const rounds = Number(process.env.DOCS_SMOKE_ROUNDS ?? 18)
   const intervalMs = Number(process.env.DOCS_SMOKE_INTERVAL_MS ?? 10_000)
 
-  const pending = new Map(LIVE_PATHS.map((path) => [`${base}${path}`, null]))
+  const pending = new Map<string, string | null>(LIVE_PATHS.map((path) => [`${base}${path}`, null]))
   for (let round = 1; round <= rounds && pending.size > 0; round++) {
     for (const [url] of pending) {
       try {
@@ -142,7 +142,8 @@ async function checkLive(siteBaseUrl) {
           pending.set(url, `HTTP ${res.status}`)
         }
       } catch (err) {
-        pending.set(url, err.cause?.code ?? err.message)
+        const e = err as Error & { cause?: { code?: string } }
+        pending.set(url, e.cause?.code ?? e.message)
       }
     }
     if (pending.size > 0 && round < rounds) {
@@ -154,7 +155,7 @@ async function checkLive(siteBaseUrl) {
   return [...pending].map(([url, reason]) => `${url} 轮询 ${rounds} 轮后仍未 200（最后状态: ${reason}）`)
 }
 
-let failures
+let failures: string[]
 if (command === 'assert-artifacts' && args.length === 2) {
   failures = await assertArtifacts(args[0], args[1])
 } else if (command === 'check-live' && args.length === 1) {

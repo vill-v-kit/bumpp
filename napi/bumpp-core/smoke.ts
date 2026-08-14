@@ -11,7 +11,7 @@ const dir = mkdtempSync(join(tmpdir(), 'bumpp-smoke-'))
 process.env.VBUMPP_TOKEN_STORE = join(dir, 'tokens.bin')
 process.env.VBUMPP_HOME = join(dir, 'home')
 
-const checks = [
+const checks: [string, boolean][] = [
   ['bumpVersion export exists', typeof bumpVersion === 'function'],
   ['cliRun export exists', typeof cliRun === 'function'],
 ]

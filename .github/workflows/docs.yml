@@ -41,7 +41,7 @@ jobs:
 
       # 部署前的产物断言：basePath 丢失类回归在此直接拦截
       - name: Smoke check artifacts
-        run: node scripts/docs-smoke.mjs assert-artifacts website/out "$SITE_URL"
+        run: node scripts/docs-smoke.ts assert-artifacts website/out "$SITE_URL"
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
@@ -68,4 +68,4 @@ jobs:
 
       # 部署后的线上确认：Pages 传播有延迟，脚本内置轮询
       - name: Smoke check live site
-        run: node scripts/docs-smoke.mjs check-live "$SITE_URL"
+        run: node scripts/docs-smoke.ts check-live "$SITE_URL"

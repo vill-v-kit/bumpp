@@ -1,23 +1,27 @@
 // golden fixture 一次性生成脚本（dev-only，ADR-0012）：
 // 以真 changelogen 0.6.2 在合成 git 仓库产出 markdown，施加三处申报偏差
-// 等效变换后固化。重生成：node crates/vbumpp-core/tests/fixtures/changelog-gen.mjs
+// 等效变换后固化。重生成：node crates/vbumpp-core/tests/fixtures/changelog-gen.ts
 // 变换清单：
 //   ① '#### ⚠️ Breaking Changes' → '#### 🚨 破坏性改动'（types.BreakingChange.title）
 //   ② '### ❤️ Contributors' → '### ❤️ 贡献者'（硬编码中文节头）
 //   ③ 贡献者行剥除 ungh.cc 解析结果 ` ([@user](https://github.com/user))`（网络杀除）
 // 另：生成时 hideAuthorEmail: true（本实现默认翻转）；chore(deps) 过滤同原 JS。
+//
+// 一次性依赖 changelogen@0.6.2 不经 workspace 清单安装（重生成时临时 pnpm add），
+// 仓库内无类型可解析，故下一行以 @ts-expect-error 豁免
 import { execSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+// @ts-expect-error —— 一次性依赖不经清单安装，无类型可查
 import { generateMarkDown, getGitDiff, parseCommits } from '../../../../node_modules/.pnpm/changelogen@0.6.2/node_modules/changelogen/dist/index.mjs'
 
 const OUT = new URL('./changelog/', import.meta.url).pathname
 
-const git = (cwd, args) => execSync(`git ${args}`, { cwd, encoding: 'utf8' })
+const git = (cwd: string, args: string) => execSync(`git ${args}`, { cwd, encoding: 'utf8' })
 
 // 内建默认（ADR-0013）：原 JS getDefaultsChangeLogConfig 同形
-const TYPES = {
+const TYPES: Record<string, { title: string }> = {
   feat: { title: '🚀 特性' },
   perf: { title: '🔥 性能优化' },
   fix: { title: '🩹 修复' },
@@ -31,7 +35,7 @@ const TYPES = {
   style: { title: '🎨 样式' },
 }
 
-const AUTHORS = {
+const AUTHORS: Record<string, [string, string]> = {
   alice: ['Alice Dev', 'alice@example.com'],
   bob: ['bob smith', 'bob@example.com'],
   carol: ['carol', 'carol@example.com'],
@@ -47,7 +51,7 @@ function initRepo() {
   return dir
 }
 
-function commit(dir, author, message, extra = []) {
+function commit(dir: string, author: string, message: string | string[], extra: string[] = []) {
   const [name, email] = AUTHORS[author]
   const env = `GIT_AUTHOR_NAME="${name}" GIT_AUTHOR_EMAIL="${email}" GIT_COMMITTER_NAME="${name}" GIT_COMMITTER_EMAIL="${email}"`
   execSync(`touch ${join(dir, 'f.txt')} && echo "${Date.now()}${Math.random()}" >> ${join(dir, 'f.txt')}`, { cwd: dir })
@@ -56,14 +60,18 @@ function commit(dir, author, message, extra = []) {
   execSync(`${env} git commit ${msgArgs}`, { cwd: dir })
 }
 
-function applyTransforms(md) {
+function applyTransforms(md: string) {
   return md
     .replace('#### ⚠️ Breaking Changes', '#### 🚨 破坏性改动')
     .replace('### ❤️ Contributors', '### ❤️ 贡献者')
     .replace(/ \(\[@([^\]]+)\]\(https:\/\/github\.com\/[^)]+\)\)/g, '')
 }
 
-async function capture(name, { from, newVersion, to }, commitsFn) {
+async function capture(
+  name: string,
+  { from, newVersion, to }: { from: string; newVersion: string; to: string },
+  commitsFn: (dir: string) => void,
+) {
   const dir = initRepo()
   commit(dir, 'alice', 'chore: init')
   git(dir, `tag ${from}`)
@@ -84,7 +92,7 @@ async function capture(name, { from, newVersion, to }, commitsFn) {
     templates: { tagBody: 'v{{newVersion}}' },
   }
   const parsed = parseCommits(rawCommits, config).filter(
-    (c) => config.types[c.type] && !(c.type === 'chore' && c.scope === 'deps' && !c.isBreaking),
+    (c: any) => config.types[c.type] && !(c.type === 'chore' && c.scope === 'deps' && !c.isBreaking),
   )
   const markdown = applyTransforms(await generateMarkDown(parsed, config))
   mkdirSync(join(OUT, name), { recursive: true })
@@ -99,7 +107,7 @@ async function capture(name, { from, newVersion, to }, commitsFn) {
       `# fixture ${name}`,
       '',
       '- 出处：changelogen@0.6.2（generateMarkDown）在合成 git 仓库的真实产出',
-      `- 生成：tests/fixtures/changelog-gen.mjs（dev-only）`,
+      `- 生成：tests/fixtures/changelog-gen.ts（dev-only）`,
       '- 变换：① Breaking 节标题中文化 ② 贡献者节头中文化 ③ 剥除 ungh.cc @username 链接',
       '- 生成配置：hideAuthorEmail: true（本实现默认翻转）；chore(deps) 过滤同原 JS',
       '',

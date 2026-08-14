@@ -3,10 +3,10 @@
   "version": "6.1.2",
   "private": true,
   "scripts": {
-    "build": "node scripts/sync-wterm-wasm.mjs && next build",
+    "build": "node scripts/sync-wterm-wasm.ts && next build",
     "capture:home-demo-cast": "bash scripts/capture-home-demo-cast.sh",
-    "dev": "node scripts/sync-wterm-wasm.mjs && next dev",
-    "postinstall": "node scripts/sync-wterm-wasm.mjs",
+    "dev": "node scripts/sync-wterm-wasm.ts && next dev",
+    "postinstall": "node scripts/sync-wterm-wasm.ts",
     "start": "serve out",
     "types:check": "next typegen && tsc --noEmit"
   },

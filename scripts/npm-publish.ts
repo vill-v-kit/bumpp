@@ -6,8 +6,8 @@
  * 已上架包跳过、查询失败整体不放行——「Re-run failed jobs」重跑即收敛。
  *
  * 用法（ci.yml publish-npm job）：
- *   NODE_AUTH_TOKEN=… node scripts/npm-publish.mjs            # 实际上架
- *   node scripts/npm-publish.mjs --dry-run                    # 干跑（本地/CI 验证，不上传）
+ *   NODE_AUTH_TOKEN=… node scripts/npm-publish.ts            # 实际上架
+ *   node scripts/npm-publish.ts --dry-run                    # 干跑（本地/CI 验证，不上传）
  *
  * 为什么由脚本而非 yaml 内联 bash 调 pnpm publish：--filter 列表若经 shell 变量
  * 传递依赖单词拆分，bash 拆、zsh 不拆（本地复跑 yaml 块会炸）；脚本内部以显式
@@ -35,18 +35,30 @@ import { execFile, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const guard = fileURLToPath(new URL('./publish-guard.mjs', import.meta.url))
+const guard = fileURLToPath(new URL('./publish-guard.ts', import.meta.url))
 const dryRun = process.argv.includes('--dry-run')
 const registryOverride = process.env.PUBLISH_GUARD_NPM_URL?.replace(/\/$/, '')
 const GUARD_UA = 'vill-v-kit/bumpp publish-guard (https://github.com/vill-v-kit/bumpp)'
 
-function exec(cmd, args) {
+interface ExecResult {
+  stdout: string
+  stderr: string
+}
+
+interface ExecError extends Error {
+  code?: number
+  stdout?: string
+  stderr?: string
+}
+
+function exec(cmd: string, args: string[]): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
     execFile(cmd, args, { cwd: root }, (error, stdout, stderr) => {
       if (error) {
-        error.stdout = stdout
-        error.stderr = stderr
-        reject(error)
+        const e = error as ExecError
+        e.stdout = stdout
+        e.stderr = stderr
+        reject(e)
       } else {
         resolve({ stdout, stderr })
       }
@@ -55,14 +67,15 @@ function exec(cmd, args) {
 }
 
 // 1. 枚举可上架包：workspace 全部非 private 项目（name + version）
-let listStdout
+let listStdout: string
 try {
   ;({ stdout: listStdout } = await exec('pnpm', ['ls', '-r', '--depth', '-1', '--json']))
 } catch (err) {
-  console.error(`ERROR pnpm ls failed: ${err.message}`)
+  console.error(`ERROR pnpm ls failed: ${(err as Error).message}`)
   process.exit(2)
 }
-const publishable = JSON.parse(listStdout).filter((p) => !p.private)
+const publishable = (JSON.parse(listStdout) as { name: string; version: string; private?: boolean }[])
+  .filter((p) => !p.private)
 
 // 2. 逐包过守卫（并行；guard 输出透传到 stderr）
 const results = await Promise.all(
@@ -72,11 +85,12 @@ const results = await Promise.all(
       process.stderr.write(stdout) // GO 行
       return { name: p.name, go: true }
     } catch (err) {
-      if (err.code === 1) {
-        process.stderr.write(err.stdout) // SKIP 行
+      const e = err as ExecError
+      if (e.code === 1) {
+        process.stderr.write(e.stdout ?? '') // SKIP 行
         return { name: p.name, go: false }
       }
-      process.stderr.write(err.stderr || `ERROR guard crashed for ${p.name}: ${err.message}\n`)
+      process.stderr.write(e.stderr || `ERROR guard crashed for ${p.name}: ${e.message}\n`)
       return { name: p.name, go: null }
     }
   }),
@@ -100,7 +114,7 @@ if (todo.length === 0) {
 // 造成部分上架（v6.1.0 musl 实例）——CI 上整体拦停 exit 2；本地手动首发
 // 是仪式本身，只警告不拦。查询失败同守卫语义 exit 2（不在未知态放行）
 const npmBase = registryOverride ?? 'https://registry.npmjs.org'
-const brandNew = []
+const brandNew: string[] = []
 let probeFailed = false
 await Promise.all(
   todo.map(async (name) => {
@@ -116,7 +130,8 @@ await Promise.all(
         probeFailed = true
       }
     } catch (err) {
-      console.error(`ERROR npm package query failed: ${err.cause?.code ?? err.message} for ${name}`)
+      const e = err as Error & { cause?: { code?: string } }
+      console.error(`ERROR npm package query failed: ${e.cause?.code ?? e.message} for ${name}`)
       probeFailed = true
     }
   }),
@@ -132,7 +147,7 @@ ${brandNew.map((n) => `  - ${n}`).join('\n')}
 
 npm trusted publishing 要求包已存在且已配置 trusted publisher，新包名没有
 配置页，CI/OIDC 无法首发。请执行首发仪式（CONTEXT.md「首发仪式」）：
-  1. 本地 pnpm login（OTP）后运行 node scripts/npm-publish.mjs——非 CI
+  1. 本地 pnpm login（OTP）后运行 node scripts/npm-publish.ts——非 CI
      环境只警告不拦停，守卫会过滤已上架包、只发未上架的（含全新包名）
   2. npmjs.com 各新包设置页配置 trusted publisher（vill-v-kit/bumpp +
      workflow 文件名）

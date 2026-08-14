@@ -1,29 +1,38 @@
 /**
- * crates-publish.mjs 的 CLI 契约测试（COL-54）。
+ * crates-publish.ts 的 CLI 契约测试（COL-54）。
  * Seam：CLI 契约本身——spawn 真实脚本进程，经 PUBLISH_GUARD_CRATES_URL 把
  * publish-guard 查询导向本地 stub registry，经 CRATES_PUBLISH_CARGO 把 cargo
  * 调用导向 stub 二进制（记 argv 日志、可按注入规则失败），验证
  * 「守卫 → dry-run 前置 → core→cli 顺序 → 重试/跳过」全链路编排。
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const script = fileURLToPath(new URL('./crates-publish.mjs', import.meta.url))
+const script = fileURLToPath(new URL('./crates-publish.ts', import.meta.url))
 
-let server
-let base
+type Handler = (req: IncomingMessage, res: ServerResponse) => void
+
+interface RunResult {
+  code: string | number | undefined
+  stdout: string
+  stderr: string
+}
+
+let server: Server
+let base: string
 // 每个测试替换此 handler 来模拟 crates.io API 行为
-let handler = (_req, res) => res.writeHead(500).end()
+let handler: Handler = (_req, res) => res.writeHead(500).end()
 
 beforeAll(async () => {
   server = createServer((req, res) => handler(req, res))
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  base = `http://127.0.0.1:${server.address().port}`
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
 
 afterAll(() => server.close())
@@ -47,7 +56,13 @@ if (used < remaining) {
 console.log('fake cargo ok: ' + key)
 `
 
-function makeFakeCargo(failRules = {}) {
+interface FakeCargo {
+  bin: string
+  env: Record<string, string>
+  logPath: string
+}
+
+function makeFakeCargo(failRules: Record<string, number> = {}): FakeCargo {
   const dir = mkdtempSync(join(tmpdir(), 'crates-publish-test-'))
   const bin = join(dir, 'fake-cargo.mjs')
   writeFileSync(bin, FAKE_CARGO)
@@ -64,7 +79,7 @@ function makeFakeCargo(failRules = {}) {
   }
 }
 
-function readLog(fake) {
+function readLog(fake: FakeCargo): string[] {
   try {
     return readFileSync(fake.logPath, 'utf8').trim().split('\n')
   } catch {
@@ -72,7 +87,7 @@ function readLog(fake) {
   }
 }
 
-function runPublish(fake, args = []) {
+function runPublish(fake: FakeCargo, args: string[] = []): Promise<RunResult> {
   return new Promise((resolve) => {
     execFile(
       'node',
@@ -92,11 +107,13 @@ function runPublish(fake, args = []) {
   })
 }
 
-const statusByCrate = (statuses) => (req, res) => {
-  // /api/v1/crates/<name>/<version> → ['', 'api', 'v1', 'crates', <name>, <version>]
-  const name = decodeURIComponent(req.url.split('/')[4])
-  res.writeHead(statuses[name] ?? 404).end()
-}
+const statusByCrate =
+  (statuses: Record<string, number>): Handler =>
+  (req, res) => {
+    // /api/v1/crates/<name>/<version> → ['', 'api', 'v1', 'crates', <name>, <version>]
+    const name = decodeURIComponent((req.url ?? '').split('/')[4])
+    res.writeHead(statuses[name] ?? 404).end()
+  }
 
 describe('守卫 → dry-run 前置 → core→cli 顺序', () => {
   it('双双未上架 + --dry-run：两 crate 各一次 dry-run，无真实上架', { timeout: 30000 }, async () => {

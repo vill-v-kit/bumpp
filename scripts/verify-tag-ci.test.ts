@@ -1,33 +1,42 @@
 /**
- * verify-tag-ci.mjs 的 CLI 契约测试（COL-62）。
+ * verify-tag-ci.ts 的 CLI 契约测试（COL-62）。
  * Seam：CLI 契约本身——spawn 真实脚本进程，打本地 stub GitHub API 验证 exit code。
  * 发版路径唯一要防的事故形态：tag push 事件被 GitHub 丢失 → 零 workflow run →
  * 上架静默不发生；脚本必须在此时 exit 1 并给出删 tag 重推的恢复指引。
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const script = fileURLToPath(new URL('./verify-tag-ci.mjs', import.meta.url))
+const script = fileURLToPath(new URL('./verify-tag-ci.ts', import.meta.url))
 
-let server
-let base
+type Handler = (req: IncomingMessage, res: ServerResponse) => void
+
+interface RunResult {
+  code: string | number | undefined
+  stdout: string
+  stderr: string
+}
+
+let server: Server
+let base: string
 // 每个测试替换此 handler 来模拟 GitHub API 行为
-let handler = (_req, res) => res.writeHead(500).end()
+let handler: Handler = (_req, res) => res.writeHead(500).end()
 
 beforeAll(async () => {
   server = createServer((req, res) => handler(req, res))
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  base = `http://127.0.0.1:${server.address().port}`
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
 
 afterAll(() => server.close())
 
-function runVerify(args, extraEnv = {}, cwd) {
+function runVerify(args: string[], extraEnv: Record<string, string> = {}, cwd?: string): Promise<RunResult> {
   return new Promise((resolve) => {
     execFile(
       'node',
@@ -50,11 +59,11 @@ function runVerify(args, extraEnv = {}, cwd) {
   })
 }
 
-function json(res, body) {
+function json(res: ServerResponse, body: unknown) {
   res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body))
 }
 
-const freshRun = (over = {}) => ({
+const freshRun = (over: Record<string, unknown> = {}) => ({
   id: 31038649040,
   name: 'CI',
   head_branch: 'v9.9.9',
@@ -126,14 +135,14 @@ describe('核验失败与「事件丢失」可区分', () => {
   })
 })
 
-function sh(cmd, args, cwd) {
+function sh(cmd: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) =>
     execFile(cmd, args, { cwd }, (e) => (e ? reject(e) : resolve())),
   )
 }
 
 /** 临时 git 仓库（可选 origin URL）；调用方负责 finally rmSync */
-async function makeGitRepo(remoteUrl) {
+async function makeGitRepo(remoteUrl?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'verify-tag-ci-'))
   await sh('git', ['init', '-q'], dir)
   if (remoteUrl) await sh('git', ['remote', 'add', 'origin', remoteUrl], dir)
@@ -158,7 +167,7 @@ describe('入参与来源解析', () => {
   ])('origin %s（%s）→ 解析 owner/repo 并命中对应 API 路径', async (url) => {
     const dir = await makeGitRepo(url)
     try {
-      let seenUrl
+      let seenUrl: string | undefined
       handler = (req, res) => {
         seenUrl = req.url
         json(res, { workflow_runs: [freshRun()] })
