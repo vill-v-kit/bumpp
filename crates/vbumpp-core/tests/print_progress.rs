@@ -79,3 +79,13 @@ fn script_is_green_success_with_command() {
     "✔ Run cargo build"
   );
 }
+
+#[test]
+fn event_strings_match_upstream() {
+  assert_eq!(ProgressEvent::FileUpdated.as_str(), "file updated");
+  assert_eq!(ProgressEvent::FileSkipped.as_str(), "file skipped");
+  assert_eq!(ProgressEvent::GitCommit.as_str(), "git commit");
+  assert_eq!(ProgressEvent::GitTag.as_str(), "git tag");
+  assert_eq!(ProgressEvent::GitPush.as_str(), "git push");
+  assert_eq!(ProgressEvent::Script.as_str(), "script");
+}
