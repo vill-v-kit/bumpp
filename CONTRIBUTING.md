@@ -50,6 +50,7 @@ cargo fmt --all && cargo clippy --workspace --all-targets
 - `npm/`、`napi/` 下无 `Cargo.toml` 的包（纯 JS 包、平台二进制包）必须加入根 `Cargo.toml` 的 `exclude`
 - `[profile.*]` 只写在根 workspace 清单
 - Rust 代码统一两空格缩进（根 `rustfmt.toml`）
+- Rust 模块入口一律无 `mod.rs` 风格：`foo.rs` + `foo/` 目录（`src/`、`tests/` 任何位置均适用）；PR 中出现新增 `mod.rs` 会被直接打回。完整结构约定（tests 镜像 src、单文件行数软上限等）见 [`docs/agents/rust-structure.md`](./docs/agents/rust-structure.md)
 
 ## 测试约定
 

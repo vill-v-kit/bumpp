@@ -37,6 +37,10 @@ Issues are tracked in Linear under the `villv-bump` project. See `docs/agents/is
 
 Use the five canonical triage labels without overrides. See `docs/agents/triage-labels.md`.
 
+### Rust crate structure
+
+Rust crate 的模块入口风格（无 `mod.rs`）、单文件行数软上限（src 500 / tests 1000）、tests 镜像 src 等结构约定见 `docs/agents/rust-structure.md`。
+
 ### Domain docs
 
 Use the single-context layout with `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
