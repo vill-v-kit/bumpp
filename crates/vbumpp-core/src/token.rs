@@ -30,6 +30,7 @@ pub enum TokenError {
   Format { message: String },
   Crypto { message: String },
   Prompt { message: String },
+  InvalidHost { message: String },
 }
 
 impl fmt::Display for TokenError {
@@ -39,7 +40,8 @@ impl fmt::Display for TokenError {
       | Self::Io { message }
       | Self::Format { message }
       | Self::Crypto { message }
-      | Self::Prompt { message } => f.write_str(message),
+      | Self::Prompt { message }
+      | Self::InvalidHost { message } => f.write_str(message),
     }
   }
 }
@@ -153,6 +155,67 @@ pub fn prompt_token(name: &str) -> Result<Option<String>, TokenError> {
       }
     }
     Err(_) => Ok(None),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// host 作用域键：`provider@host`（如 `gitlab@https://gitlab-a.com`）。
+// provider 级旧键零迁移保留，两级键共存。写入（token set）与读取（后续
+// release 解析链——host 作用域键优先、provider 级键回落，尚未落地）共用
+// 同一规范化函数——两侧归一一致才能保证相撞到同一键。
+// ---------------------------------------------------------------------------
+
+/// host 规范化为 base URL：无 scheme 自动补 `https://`（显式 `http://` 原样
+/// 保留，覆盖内网纯 HTTP 实例；其余 scheme 拒绝）；scheme 与 authority
+/// （host+port）小写，路径大小写敏感不动；去尾斜杠；端口与路径保留
+/// （兼容 GitLab relative-url-root 部署）
+pub fn normalize_host(raw: &str) -> Result<String, TokenError> {
+  let trimmed = raw.trim();
+  if trimmed.is_empty() {
+    return Err(TokenError::InvalidHost {
+      message: "host must not be empty".into(),
+    });
+  }
+  let with_scheme = if trimmed.contains("://") {
+    trimmed.to_owned()
+  } else {
+    format!("https://{trimmed}")
+  };
+  let (scheme, rest) = with_scheme.split_once("://").expect("contains checked");
+  let scheme = scheme.to_ascii_lowercase();
+  if scheme != "http" && scheme != "https" {
+    return Err(TokenError::InvalidHost {
+      message: format!("unsupported host scheme: {scheme} (expected http or https)"),
+    });
+  }
+  let (authority, path) = match rest.find('/') {
+    Some(i) => (&rest[..i], &rest[i..]),
+    None => (rest, ""),
+  };
+  if authority.is_empty() {
+    return Err(TokenError::InvalidHost {
+      message: format!("invalid host: {raw} (missing host name)"),
+    });
+  }
+  let authority = authority.to_ascii_lowercase();
+  // 尾斜杠全去：根路径 `/` 与 `/gitlab/` 分别归一为 `` 与 `/gitlab`
+  let path = path.trim_end_matches('/');
+  Ok(format!("{scheme}://{authority}{path}"))
+}
+
+/// host 作用域复合键：`provider@<规范化 host>`。原始 host 入参经
+/// `normalize_host` 归一后拼键——调用方无需自行规范化
+pub fn host_scoped_key(provider: &str, raw_host: &str) -> Result<String, TokenError> {
+  Ok(format!("{provider}@{}", normalize_host(raw_host)?))
+}
+
+/// 键拆解（列表友好显示用）：host 作用域键返回 `(provider, Some(host))`，
+/// provider 级键返回 `(key, None)`。host 部分必须带 scheme——JS 时代任意
+/// name 均可录入，无 scheme 的 `@` 键按不透明 name 处理（零迁移）
+pub fn split_key(key: &str) -> (&str, Option<&str>) {
+  match key.split_once('@') {
+    Some((provider, host)) if host.contains("://") => (provider, Some(host)),
+    _ => (key, None),
   }
 }
 

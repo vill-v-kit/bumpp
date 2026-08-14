@@ -601,20 +601,48 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
   };
   match action.as_str() {
     "set" => {
-      let Some(name) = positional_name(args.get(1)) else {
+      let Some(scanned) = scan_token_flags_or_report(&args[1..], err) else {
+        return 1;
+      };
+      let Some(name) = scanned.positionals.first() else {
         error_line(err, "usage: vbumpp token set <name>");
         return 1;
       };
+      // host 作用域键虽 provider 无关，但目前只有 gitlab 的 release 解析链
+      // 有 host 配置通路——其他 provider 存进去永远不会被读到，一律拒绝
+      // （未来 GHE 支持时解除）
+      let key = match scanned.values.get("host") {
+        Some(raw_host) => {
+          if name != "gitlab" {
+            error_line(
+              err,
+              &format!("--host is only supported for gitlab (got {name})"),
+            );
+            return 1;
+          }
+          match token::host_scoped_key(name, raw_host) {
+            Ok(key) => key,
+            Err(e) => {
+              error_line(err, &e.to_string());
+              return 1;
+            }
+          }
+        }
+        None => name.clone(),
+      };
+      // 友好显示形态：provider 级键 `gitlab`，host 作用域键
+      // `gitlab (https://gitlab-a.com)`——prompt 文案指明目标 host
+      let display = display_key(&key);
       // 密码交互在 Rust 侧（dialoguer，ADR-0014）
       let prompt = env.prompt.unwrap_or(&token::prompt_token);
-      match prompt(name) {
+      match prompt(&display) {
         Ok(Some(plaintext)) => {
           let Some(store) = resolve_store(env.store, err) else {
             return 1;
           };
-          match token::save_token_at(&store, name, &plaintext) {
+          match token::save_token_at(&store, &key, &plaintext) {
             Ok(()) => {
-              success_line(out, &format!("{name} token saved (encrypted)"));
+              success_line(out, &format!("{display} token saved (encrypted)"));
               0
             }
             Err(e) => {
@@ -634,6 +662,20 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
       }
     }
     "list" => {
+      let Some(scanned) = scan_token_flags_or_report(&args[1..], err) else {
+        return 1;
+      };
+      // `--host` 过滤单条：过滤值与写入侧经同一规范化函数相撞
+      let host_filter = match scanned.values.get("host") {
+        Some(raw_host) => match token::normalize_host(raw_host) {
+          Ok(host) => Some(host),
+          Err(e) => {
+            error_line(err, &e.to_string());
+            return 1;
+          }
+        },
+        None => None,
+      };
       let Some(store) = resolve_store(env.store, err) else {
         return 1;
       };
@@ -643,8 +685,19 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
           0
         }
         Ok(tokens) => {
-          for name in tokens.keys() {
-            info_line(out, name);
+          let mut shown = 0;
+          for key in tokens.keys() {
+            if let Some(filter) = &host_filter {
+              if !matches!(token::split_key(key), (_, Some(host)) if host == filter) {
+                continue;
+              }
+            }
+            info_line(out, &display_key(key));
+            shown += 1;
+          }
+          if shown == 0 {
+            let filter = host_filter.expect("only reachable with a filter");
+            warn_line(out, &format!("no token found for host {filter}"));
           }
           0
         }
@@ -692,6 +745,106 @@ fn positional_name(arg: Option<&String>) -> Option<&str> {
   arg.map(String::as_str).filter(|s| !s.starts_with('-'))
 }
 
+/// token 子命令 flag 扫描产物
+#[derive(Debug)]
+struct TokenArgs {
+  /// 位置参数（`--` 分隔之后一律按位置参数收集，dash 前缀不再解析）
+  positionals: Vec<String>,
+  /// 布尔 flag 命中集（bare `--flag`；为 remove 矩阵 --all/--yes/--dry-run 打底）
+  #[allow(dead_code)]
+  flags: std::collections::BTreeSet<String>,
+  /// 值 flag 命中表（`--flag value` 与 `--flag=value` 双形态；重复取最后）
+  values: std::collections::BTreeMap<String, String>,
+}
+
+/// token 子命令的 flag 扫描小 helper：认 `--flag` / `--flag=value` / `--`
+/// 位置参数分隔；声明名单外的 `--x` 与短 flag 一律未知报错（exit 1 由调用方
+/// 回写）。手写解析维持，不引 clap（ADR-0016）
+fn scan_token_args(
+  args: &[String],
+  bool_flags: &[&str],
+  value_flags: &[&str],
+) -> Result<TokenArgs, String> {
+  let mut scanned = TokenArgs {
+    positionals: Vec::new(),
+    flags: std::collections::BTreeSet::new(),
+    values: std::collections::BTreeMap::new(),
+  };
+  let mut positional_only = false;
+  let mut i = 0;
+  while i < args.len() {
+    let arg = &args[i];
+    i += 1;
+    if positional_only {
+      scanned.positionals.push(arg.clone());
+      continue;
+    }
+    if arg == "--" {
+      positional_only = true;
+      continue;
+    }
+    if let Some(long) = arg.strip_prefix("--") {
+      let (name, inline) = match long.split_once('=') {
+        Some((name, value)) => (name, Some(value.to_string())),
+        None => (long, None),
+      };
+      if value_flags.contains(&name) {
+        let value = match inline {
+          Some(value) => value,
+          None => {
+            let Some(next) = args.get(i) else {
+              return Err(format!("option --{name} requires a value"));
+            };
+            // flag 形态的下一参数不当值吞（`--host --foo` 必为漏值笔误，
+            // 吞下去会落出 `gitlab@https://--foo` 这类静默错键）
+            if next.starts_with('-') && next.len() > 1 {
+              return Err(format!("option --{name} requires a value"));
+            }
+            i += 1;
+            next.clone()
+          }
+        };
+        scanned.values.insert(name.to_string(), value);
+      } else if bool_flags.contains(&name) {
+        // 布尔 flag 带值按 mri 惯例视为 truthy（与 bump/release 解析一致）
+        scanned.flags.insert(name.to_string());
+      } else {
+        return Err(format!("unknown option: {arg}"));
+      }
+      continue;
+    }
+    if arg.starts_with('-') && arg.len() > 1 {
+      // token 子命令无短 flag——dash 前缀不当位置参数吞（原 cac parity 的
+      // 「name 缺省即用法错误」升级为显式未知 flag 报错）
+      return Err(format!("unknown option: {arg}"));
+    }
+    scanned.positionals.push(arg.clone());
+  }
+  Ok(scanned)
+}
+
+/// 列表 / prompt 的友好显示形态：`gitlab` / `gitlab (https://gitlab-a.com)`
+fn display_key(key: &str) -> String {
+  match token::split_key(key) {
+    (provider, Some(host)) => format!("{provider} ({host})"),
+    _ => key.to_owned(),
+  }
+}
+
+/// set / list 当前共用的 flag 名单（remove 矩阵落地时另带 --all/--yes/--dry-run）
+const TOKEN_VALUE_FLAGS: &[&str] = &["host"];
+
+/// token 子命令扫描的收口：解析失败即报错回写、调用方 `return 1`
+fn scan_token_flags_or_report(args: &[String], err: &mut impl Write) -> Option<TokenArgs> {
+  match scan_token_args(args, &[], TOKEN_VALUE_FLAGS) {
+    Ok(scanned) => Some(scanned),
+    Err(message) => {
+      error_line(err, &message);
+      None
+    }
+  }
+}
+
 /// token 存储路径：注入值优先，缺省走环境解析
 fn resolve_store(store: Option<&Path>, err: &mut impl Write) -> Option<PathBuf> {
   match store {
@@ -721,7 +874,8 @@ fn print_help(out: &mut impl Write) -> i32 {
     "usage:\n  \
      vbumpp [...files]                bump version and generate changelog\n  \
      vbumpp release <version>         retry platform release from a changelog section\n  \
-     vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted\n\
+     vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted\n  \
+     (set/list accept --host <url> for gitlab self-hosted instances)\n\
      \noptions:\n  \
      -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)\n  \
      -r, --recursive             recursively\n  \
@@ -781,6 +935,59 @@ mod tests {
     assert_eq!(positional_name(Some(&"github".to_string())), Some("github"));
     assert_eq!(positional_name(Some(&"--output".to_string())), None);
     assert_eq!(positional_name(None), None);
+  }
+
+  #[test]
+  fn scan_token_args_value_flag_both_forms() {
+    let scanned = scan_token_args(&argv(&["gitlab", "--host", "a.com"]), &[], &["host"]).unwrap();
+    assert_eq!(scanned.positionals, vec!["gitlab".to_string()]);
+    assert_eq!(
+      scanned.values.get("host").map(String::as_str),
+      Some("a.com")
+    );
+
+    let scanned = scan_token_args(&argv(&["gitlab", "--host=a.com"]), &[], &["host"]).unwrap();
+    assert_eq!(
+      scanned.values.get("host").map(String::as_str),
+      Some("a.com")
+    );
+  }
+
+  #[test]
+  fn scan_token_args_double_dash_stops_flag_parsing() {
+    let scanned = scan_token_args(&argv(&["--", "--host", "a.com"]), &[], &["host"]).unwrap();
+    assert_eq!(
+      scanned.positionals,
+      vec!["--host".to_string(), "a.com".to_string()],
+      "-- 之后一律位置参数"
+    );
+    assert!(scanned.values.is_empty());
+  }
+
+  #[test]
+  fn scan_token_args_unknown_flag_and_missing_value_error() {
+    let err = scan_token_args(&argv(&["--wat"]), &[], &["host"]).unwrap_err();
+    assert_eq!(err, "unknown option: --wat");
+    let err = scan_token_args(&argv(&["-x"]), &[], &["host"]).unwrap_err();
+    assert_eq!(err, "unknown option: -x");
+    let err = scan_token_args(&argv(&["--host"]), &[], &["host"]).unwrap_err();
+    assert_eq!(err, "option --host requires a value");
+  }
+
+  #[test]
+  fn scan_token_args_value_flag_rejects_flag_shaped_value() {
+    // `--host --foo` 必为漏值笔误——flag 形态的下一参数不当值吞
+    let err = scan_token_args(&argv(&["--host", "--foo"]), &[], &["host"]).unwrap_err();
+    assert_eq!(err, "option --host requires a value");
+    let err = scan_token_args(&argv(&["--host", "-x"]), &[], &["host"]).unwrap_err();
+    assert_eq!(err, "option --host requires a value");
+  }
+
+  #[test]
+  fn scan_token_args_bool_flag_truthy_with_value() {
+    // mri 惯例：布尔 flag 带值亦视为命中（与 bump/release 解析一致）
+    let scanned = scan_token_args(&argv(&["--all=false"]), &["all"], &[]).unwrap();
+    assert!(scanned.flags.contains("all"));
   }
 
   #[test]

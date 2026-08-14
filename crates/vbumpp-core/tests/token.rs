@@ -6,7 +6,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use tempfile::TempDir;
-use vbumpp_core::token::{read_token_store_at, remove_token_at, save_token_at};
+use vbumpp_core::token::{
+  host_scoped_key, normalize_host, read_token_store_at, remove_token_at, save_token_at, split_key,
+};
 
 fn fixture_dir() -> PathBuf {
   PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/token")
@@ -156,4 +158,95 @@ fn remove_deletes_store_file_when_emptied() {
     "key.bin 不随清空删除（JS parity）"
   );
   assert!(read_token_store_at(&store).unwrap().is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// host 作用域键：normalize_host / host_scoped_key / split_key
+// ---------------------------------------------------------------------------
+
+#[test]
+fn normalize_host_fills_https_scheme() {
+  assert_eq!(
+    normalize_host("gitlab-a.com").unwrap(),
+    "https://gitlab-a.com"
+  );
+}
+
+#[test]
+fn normalize_host_collapses_equivalent_forms() {
+  // 规范化相撞：三种写法归一到同一 host（写入与读取共用同一函数）
+  let expected = "https://gitlab-a.com";
+  assert_eq!(normalize_host("gitlab-a.com").unwrap(), expected);
+  assert_eq!(normalize_host("https://gitlab-a.com/").unwrap(), expected);
+  assert_eq!(normalize_host("HTTPS://GitLab-A.com").unwrap(), expected);
+}
+
+#[test]
+fn normalize_host_preserves_explicit_http() {
+  // 显式 http:// 原样保留（内网纯 HTTP 实例）
+  assert_eq!(
+    normalize_host("http://gitlab.internal").unwrap(),
+    "http://gitlab.internal"
+  );
+}
+
+#[test]
+fn normalize_host_preserves_port_and_path() {
+  // 端口与路径保留（relative-url-root 部署）；路径大小写敏感不动
+  assert_eq!(
+    normalize_host("gitlab-a.com:8443/GitLab").unwrap(),
+    "https://gitlab-a.com:8443/GitLab"
+  );
+  assert_eq!(
+    normalize_host("https://gitlab-a.com:8443/gitlab/").unwrap(),
+    "https://gitlab-a.com:8443/gitlab"
+  );
+}
+
+#[test]
+fn normalize_host_rejects_invalid_input() {
+  assert!(normalize_host("").is_err(), "空 host 报错");
+  assert!(normalize_host("   ").is_err(), "纯空白 host 报错");
+  assert!(normalize_host("https://").is_err(), "空 authority 报错");
+  assert!(
+    normalize_host("ftp://gitlab-a.com").is_err(),
+    "非 http(s) scheme 报错"
+  );
+}
+
+#[test]
+fn host_scoped_key_composes_provider_at_normalized_host() {
+  assert_eq!(
+    host_scoped_key("gitlab", "gitlab-a.com").unwrap(),
+    "gitlab@https://gitlab-a.com"
+  );
+  assert_eq!(
+    host_scoped_key("gitlab", "HTTPS://GitLab-A.com/").unwrap(),
+    "gitlab@https://gitlab-a.com",
+    "复合键经同一规范化函数，与 set/list 两侧相撞一致"
+  );
+}
+
+#[test]
+fn split_key_round_trips_scoped_and_plain_keys() {
+  assert_eq!(
+    split_key("gitlab@https://gitlab-a.com"),
+    ("gitlab", Some("https://gitlab-a.com"))
+  );
+  assert_eq!(split_key("github"), ("github", None));
+  // JS 时代任意 name 均可录入——无 scheme 的 @ 键按不透明 name 处理（零迁移）
+  assert_eq!(split_key("foo@bar"), ("foo@bar", None));
+}
+
+#[test]
+fn scoped_key_coexists_with_provider_key() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitlab", "plain-token").unwrap();
+  let scoped = host_scoped_key("gitlab", "https://gitlab-a.com").unwrap();
+  save_token_at(&store, &scoped, "scoped-token").unwrap();
+  let tokens = read_token_store_at(&store).unwrap();
+  assert_eq!(tokens["gitlab"], "plain-token", "provider 级旧键原样保留");
+  assert_eq!(tokens[&scoped], "scoped-token");
+  assert_eq!(tokens.len(), 2);
 }

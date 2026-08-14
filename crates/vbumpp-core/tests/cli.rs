@@ -208,11 +208,11 @@ fn token_set_without_name_errors() {
 
 #[test]
 fn token_set_dash_prefixed_name_errors_usage() {
-  // JS parity：cac 会把 --output 当全局选项吞掉，name 缺省 → 用法错误
+  // token 子命令 flag 扫描：声明名单外的 `--x` 一律按未知 flag 报错（exit 1）
   let dir = TempDir::new().unwrap();
   let (_out, err, code) = run(&["token", "set", "--output"], &store_in(&dir));
   assert_eq!(code, 1, "退出码");
-  assert!(err.contains("usage: vbumpp token set <name>"), "{err}");
+  assert!(err.contains("unknown option: --output"), "{err}");
 }
 
 #[test]
@@ -294,6 +294,214 @@ fn token_list_prints_all_names() {
   assert_eq!(code, 0, "退出码");
   assert!(out.contains("gitee"), "{out}");
   assert!(out.contains("github"), "{out}");
+}
+
+// ---------------------------------------------------------------------------
+// token set / list --host（host 作用域键）
+// ---------------------------------------------------------------------------
+
+#[test]
+fn token_set_gitlab_with_host_saves_scoped_key() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  let prompt = |_name: &str| Ok(Some("scoped-secret".to_string()));
+  let (out, _err, code) = run_full(
+    &["token", "set", "gitlab", "--host", "https://gitlab-a.com"],
+    None,
+    &store,
+    None,
+    Some(&prompt),
+  );
+  assert_eq!(code, 0, "退出码");
+  assert!(
+    out.contains("gitlab (https://gitlab-a.com) token saved (encrypted)"),
+    "{out}"
+  );
+  assert_eq!(
+    read_token_store_at(&store).unwrap()["gitlab@https://gitlab-a.com"],
+    "scoped-secret",
+    "存储内出现 host 作用域复合键"
+  );
+}
+
+#[test]
+fn token_set_host_prompt_names_target_host() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  let prompt = |name: &str| {
+    assert_eq!(
+      name, "gitlab (https://gitlab-a.com)",
+      "prompt 文案指明目标 host"
+    );
+    Ok(Some("x".to_string()))
+  };
+  let (_out, _err, code) = run_full(
+    &["token", "set", "gitlab", "--host", "gitlab-a.com"],
+    None,
+    &store,
+    None,
+    Some(&prompt),
+  );
+  assert_eq!(code, 0, "退出码");
+}
+
+#[test]
+fn token_set_host_normalization_collapses_to_same_key() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  let prompt = |_name: &str| Ok(Some("x".to_string()));
+  for raw in [
+    "gitlab-a.com",
+    "https://gitlab-a.com/",
+    "HTTPS://GitLab-A.com",
+  ] {
+    let (_out, _err, code) = run_full(
+      &["token", "set", "gitlab", "--host", raw],
+      None,
+      &store,
+      None,
+      Some(&prompt),
+    );
+    assert_eq!(code, 0, "{raw} 退出码");
+  }
+  let tokens = read_token_store_at(&store).unwrap();
+  assert_eq!(tokens.len(), 1, "三种写法归一到同一键，实际 {tokens:?}");
+  assert!(tokens.contains_key("gitlab@https://gitlab-a.com"));
+}
+
+#[test]
+fn token_set_host_equals_form_and_double_dash_separator() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  let prompt = |_name: &str| Ok(Some("x".to_string()));
+  // `--host=H` 等值形态
+  let (_out, _err, code) = run_full(
+    &["token", "set", "gitlab", "--host=https://gitlab-b.com"],
+    None,
+    &store,
+    None,
+    Some(&prompt),
+  );
+  assert_eq!(code, 0, "--host=H 退出码");
+  // `--` 之后一律位置参数（`--host` 不再解析为 flag）
+  let (_out, _err, code) = run_full(
+    &["token", "set", "--", "gitee", "--host=https://gitlab-c.com"],
+    None,
+    &store,
+    None,
+    Some(&prompt),
+  );
+  assert_eq!(code, 0, "-- 分隔退出码");
+  let tokens = read_token_store_at(&store).unwrap();
+  assert!(
+    tokens.contains_key("gitlab@https://gitlab-b.com"),
+    "{tokens:?}"
+  );
+  assert!(
+    tokens.contains_key("gitee"),
+    "-- 后 --host 按位置参数忽略，gitee 落 provider 级键：{tokens:?}"
+  );
+}
+
+#[test]
+fn token_set_host_rejects_non_gitlab_providers() {
+  for provider in ["github", "gitee", "gitcode"] {
+    let dir = TempDir::new().unwrap();
+    let store = store_in(&dir);
+    let prompt = |_name: &str| Ok(Some("x".to_string()));
+    let (_out, err, code) = run_full(
+      &["token", "set", provider, "--host", "https://gitlab-a.com"],
+      None,
+      &store,
+      None,
+      Some(&prompt),
+    );
+    assert_eq!(code, 1, "{provider} 退出码");
+    assert!(
+      err.contains("--host is only supported for gitlab"),
+      "{provider}: {err}"
+    );
+    assert!(
+      read_token_store_at(&store).unwrap().is_empty(),
+      "{provider} 拒绝路径不落盘"
+    );
+  }
+}
+
+#[test]
+fn token_set_host_missing_value_errors() {
+  let dir = TempDir::new().unwrap();
+  let (_out, err, code) = run(&["token", "set", "gitlab", "--host"], &store_in(&dir));
+  assert_eq!(code, 1, "退出码");
+  assert!(err.contains("option --host requires a value"), "{err}");
+}
+
+#[test]
+fn token_set_host_invalid_value_errors() {
+  let dir = TempDir::new().unwrap();
+  let (_out, err, code) = run(
+    &["token", "set", "gitlab", "--host", "https://"],
+    &store_in(&dir),
+  );
+  assert_eq!(code, 1, "退出码");
+  assert!(
+    err.contains("invalid host: https:// (missing host name)"),
+    "{err}"
+  );
+}
+
+#[test]
+fn token_list_shows_friendly_scoped_names() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitlab", "plain").unwrap();
+  save_token_at(&store, "gitlab@https://gitlab-a.com", "scoped").unwrap();
+  let (out, _err, code) = run(&["token", "list"], &store);
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("gitlab (https://gitlab-a.com)"), "{out}");
+  assert!(
+    out.lines().any(|line| line.ends_with("gitlab")),
+    "provider 级键按原名显示：{out}"
+  );
+}
+
+#[test]
+fn token_list_host_filters_single_entry() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitlab", "plain").unwrap();
+  save_token_at(&store, "gitlab@https://gitlab-a.com", "a").unwrap();
+  save_token_at(&store, "gitlab@https://gitlab-b.com", "b").unwrap();
+  // 过滤值同样经规范化（无 scheme 写法可命中）
+  let (out, _err, code) = run(&["token", "list", "--host", "gitlab-a.com"], &store);
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("gitlab (https://gitlab-a.com)"), "{out}");
+  assert!(!out.contains("gitlab-b.com"), "{out}");
+  assert!(
+    !out.lines().any(|line| line.ends_with("gitlab")),
+    "provider 级键被过滤：{out}"
+  );
+}
+
+#[test]
+fn token_list_host_filter_without_match_warns() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitlab", "plain").unwrap();
+  let (out, _err, code) = run(&["token", "list", "--host", "gitlab-a.com"], &store);
+  assert_eq!(code, 0, "未命中非失败，退出码");
+  assert!(
+    out.contains("no token found for host https://gitlab-a.com"),
+    "{out}"
+  );
+}
+
+#[test]
+fn token_list_unknown_flag_errors() {
+  let dir = TempDir::new().unwrap();
+  let (_out, err, code) = run(&["token", "list", "--wat"], &store_in(&dir));
+  assert_eq!(code, 1, "退出码");
+  assert!(err.contains("unknown option: --wat"), "{err}");
 }
 
 #[test]
