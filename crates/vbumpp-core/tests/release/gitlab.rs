@@ -213,6 +213,7 @@ fn trailing_slash_config_value_collides_via_real_entry() {
     store: Some(&store),
     cwd: None,
     prompt: Some(&prompt),
+    confirm: None,
   };
   let mut out = Vec::new();
   let mut err_buf = Vec::new();

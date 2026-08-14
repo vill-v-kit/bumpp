@@ -8,7 +8,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use tempfile::TempDir;
-use vbumpp_core::cli::{run_at, RunEnv, TokenPrompt};
+use vbumpp_core::cli::{run_at, ConfirmPrompt, RunEnv, TokenPrompt};
 use vbumpp_core::token::{read_token_store_at, save_token_at, TokenError};
 
 fn store_in(dir: &TempDir) -> PathBuf {
@@ -33,10 +33,35 @@ fn run_full(
     store: Some(store),
     cwd,
     prompt,
+    confirm: None,
   };
   let mut out = Vec::new();
   let mut err = Vec::new();
   let code = run_at(&argv, provider, &env, &mut out, &mut err);
+  (
+    String::from_utf8(out).unwrap(),
+    String::from_utf8(err).unwrap(),
+    code,
+  )
+}
+
+/// token remove 矩阵用例：confirm 交互注入（None 走真实 TTY 守卫实现——
+/// 测试环境非 TTY 必报错，矩阵用例一律显式注入或经 --yes / --dry-run 绕过）
+fn run_remove(
+  argv: &[&str],
+  store: &Path,
+  confirm: Option<ConfirmPrompt<'_>>,
+) -> (String, String, i32) {
+  let argv: Vec<String> = argv.iter().map(|s| (*s).to_string()).collect();
+  let env = RunEnv {
+    store: Some(store),
+    cwd: None,
+    prompt: None,
+    confirm,
+  };
+  let mut out = Vec::new();
+  let mut err = Vec::new();
+  let code = run_at(&argv, None, &env, &mut out, &mut err);
   (
     String::from_utf8(out).unwrap(),
     String::from_utf8(err).unwrap(),
@@ -532,11 +557,344 @@ fn token_remove_existing_succeeds() {
   let dir = TempDir::new().unwrap();
   let store = store_in(&dir);
   save_token_at(&store, "github", "x").unwrap();
-  let (out, _err, code) = run(&["token", "remove", "github"], &store);
+  // --yes 跳过确认直删
+  let (out, _err, code) = run_remove(&["token", "remove", "github", "--yes"], &store, None);
   assert_eq!(code, 0, "退出码");
   assert!(out.contains("github token removed"), "{out}");
   assert!(
     read_token_store_at(&store).unwrap().is_empty(),
     "删除后存储为空"
   );
+}
+
+// ---------------------------------------------------------------------------
+// token remove 交互矩阵：四目标形态 × 执行修饰（--dry-run / --yes / 确认）
+// ---------------------------------------------------------------------------
+
+/// 矩阵用例共享的存储形态：provider 级键 + 两个 host 作用域键 + 别家键
+fn seeded_store(dir: &TempDir) -> PathBuf {
+  let store = store_in(dir);
+  save_token_at(&store, "gitlab", "plain").unwrap();
+  save_token_at(&store, "gitlab@https://gitlab-a.com", "a").unwrap();
+  save_token_at(&store, "gitlab@https://gitlab-b.com", "b").unwrap();
+  save_token_at(&store, "gitee", "other").unwrap();
+  store
+}
+
+#[test]
+fn remove_provider_key_leaves_scoped_keys() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (_out, _err, code) = run_remove(&["token", "remove", "gitlab", "--yes"], &store, None);
+  assert_eq!(code, 0, "退出码");
+  let tokens = read_token_store_at(&store).unwrap();
+  assert!(!tokens.contains_key("gitlab"), "provider 级键已删");
+  assert!(
+    tokens.contains_key("gitlab@https://gitlab-a.com")
+      && tokens.contains_key("gitlab@https://gitlab-b.com"),
+    "精确项语义不触碰 gitlab@* 键：{tokens:?}"
+  );
+  assert!(tokens.contains_key("gitee"));
+}
+
+#[test]
+fn remove_host_scoped_key_only() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  // 过滤值带尾斜杠：经同一规范化函数与写入侧相撞
+  let (_out, _err, code) = run_remove(
+    &[
+      "token",
+      "remove",
+      "gitlab",
+      "--host",
+      "https://gitlab-a.com/",
+      "--yes",
+    ],
+    &store,
+    None,
+  );
+  assert_eq!(code, 0, "退出码");
+  let tokens = read_token_store_at(&store).unwrap();
+  assert!(
+    !tokens.contains_key("gitlab@https://gitlab-a.com"),
+    "目标 host 键已删"
+  );
+  assert!(tokens.contains_key("gitlab"), "provider 级键不动");
+  assert!(
+    tokens.contains_key("gitlab@https://gitlab-b.com"),
+    "其他 host 键不动"
+  );
+}
+
+#[test]
+fn remove_host_rejects_non_gitlab() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (_out, err, code) = run_remove(
+    &[
+      "token",
+      "remove",
+      "gitee",
+      "--host",
+      "https://gitlab-a.com",
+      "--yes",
+    ],
+    &store,
+    None,
+  );
+  assert_eq!(code, 1, "退出码");
+  assert!(err.contains("--host is only supported for gitlab"), "{err}");
+  assert_eq!(
+    read_token_store_at(&store).unwrap().len(),
+    4,
+    "拒绝路径不动存储"
+  );
+}
+
+#[test]
+fn remove_host_scoped_missing_warns() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (out, _err, code) = run_remove(
+    &[
+      "token",
+      "remove",
+      "gitlab",
+      "--host",
+      "https://gitlab-c.com",
+      "--yes",
+    ],
+    &store,
+    None,
+  );
+  assert_eq!(code, 0, "目标不存在非失败，退出码");
+  assert!(
+    out.contains("no token found for gitlab (https://gitlab-c.com)"),
+    "{out}"
+  );
+  assert_eq!(read_token_store_at(&store).unwrap().len(), 4, "不动存储");
+}
+
+#[test]
+fn remove_provider_all_partial_listing_without_provider_key() {
+  // provider 级键不存在但 host 键在：--all 只删实际存在的条目并如实列清单
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitlab@https://gitlab-a.com", "a").unwrap();
+  save_token_at(&store, "gitee", "other").unwrap();
+  let (out, _err, code) = run_remove(
+    &["token", "remove", "gitlab", "--all", "--yes"],
+    &store,
+    None,
+  );
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("gitlab (https://gitlab-a.com)"), "{out}");
+  assert!(
+    !out.lines().any(|line| line.ends_with(" gitlab")),
+    "不存在的 provider 级键不入清单：{out}"
+  );
+  let tokens = read_token_store_at(&store).unwrap();
+  assert_eq!(tokens.len(), 1, "{tokens:?}");
+  assert!(tokens.contains_key("gitee"));
+}
+
+#[test]
+fn remove_provider_all_clears_scoped_keys() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (out, _err, code) = run_remove(
+    &["token", "remove", "gitlab", "--all", "--yes"],
+    &store,
+    None,
+  );
+  assert_eq!(code, 0, "退出码");
+  let tokens = read_token_store_at(&store).unwrap();
+  assert_eq!(tokens.len(), 1, "gitlab 全清、别家不动：{tokens:?}");
+  assert!(tokens.contains_key("gitee"));
+  // 如实列清单（友好形态）
+  assert!(out.contains("gitlab (https://gitlab-a.com)"), "{out}");
+  assert!(out.contains("gitlab (https://gitlab-b.com)"), "{out}");
+}
+
+#[test]
+fn remove_all_empties_whole_store() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (_out, _err, code) = run_remove(&["token", "remove", "--all", "--yes"], &store, None);
+  assert_eq!(code, 0, "退出码");
+  assert!(!store.exists(), "清空后存储文件删除（既有语义）");
+}
+
+#[test]
+fn remove_all_on_empty_store_warns() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  let (out, _err, code) = run_remove(&["token", "remove", "--all", "--yes"], &store, None);
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("no tokens configured"), "{out}");
+}
+
+#[test]
+fn remove_provider_all_without_match_warns() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitee", "x").unwrap();
+  let (out, _err, code) = run_remove(
+    &["token", "remove", "gitlab", "--all", "--yes"],
+    &store,
+    None,
+  );
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("no token found for gitlab"), "{out}");
+  assert_eq!(read_token_store_at(&store).unwrap().len(), 1, "不动存储");
+}
+
+#[test]
+fn remove_dry_run_prints_list_without_deleting_or_confirming() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  // confirm 注入为 panic——dry-run 优先级最高，不得触达确认
+  let confirm = |_text: &str| panic!("dry-run 不得触达确认交互");
+  for extra in [&["--dry-run"][..], &["--dry-run", "--yes"][..]] {
+    let (out, err, code) = run_remove(
+      &["token", "remove", "gitlab", "--all"]
+        .iter()
+        .chain(extra.iter())
+        .copied()
+        .collect::<Vec<_>>(),
+      &store,
+      Some(&confirm),
+    );
+    assert_eq!(code, 0, "{extra:?} 退出码：{err}");
+    assert!(out.contains("dry run — no changes made"), "{out}");
+    assert!(out.contains("gitlab (https://gitlab-a.com)"), "{out}");
+    assert_eq!(
+      read_token_store_at(&store).unwrap().len(),
+      4,
+      "{extra:?} 不产生写操作"
+    );
+  }
+}
+
+#[test]
+fn remove_confirm_accept_deletes_after_listing() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let confirm = |text: &str| {
+    assert_eq!(text, "Remove the listed tokens?", "确认文案");
+    Ok(true)
+  };
+  let (out, _err, code) = run_remove(
+    &["token", "remove", "gitlab", "--all"],
+    &store,
+    Some(&confirm),
+  );
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("tokens to remove:"), "先列清单：{out}");
+  assert!(out.contains("gitlab (https://gitlab-a.com)"), "{out}");
+  let tokens = read_token_store_at(&store).unwrap();
+  assert_eq!(tokens.len(), 1, "确认后删除：{tokens:?}");
+  assert!(tokens.contains_key("gitee"));
+}
+
+#[test]
+fn remove_confirm_decline_cancels_without_deleting() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let confirm = |_text: &str| Ok(false);
+  let (out, _err, code) = run_remove(&["token", "remove", "gitlab"], &store, Some(&confirm));
+  assert_eq!(code, 0, "拒绝非失败，退出码");
+  assert!(out.contains("canceled"), "{out}");
+  assert_eq!(read_token_store_at(&store).unwrap().len(), 4, "拒绝不删");
+}
+
+#[test]
+fn remove_non_tty_without_yes_errors() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  // 真实 TTY 守卫实现的报错形态（非 TTY 无法交互确认）
+  let confirm = |_text: &str| {
+    Err(TokenError::Prompt {
+      message:
+        "cannot confirm interactively (not a TTY); re-run with --yes to delete without confirmation"
+          .into(),
+    })
+  };
+  let (_out, err, code) = run_remove(&["token", "remove", "gitlab"], &store, Some(&confirm));
+  assert_eq!(code, 1, "非 TTY 无 --yes 报错，退出码");
+  assert!(err.contains("--yes"), "报错引导 --yes：{err}");
+  assert_eq!(read_token_store_at(&store).unwrap().len(), 4, "不能静默删");
+}
+
+#[test]
+fn remove_without_confirm_injection_hits_real_tty_guard() {
+  // 不注入 confirm——走真实 confirm_remove 的 TTY 守卫（测试环境非 TTY，
+  // 守卫必须报错引导 --yes，不得静默删也不得阻塞）
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (_out, err, code) = run_remove(&["token", "remove", "gitlab"], &store, None);
+  assert_eq!(code, 1, "退出码");
+  assert!(err.contains("not a TTY"), "{err}");
+  assert!(err.contains("--yes"), "{err}");
+  assert_eq!(read_token_store_at(&store).unwrap().len(), 4, "不能静默删");
+}
+
+#[test]
+fn remove_host_and_all_conflict_errors() {
+  let dir = TempDir::new().unwrap();
+  let store = seeded_store(&dir);
+  let (_out, err, code) = run_remove(
+    &[
+      "token",
+      "remove",
+      "gitlab",
+      "--host",
+      "https://gitlab-a.com",
+      "--all",
+      "--yes",
+    ],
+    &store,
+    None,
+  );
+  assert_eq!(code, 1, "退出码");
+  assert!(
+    err.contains("options --host and --all cannot be used together"),
+    "{err}"
+  );
+  assert_eq!(
+    read_token_store_at(&store).unwrap().len(),
+    4,
+    "冲突不动存储"
+  );
+}
+
+#[test]
+fn remove_host_without_name_errors() {
+  let dir = TempDir::new().unwrap();
+  let (_out, err, code) = run(
+    &["token", "remove", "--host", "https://gitlab-a.com"],
+    &store_in(&dir),
+  );
+  assert_eq!(code, 1, "退出码");
+  assert!(err.contains("usage: vbumpp token remove <name>"), "{err}");
+}
+
+#[test]
+fn remove_dry_run_missing_target_warns() {
+  let dir = TempDir::new().unwrap();
+  let store = store_in(&dir);
+  save_token_at(&store, "gitee", "x").unwrap();
+  let (out, _err, code) = run_remove(&["token", "remove", "github", "--dry-run"], &store, None);
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("no token found for github"), "{out}");
+}
+
+#[test]
+fn token_help_covers_remove_matrix_flags() {
+  let dir = TempDir::new().unwrap();
+  let (out, _err, code) = run(&["--help"], &store_in(&dir));
+  assert_eq!(code, 0, "退出码");
+  assert!(out.contains("--host <url> for gitlab"), "{out}");
+  assert!(out.contains("--all, --yes, --dry-run"), "{out}");
 }

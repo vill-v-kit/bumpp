@@ -27,6 +27,7 @@ pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
     store: None,
     cwd: None,
     prompt: None,
+    confirm: None,
   };
   run_at(argv, provider, &env, &mut out, &mut err)
 }
@@ -35,14 +36,21 @@ pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
 /// （真实实现为 dialoguer 密码 prompt，ADR-0014）
 pub type TokenPrompt<'a> = &'a dyn Fn(&str) -> Result<Option<String>, token::TokenError>;
 
+/// token remove 二次确认的注入签名：返回 Ok(true) 确认删除、Ok(false) 拒绝
+/// （取消，exit 0）、Err 无法交互（非 TTY——报错引导 --yes，exit 1）。
+/// 真实实现为 dialoguer Confirm（默认 No）
+pub type ConfirmPrompt<'a> = &'a dyn Fn(&str) -> Result<bool, token::TokenError>;
+
 /// 可测内核的环境注入：`store` 覆盖 token 存储路径（None 走环境解析，
 /// `VBUMPP_TOKEN_STORE` → `VBUMPP_HOME` → 系统 home，ADR-0013）；`cwd` 覆盖
 /// bump 执行目录（None 取进程当前目录）；`prompt` 覆盖 token 录入交互
-/// （None 走 dialoguer 密码 prompt，ADR-0014）。
+/// （None 走 dialoguer 密码 prompt，ADR-0014）；`confirm` 覆盖 remove 二次
+/// 确认（None 走 dialoguer Confirm + TTY 守卫）。
 pub struct RunEnv<'a> {
   pub store: Option<&'a Path>,
   pub cwd: Option<&'a Path>,
   pub prompt: Option<TokenPrompt<'a>>,
+  pub confirm: Option<ConfirmPrompt<'a>>,
 }
 
 /// 可测内核：`out` / `err` 注入输出汇。正常消息进 `out`（consola
@@ -605,7 +613,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
   };
   match action.as_str() {
     "set" => {
-      let Some(scanned) = scan_token_flags_or_report(&args[1..], err) else {
+      let Some(scanned) = scan_token_flags_or_report(&args[1..], &[], err) else {
         return 1;
       };
       let Some(name) = scanned.positionals.first() else {
@@ -617,20 +625,10 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
       // （未来 GHE 支持时解除）
       let key = match scanned.values.get("host") {
         Some(raw_host) => {
-          if name != "gitlab" {
-            error_line(
-              err,
-              &format!("--host is only supported for gitlab (got {name})"),
-            );
+          let Some(key) = gitlab_host_scoped_key_or_report(name, raw_host, err) else {
             return 1;
-          }
-          match token::host_scoped_key(name, raw_host) {
-            Ok(key) => key,
-            Err(e) => {
-              error_line(err, &e.to_string());
-              return 1;
-            }
-          }
+          };
+          key
         }
         None => name.clone(),
       };
@@ -666,7 +664,7 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
       }
     }
     "list" => {
-      let Some(scanned) = scan_token_flags_or_report(&args[1..], err) else {
+      let Some(scanned) = scan_token_flags_or_report(&args[1..], &[], err) else {
         return 1;
       };
       // `--host` 过滤单条：过滤值与写入侧经同一规范化函数相撞
@@ -712,27 +710,106 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
       }
     }
     "remove" => {
-      let Some(name) = positional_name(args.get(1)) else {
-        error_line(err, "usage: vbumpp token remove <name>");
+      let Some(scanned) = scan_token_flags_or_report(&args[1..], REMOVE_BOOL_FLAGS, err) else {
         return 1;
       };
+      // --host 与 --all 语义互斥（精确单键 vs 全量），同给即用法错误
+      if scanned.flags.contains("all") && scanned.values.contains_key("host") {
+        error_line(err, "options --host and --all cannot be used together");
+        return 1;
+      }
+      let name = scanned.positionals.first();
+      if name.is_none() && !scanned.flags.contains("all") {
+        error_line(err, "usage: vbumpp token remove <name>");
+        return 1;
+      }
       let Some(store) = resolve_store(env.store, err) else {
         return 1;
       };
-      match token::remove_token_at(&store, name) {
-        Ok(true) => {
-          success_line(out, &format!("{name} token removed"));
-          0
-        }
-        Ok(false) => {
-          warn_line(out, &format!("no token found for {name}"));
-          0
-        }
+      let tokens = match token::read_token_store_at(&store) {
+        Ok(tokens) => tokens,
         Err(e) => {
           error_line(err, &e.to_string());
-          1
+          return 1;
+        }
+      };
+      // 目标解析（四形态；目标不存在 / 全无匹配沿用 warn + exit 0）
+      let targets: Vec<&String> = if scanned.flags.contains("all") {
+        match name {
+          // provider --all：provider 级键 + 全部 host 作用域键（键格式归属
+          // token.rs——split_key 的 provider 段一致即匹配，含旧式不透明键）
+          Some(name) => tokens
+            .keys()
+            .filter(|key| token::split_key(key).0 == name.as_str())
+            .collect(),
+          // 全量 --all：清空所有 provider
+          None => tokens.keys().collect(),
+        }
+      } else if let Some(raw_host) = scanned.values.get("host") {
+        let name = name.expect("name checked above");
+        let Some(key) = gitlab_host_scoped_key_or_report(name, raw_host, err) else {
+          return 1;
+        };
+        if !tokens.contains_key(&key) {
+          warn_line(out, &format!("no token found for {}", display_key(&key)));
+          return 0;
+        }
+        // 精确项语义：不触碰同 provider 的其他键
+        tokens.keys().filter(|k| k.as_str() == key).collect()
+      } else {
+        let name = name.expect("name checked above");
+        if !tokens.contains_key(name) {
+          warn_line(out, &format!("no token found for {name}"));
+          return 0;
+        }
+        tokens.keys().filter(|key| key.as_str() == name).collect()
+      };
+      if targets.is_empty() {
+        match name {
+          Some(name) => warn_line(out, &format!("no token found for {name}")),
+          None => warn_line(out, "no tokens configured"),
+        }
+        return 0;
+      }
+      // --dry-run 优先级最高：只打印将删清单，不确认、不删除（与 --yes 同给亦然）
+      let dry_run = scanned.flags.contains("dry-run");
+      if dry_run {
+        info_line(out, "tokens to remove (dry run — no changes made):");
+      } else {
+        info_line(out, "tokens to remove:");
+      }
+      for key in &targets {
+        info_line(out, &format!("  {}", display_key(key)));
+      }
+      if dry_run {
+        return 0;
+      }
+      // 二次确认（--yes 跳过）：dialoguer Confirm 默认 No，拒绝即取消 exit 0；
+      // 非 TTY 无法交互由真实实现报错引导 --yes（不能静默删）
+      if !scanned.flags.contains("yes") {
+        let confirm = env.confirm.unwrap_or(&token::confirm_remove);
+        match confirm("Remove the listed tokens?") {
+          Ok(true) => {}
+          Ok(false) => {
+            warn_line(out, "canceled");
+            return 0;
+          }
+          Err(e) => {
+            error_line(err, &e.to_string());
+            return 1;
+          }
         }
       }
+      for key in &targets {
+        match token::remove_token_at(&store, key) {
+          Ok(_) => success_line(out, &format!("{} token removed", display_key(key))),
+          Err(e) => {
+            error_line(err, &e.to_string());
+            return 1;
+          }
+        }
+      }
+      0
     }
     other => {
       error_line(
@@ -744,18 +821,12 @@ fn token_command(args: &[String], env: &RunEnv, out: &mut impl Write, err: &mut 
   }
 }
 
-/// name 位置参数：`-` 前缀视为 flag 被吞（cac parity——name 缺省即用法错误）
-fn positional_name(arg: Option<&String>) -> Option<&str> {
-  arg.map(String::as_str).filter(|s| !s.starts_with('-'))
-}
-
 /// token 子命令 flag 扫描产物
 #[derive(Debug)]
 struct TokenArgs {
   /// 位置参数（`--` 分隔之后一律按位置参数收集，dash 前缀不再解析）
   positionals: Vec<String>,
-  /// 布尔 flag 命中集（bare `--flag`；为 remove 矩阵 --all/--yes/--dry-run 打底）
-  #[allow(dead_code)]
+  /// 布尔 flag 命中集（bare `--flag`；remove 矩阵 --all/--yes/--dry-run 消费）
   flags: std::collections::BTreeSet<String>,
   /// 值 flag 命中表（`--flag value` 与 `--flag=value` 双形态；重复取最后）
   values: std::collections::BTreeMap<String, String>,
@@ -835,12 +906,42 @@ fn display_key(key: &str) -> String {
   }
 }
 
-/// set / list 当前共用的 flag 名单（remove 矩阵落地时另带 --all/--yes/--dry-run）
+/// set / list / remove 共用的值 flag 名单
 const TOKEN_VALUE_FLAGS: &[&str] = &["host"];
 
+/// remove 矩阵的布尔 flag 名单（set / list 无布尔 flag）
+const REMOVE_BOOL_FLAGS: &[&str] = &["all", "yes", "dry-run"];
+
+/// `--host` 的 gitlab 门禁 + 复合键构建（set / remove 共用）：非 gitlab 拒绝、
+/// host 无效报错，失败均已回写 err（调用方 `return 1`）
+fn gitlab_host_scoped_key_or_report(
+  name: &str,
+  raw_host: &str,
+  err: &mut impl Write,
+) -> Option<String> {
+  if name != "gitlab" {
+    error_line(
+      err,
+      &format!("--host is only supported for gitlab (got {name})"),
+    );
+    return None;
+  }
+  match token::host_scoped_key(name, raw_host) {
+    Ok(key) => Some(key),
+    Err(e) => {
+      error_line(err, &e.to_string());
+      None
+    }
+  }
+}
+
 /// token 子命令扫描的收口：解析失败即报错回写、调用方 `return 1`
-fn scan_token_flags_or_report(args: &[String], err: &mut impl Write) -> Option<TokenArgs> {
-  match scan_token_args(args, &[], TOKEN_VALUE_FLAGS) {
+fn scan_token_flags_or_report(
+  args: &[String],
+  bool_flags: &[&str],
+  err: &mut impl Write,
+) -> Option<TokenArgs> {
+  match scan_token_args(args, bool_flags, TOKEN_VALUE_FLAGS) {
     Ok(scanned) => Some(scanned),
     Err(message) => {
       error_line(err, &message);
@@ -879,7 +980,7 @@ fn print_help(out: &mut impl Write) -> i32 {
      vbumpp [...files]                bump version and generate changelog\n  \
      vbumpp release <version>         retry platform release from a changelog section\n  \
      vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted\n  \
-     (set/list accept --host <url> for gitlab self-hosted instances)\n\
+     (set/list/remove accept --host <url> for gitlab; remove also accepts --all, --yes, --dry-run)\n\
      \noptions:\n  \
      -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)\n  \
      -r, --recursive             recursively\n  \
@@ -932,13 +1033,6 @@ mod tests {
         Self::Release(args) => write!(f, "Release(version={:?})", args.version),
       }
     }
-  }
-
-  #[test]
-  fn dash_prefixed_name_is_not_positional() {
-    assert_eq!(positional_name(Some(&"github".to_string())), Some("github"));
-    assert_eq!(positional_name(Some(&"--output".to_string())), None);
-    assert_eq!(positional_name(None), None);
   }
 
   #[test]

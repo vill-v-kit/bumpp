@@ -43,6 +43,7 @@ fn run_release(argv: &[&str], cwd: &Path) -> (String, String, i32) {
     store: Some(&store),
     cwd: Some(cwd),
     prompt: None,
+    confirm: None,
   };
   let mut out = Vec::new();
   let mut err = Vec::new();

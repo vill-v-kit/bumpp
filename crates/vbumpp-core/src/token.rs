@@ -158,6 +158,29 @@ pub fn prompt_token(name: &str) -> Result<Option<String>, TokenError> {
   }
 }
 
+/// remove 二次确认（dialoguer::Confirm，默认 No——安全方向；Esc/Ctrl+C 视为
+/// 拒绝返回 Ok(false)，对齐 prompt_token 的取消语义）。非 TTY 无法交互：
+/// 报错引导 --yes——不能静默删（confirm 只作用于 remove；set 覆盖不确认）
+pub fn confirm_remove(prompt: &str) -> Result<bool, TokenError> {
+  use std::io::IsTerminal;
+  // dialoguer 的交互在 stderr term 上——CI 等重定向场景必然非 TTY
+  if !std::io::stderr().is_terminal() {
+    return Err(TokenError::Prompt {
+      message:
+        "cannot confirm interactively (not a TTY); re-run with --yes to delete without confirmation"
+          .into(),
+    });
+  }
+  match dialoguer::Confirm::new()
+    .with_prompt(prompt)
+    .default(false)
+    .interact()
+  {
+    Ok(yes) => Ok(yes),
+    Err(_) => Ok(false),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // host 作用域键：`provider@host`（如 `gitlab@https://gitlab-a.com`）。
 // provider 级旧键零迁移保留，两级键共存。写入（token set）与读取（后续
