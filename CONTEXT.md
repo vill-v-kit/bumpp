@@ -107,6 +107,10 @@ _Avoid_: 控制台打印（过窄——错误信息不经打印通路亦属之�
 打印到控制台的路径的统一形态——cwd 之内打相对路径，cwd 之外（token 存储、全局配置、`..` 逃逸的显式参数）打绝对路径，一律 POSIX 分隔符（ADR-0002）。只约束显示层；存储与 API 返回值（`updatedFiles` 等）保持绝对原生路径不变。
 _Avoid_: 完整路径、绝对路径打印
 
+**演示时间线 (Demo cast)**:
+演示网站首页各子命令卖点的终端会话数据——asciicast v2 兼容的帧时间线,由 capture 脚本在固定日期/hash 的 git fixture 上以只读形态(dry-run / list)确定性采集真实 CLI 输出生成,提交进 website 代码,CI 漂移校验腿后续接入(ADR-0036);首页滚动演示区与移动端/减少动态效果的静态降级共用同一份数据。
+_Avoid_: 录屏(指视频/GIF 形态)、模拟演示(手写脚本,与真实输出脱钩)
+
 **文档网站 (Docs website)**:
 面向用户的产品文档站（`website/`，fumadocs / Next.js 静态导出，ADR-0020）——与 `docs/` 的工程内部文档（ADR、agent 约定、迁移指南源稿）物理分离。纯中文、单版本（随最新 release）；内容板块：快速上手、CLI 参考、配置文件参考、平台 Release 指南、v5→v6 迁移指南、外链区（导航栏图标链接：npmx.dev 包页 + GitHub Releases）。部署 GitHub Pages（项目页子路径 `/bumpp`），接受国内访问不稳定的取舍、不做国内镜像。
 _Avoid_: docs（指 `docs/` 工程内部文档目录）
