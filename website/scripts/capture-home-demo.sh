@@ -27,6 +27,8 @@ OUT_TS="$WEBSITE/app/(home)/demo-terminal.ts"
 PIN_DATE='2026-08-05T10:00:00'
 export GIT_AUTHOR_DATE="$PIN_DATE" GIT_COMMITTER_DATE="$PIN_DATE"
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+# TERM 钉死：着色判定不随宿主终端（塌缩步骤忽略 SGR，产物不因此变化）
+export TERM=xterm-256color
 
 if [[ ! -x "$BINARY" ]]; then
   echo "error: $BINARY 不存在，先 cargo build --release -p vbumpp" >&2

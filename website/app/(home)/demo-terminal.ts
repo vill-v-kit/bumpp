@@ -8,7 +8,7 @@ export const DEMO_TERMINAL = `$ vbumpp
  1 file changed, 19 insertions(+)
  create mode 100644 CHANGELOG.md
 ✔ Update CHANGELOG.md success
-✔ Updated ~/my-project/package.json to 1.1.0
+✔ Updated package.json to 1.1.0
 [main 9995c2b] chore: release v1.1.0
  1 file changed, 1 insertion(+), 1 deletion(-)
 ℹ Git commit

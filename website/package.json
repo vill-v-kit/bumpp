@@ -5,6 +5,7 @@
   "scripts": {
     "build": "next build",
     "capture:home-demo": "bash scripts/capture-home-demo.sh",
+    "capture:home-demo-cast": "bash scripts/capture-home-demo-cast.sh",
     "dev": "next dev",
     "start": "serve out",
     "types:check": "next typegen && tsc --noEmit"
