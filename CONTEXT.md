@@ -108,7 +108,7 @@ _Avoid_: 控制台打印（过窄——错误信息不经打印通路亦属之�
 _Avoid_: 完整路径、绝对路径打印
 
 **演示时间线 (Demo cast)**:
-演示网站首页各子命令卖点的终端会话数据——asciicast v2 兼容的帧时间线,由 capture 脚本在固定日期/hash 的 git fixture 上以只读形态(dry-run / list)确定性采集真实 CLI 输出生成,提交进 website 代码,CI 漂移校验腿后续接入(ADR-0036);首页滚动演示区与移动端/减少动态效果的静态降级共用同一份数据。
+演示网站首页各子命令卖点的终端会话数据——asciicast v2 兼容的帧时间线,由 capture 脚本在固定日期/hash 的 git fixture 上以只读形态(dry-run / list)确定性采集真实 CLI 输出生成,提交进 website 代码,CI 漂移校验腿(ci.yml demo-drift:重跑采集 diff 提交产物,不一致即红)防腐(ADR-0036);首页滚动演示区与移动端/减少动态效果的静态降级共用同一份数据。
 _Avoid_: 录屏(指视频/GIF 形态)、模拟演示(手写脚本,与真实输出脱钩)
 
 **文档网站 (Docs website)**:

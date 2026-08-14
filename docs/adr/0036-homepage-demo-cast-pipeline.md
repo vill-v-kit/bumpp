@@ -24,7 +24,7 @@
 
 ### 产物维护:本地生成提交 + CI 漂移校验
 
-- 产物(cast 生成的 TS 模块)由本地跑 capture 脚本生成并提交进 git,与现有 `demo-terminal.ts` 模式一致;CI 增加一条校验腿:重建 fixture、重跑采集、与提交产物 diff,不一致即失败。管线的字节级可复现设计让这条校验几乎零成本,而它堵住的正是本方案的命门——CLI 输出变更后演示静默腐烂。
+- 产物(cast 生成的 TS 模块)由本地跑 capture 脚本生成并提交进 git,与现有 `demo-terminal.ts` 模式一致;CI 增加一条校验腿:重建 fixture、重跑采集、与提交产物 diff,不一致即失败。管线的字节级可复现设计让这条校验几乎零成本,而它堵住的正是本方案的命门——CLI 输出变更后演示静默腐烂。落地形态(COL-93):ci.yml 的 demo-drift 腿(macOS 宿主——采集脚本依赖 BSD script(1) 语法)先构建 release CLI 再跑 `scripts/demo-cast-drift.mjs`(根 pnpm 入口 `check:home-demo-cast`)——重跑采集原地重写产物、`git diff --exit-code` 比对提交产物,漂移即红且失败信息带本地再生成命令;该腿不拦 publish(演示漂移是网站内容问题,与 npm/crates 上架解耦)。
 
 ## Alternatives considered
 

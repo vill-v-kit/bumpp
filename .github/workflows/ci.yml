@@ -56,6 +56,40 @@ jobs:
       - name: vitest
         run: pnpm test run
 
+  # ADR-0036 防腐腿（COL-93）：重跑首页演示采集并 diff 提交产物——CLI 输出
+  # 变更后演示腐烂显式暴露，而非静默发生。macOS 宿主：采集脚本依赖 BSD
+  # script(1) 的 -q /dev/null 语法。不进 publish 的 needs——演示漂移是网站
+  # 内容问题，不拦 npm/crates 上架。
+  demo-drift:
+    name: demo cast drift check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup toolchain (node + rust via mise.toml)
+        uses: jdx/mise-action@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rust cache
+        # 独立桶：本腿是 macOS 原生 release 构建（target/release/ 直出），
+        # 与 build-cli 的 --target 目录布局不同，串桶无收益
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: demo-drift
+          workspaces: ". -> target"
+
+      - name: Build release CLI
+        # 校验前置构建：CI 环境可复现采集，不依赖本地缓存
+        run: cargo build --release -p vbumpp
+
+      - name: Re-capture casts + diff committed artifact
+        run: pnpm check:home-demo-cast
+
   build:
     name: build - ${{ matrix.settings.triple }}
     strategy:

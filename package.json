@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
+    "check:home-demo-cast": "node scripts/demo-cast-drift.mjs",
     "check:licenses": "node scripts/check-licenses.mjs",
     "collect:artifacts": "node scripts/collect-artifacts.mjs",
     "create:npm-dirs": "node scripts/create-npm-dirs.mjs",
