@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "build": "node scripts/sync-wterm-wasm.mjs && next build",
-    "capture:home-demo": "bash scripts/capture-home-demo.sh",
     "capture:home-demo-cast": "bash scripts/capture-home-demo-cast.sh",
     "dev": "node scripts/sync-wterm-wasm.mjs && next dev",
     "postinstall": "node scripts/sync-wterm-wasm.mjs",
@@ -35,6 +34,7 @@
     "postcss": "^8.5.24",
     "serve": "^14.2.6",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "catalog:dev"
   }
 }

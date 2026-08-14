@@ -13,7 +13,8 @@
 
 ### seek 语义:重放式 seek,不依赖快照 API
 
-- wterm 的 `TerminalCore` 接口没有 reset/snapshot/seek;滚动 scrub 到时间 t 的实现是**新建 core + 同步 `write` 全部 ≤t 的字节**(每段 cast 几 KB~几十 KB,WASM 近原生,重放亚毫秒级,rAF 节流)。接受"seek 是 O(n) 重放"的语义,不向渲染层要快照能力。
+- wterm 的 `TerminalCore` 接口没有 reset/snapshot/seek;滚动 scrub 到时间 t 的实现是**新建 core + 同步 `write` 全部 ≤t 的字节**(每段 cast 几 KB~几十 KB,WASM 近原生,重放亚毫秒级,rAF 节流)。接受"seek 是 O(n) 重放"的语义,不向渲染层要快照能力。落地形态(COL-92):`ReplayCore`(WasmBridge 子类)以 `init` 重置代替重建实例,seek 后全行标脏一次保证回退重绘。
+- 同段向前滚动允许**增量补写**优化(只写新增事件区间,不重置核心):cast 事件是纯追加输出,增量与从头重放字节等价;跨段与回退仍走完整重放。
 - 前端进度控制器因此是唯一自养代码面:进度→重放调度、步骤切换、降级判定,总量很小。
 
 ### 采集边界:全部 dry-run / 只读形态,离线确定性

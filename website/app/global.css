@@ -23,3 +23,62 @@ html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
 }
+
+/* 首页演示终端（ADR-0036）：wterm CSS 变量对齐站点双主题——亮色用
+   One Light 系浅色面板，暗色保持深色终端面板。类名双写只为抬升优先级
+   （压过打包顺序在后的 .wterm 默认变量），骨架态与终端本体同用此类 */
+.demo-terminal.demo-terminal {
+  --term-bg: #fafafa;
+  --term-fg: #383a42;
+  --term-cursor: #526eff;
+  --term-color-0: #383a42;
+  --term-color-1: #e45649;
+  --term-color-2: #50a14f;
+  --term-color-3: #c18401;
+  --term-color-4: #4078f2;
+  --term-color-5: #a626a4;
+  --term-color-6: #0184bc;
+  --term-color-7: #fafafa;
+  --term-color-8: #a0a1a7;
+  --term-color-9: #e45649;
+  --term-color-10: #50a14f;
+  --term-color-11: #c18401;
+  --term-color-12: #4078f2;
+  --term-color-13: #a626a4;
+  --term-color-14: #0184bc;
+  --term-color-15: #383a42;
+}
+
+.dark .demo-terminal {
+  --term-bg: #1e1e1e;
+  --term-fg: #d4d4d4;
+  --term-cursor: #aeafad;
+  --term-color-0: #1e1e1e;
+  --term-color-1: #f44747;
+  --term-color-2: #6a9955;
+  --term-color-3: #d7ba7d;
+  --term-color-4: #569cd6;
+  --term-color-5: #c586c0;
+  --term-color-6: #4ec9b0;
+  --term-color-7: #d4d4d4;
+  --term-color-8: #808080;
+  --term-color-9: #f44747;
+  --term-color-10: #6a9955;
+  --term-color-11: #d7ba7d;
+  --term-color-12: #569cd6;
+  --term-color-13: #c586c0;
+  --term-color-14: #4ec9b0;
+  --term-color-15: #ffffff;
+}
+
+/* 窗口圆角/描边由外层 TerminalCard 提供，wterm 自带的圆角与投影关闭 */
+.wterm.demo-terminal {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 滚动驱动权归页面：终端出现滚动回退区时也不能截住滚轮/触控
+  （wterm 默认在 has-scrollback 时放开 overflow-y）；程序内定位不受影响 */
+.wterm.demo-terminal.has-scrollback {
+  overflow-y: hidden;
+}

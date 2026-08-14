@@ -11,7 +11,6 @@
 //   - 时间戳为下方固定节奏常量——真实 dry-run 毫秒级倾泻，真实 wall-clock
 //     既不可字节级复现也不适合演示；渲染层按时间戳重放即得该节奏
 //   - 演示提示符（`$ ` + 命令逐字符）为演示约定合成事件，非捕获内容
-//     （沿 demo-terminal.ts「首行提示符非捕获内容」惯例）
 //
 // 用法：node raw-to-cast.mjs <ts-output> <cols> <rows> <term> <abs-path> [<abs-path>...] -- <id> <command> <raw-input> [<id> <command> <raw-input> ...]
 //   `--` 前：产物路径、pty 参数（须与 capture 脚本 stty 钉死的值一致，事件头
@@ -135,7 +134,7 @@ const linesOut = [
   '//（含 SGR 颜色）按行切成 asciicast v2 兼容事件流，绝对路径已洗白为 ~。',
   '// 时间戳为采集侧固定节奏（真实输出毫秒级倾泻，不可复现也不宜演示）；',
   '// 各段提示符为逐字符合成事件（非捕获内容）。',
-  '// 渲染层（wterm）由后续票接入，本文件只承载数据；复跑脚本可字节级复现。',
+  '// 渲染层为 wterm（首页滚动演示区与静态降级卡片共用本数据）；复跑脚本可字节级复现。',
   '',
   'export type CastEvent = readonly [time: number, type: \'o\', data: string];',
   '',
