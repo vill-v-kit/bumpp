@@ -167,6 +167,12 @@ importers:
 
   website:
     dependencies:
+      '@wterm/dom':
+        specifier: 0.3.4
+        version: 0.3.4
+      '@wterm/react':
+        specifier: 0.3.4
+        version: 0.3.4(@wterm/dom@0.3.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       cnfast:
         specifier: ^0.1.0
         version: 0.1.0
@@ -182,6 +188,9 @@ importers:
       lucide-react:
         specifier: ^1.27.0
         version: 1.28.0(react@19.2.8)
+      motion:
+        specifier: 13.1.0
+        version: 13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       next:
         specifier: 16.2.12
         version: 16.2.12(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1983,6 +1992,19 @@ packages:
   '@vitest/utils@4.1.10':
     resolution: {integrity: sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==}
 
+  '@wterm/core@0.3.4':
+    resolution: {integrity: sha512-GZoAxybV6FY+o2L4VcZupipkcNKM4Dv4UGekRvuohDJ9oSAzwGgw4J8UGZlXllDLV0pKg3pmIGoukMat6EQ/pQ==}
+
+  '@wterm/dom@0.3.4':
+    resolution: {integrity: sha512-4TYaCJpAo9B3CMsCuApS65X7nExbMZ7QjcLbJCI0132hzccQ2EdG8NX2I2AELbGbDIeWNcDYD3ReqVtbEcQwqA==}
+
+  '@wterm/react@0.3.4':
+    resolution: {integrity: sha512-/DwzDyvLp2x6wOc5Ng49GRTy46gfhdVfqlYTnZNh4y3DJBb82/f2JKpxKJtQkI3m6HL7VQqwgAnysIX+DavugQ==}
+    peerDependencies:
+      '@wterm/dom': 0.3.4
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+
   '@yuku-analyzer/binding-android-arm64@0.8.3':
     resolution: {integrity: sha512-t1H+d/ubotHLJPQ2gTPZ9C+XD5ZYsxasmxi8wBsUm9WONr0DEFtlxwIgvGZS1Kvlc+sZH9xErCtnKS+odKCabA==}
     cpu: [arm64]
@@ -2570,6 +2592,17 @@ packages:
       react-dom:
         optional: true
 
+  framer-motion@13.1.0:
+    resolution: {integrity: sha512-QSZrF0Id3QGuHJ+OL+9PSY9pk86C8ERFalwAGSchzTm65+ZoGH/RM26lmEARLljcHj2lqhv0jZOOks+EI3COOw==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -3151,8 +3184,14 @@ packages:
   motion-dom@12.43.0:
     resolution: {integrity: sha512-azKON4d9S65PEoFUiQTMTgPheEmzf2QngdRc50AKfJp9Q9mmcBVw22c8eMq9k8kxOFHdL7+WZY7N/5F/lwiDag==}
 
+  motion-dom@13.0.0:
+    resolution: {integrity: sha512-Xk+SJas70uMAUIApg+m3lZDShxI3LBFHq7mFGbBKoRXc2PVPDyAKmzN64Bbzt4CZdP/CItTiJxWtn4TA0v53Ng==}
+
   motion-utils@12.39.0:
     resolution: {integrity: sha512-8nadJAJjTtqRkmRF36FoJTrywK9nnFmnPwnSMyxaOCU7GDjN9RTMJIxx9De8ErM+vpPhMccr/6fo5WciyQLnMQ==}
+
+  motion-utils@13.0.0:
+    resolution: {integrity: sha512-7DnN7TmbLcYXcG4RVadXIihWlyuM9afoUww8Y5Agg431kGKiuL2/OMyP4mJ5wLz+pvN3t5ySClLOaVXJ+wekRQ==}
 
   motion@12.43.0:
     resolution: {integrity: sha512-BQgQbSa9Hn3/mtbib0MK53y6JSANa+YKUKlaYnWzAVDH424RYQ5LVpV3pNiWH00BA2z4ojsSdMzqT7g2FQwjuQ==}
@@ -3163,6 +3202,17 @@ packages:
     peerDependenciesMeta:
       '@emotion/is-prop-valid':
         optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  motion@13.1.0:
+    resolution: {integrity: sha512-qtvscq59uCPdWnNW4SdSkrxR+BS/QYsa923bx7ocA+4p+ZGNbbVQwkSnG4aukB81QWjtl3AxX36plxNyZLmHCA==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
       react:
         optional: true
       react-dom:
@@ -5229,6 +5279,18 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
+  '@wterm/core@0.3.4': {}
+
+  '@wterm/dom@0.3.4':
+    dependencies:
+      '@wterm/core': 0.3.4
+
+  '@wterm/react@0.3.4(@wterm/dom@0.3.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@wterm/dom': 0.3.4
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
   '@yuku-analyzer/binding-android-arm64@0.8.3':
     optional: true
 
@@ -5686,6 +5748,15 @@ snapshots:
     dependencies:
       motion-dom: 12.43.0
       motion-utils: 12.39.0
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  framer-motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      motion-dom: 13.0.0
+      motion-utils: 13.0.0
       tslib: 2.8.1
     optionalDependencies:
       react: 19.2.8
@@ -6503,11 +6574,25 @@ snapshots:
     dependencies:
       motion-utils: 12.39.0
 
+  motion-dom@13.0.0:
+    dependencies:
+      motion-utils: 13.0.0
+
   motion-utils@12.39.0: {}
+
+  motion-utils@13.0.0: {}
 
   motion@12.43.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       framer-motion: 12.43.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      framer-motion: 13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       tslib: 2.8.1
     optionalDependencies:
       react: 19.2.8

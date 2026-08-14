@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { PMIcon } from '@/components/pm-tabs';
+import { DemoCastPlayer } from './demo-cast-player';
+import { DRY_RUN_CAST } from './demo-casts';
 import { DEMO_TERMINAL } from './demo-terminal';
 
 const features = [
@@ -106,6 +108,11 @@ export default function HomePage() {
         <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed">
           {DEMO_TERMINAL}
         </pre>
+      </div>
+
+      {/* cast 播放基座（COL-90）：链路验证挂载位，首页信息架构编排留给后续票 */}
+      <div className="mb-16">
+        <DemoCastPlayer cast={DRY_RUN_CAST} />
       </div>
 
       <h2 className="text-xl font-semibold mb-4">优势</h2>

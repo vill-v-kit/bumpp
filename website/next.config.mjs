@@ -12,6 +12,8 @@ const config = {
     // 静态导出无服务端图片优化管线
     unoptimized: true,
   },
+  // wterm 组件包（wterm.dev 官方指引）：CSS 子路径指向 src/，需转译处理
+  transpilePackages: ['@wterm/dom', '@wterm/react'],
 };
 
 export default withMDX(config);
