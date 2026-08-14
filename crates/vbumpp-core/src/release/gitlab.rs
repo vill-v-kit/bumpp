@@ -11,6 +11,9 @@ use super::http::{check_status, get, post_json, resolve_owner_repo};
 use super::{Provider, ReleaseError};
 use crate::effects::{Effects, RealEffects};
 
+/// 缺省 host（有效 host 的唯一字面量维护点——token 键化与 API 拼接不得漂移）
+const DEFAULT_HOST: &str = "https://gitlab.com";
+
 /// 生产入口：读配置文档 → 解析 `gitlab.host`（缺省 gitlab.com）→ 创建
 pub(crate) fn create(
   eff: &dyn Effects,
@@ -22,9 +25,18 @@ pub(crate) fn create(
 ) -> Result<(), ReleaseError> {
   let document =
     crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
-  let host = resolve_gitlab_host(document.as_ref(), overrides)?
-    .unwrap_or_else(|| "https://gitlab.com".to_owned());
+  let host = effective_host(document.as_ref(), overrides)?;
   create_with_host_and(eff, &host, token, new_version, markdown, cwd)
+}
+
+/// 有效 host：四层合并配置的 `gitlab.host`，缺省 gitlab.com。token 键化
+/// （release 解析链提前解析）与 API 拼接（`create`）同一事实源——两侧各自
+/// 读档但都归一到本函数，键化与调用永不漂移
+pub(crate) fn effective_host(
+  document: Option<&Map<String, Value>>,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<String, ReleaseError> {
+  Ok(resolve_gitlab_host(document, overrides)?.unwrap_or_else(|| DEFAULT_HOST.to_owned()))
 }
 
 /// `gitlab.host` 解析：四层语义——overrides 段 > 文件段（文件段已含全局←项目合并）

@@ -7,6 +7,16 @@ use std::sync::Once;
 
 static ISOLATE: Once = Once::new();
 
+/// 全部 provider token 环境变量名（env 净化用例共用——新增 provider 时
+/// 唯一维护点，与生产 `Provider::env_vars()` 对应）
+pub const PROVIDER_TOKEN_ENV_VARS: &[&str] = &[
+  "GH_TOKEN",
+  "GITHUB_TOKEN",
+  "GITLAB_TOKEN",
+  "GITEE_TOKEN",
+  "GITCODE_TOKEN",
+];
+
 /// 把全局配置目录指向不存在的路径，使走 `read_document`（env 解析全局层）的
 /// 测试不受宿主机真实 `~/.vbumpp/config.*` 影响。进程内所有线程 set 同值，
 /// Once 保证单次执行，无并发竞态。

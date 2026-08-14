@@ -16,8 +16,28 @@ mod token_source;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener};
 use std::sync::mpsc::{channel, Receiver};
+use std::sync::{Mutex, MutexGuard};
 
 use tempfile::TempDir;
+
+// ---------------------------------------------------------------------------
+// 真实入口（create_release）用例的 env 线束：token 链走真实环境解析，
+// env 修改为进程全局——ENV_LOCK 串行 + 入场净化 + 存储指向临时位置
+// ---------------------------------------------------------------------------
+
+static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+/// 入场串行 + 净化：清掉全部 provider token 环境变量，token 存储指向
+/// 临时位置，全局配置目录隔离（read_document 全局层不受宿主机影响）
+fn sanitized_token_env(store: &std::path::Path) -> MutexGuard<'static, ()> {
+  let guard = ENV_LOCK.lock().unwrap();
+  for key in common::PROVIDER_TOKEN_ENV_VARS {
+    std::env::remove_var(key);
+  }
+  std::env::set_var("VBUMPP_TOKEN_STORE", store);
+  common::isolate_global_home();
+  guard
+}
 
 // ---------------------------------------------------------------------------
 // 手写 HTTP mock：每连接一个请求，记录后经 mpsc 回传，响应由闭包按请求决定

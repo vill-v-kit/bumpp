@@ -22,16 +22,10 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 /// 入场串行 + 净化（token 环境变量与存储路径覆盖）
 fn sanitized_env() -> MutexGuard<'static, ()> {
   let guard = ENV_LOCK.lock().unwrap();
-  for key in [
-    "GH_TOKEN",
-    "GITHUB_TOKEN",
-    "GITLAB_TOKEN",
-    "GITEE_TOKEN",
-    "GITCODE_TOKEN",
-    "VBUMPP_TOKEN_STORE",
-  ] {
+  for key in common::PROVIDER_TOKEN_ENV_VARS {
     std::env::remove_var(key);
   }
+  std::env::remove_var("VBUMPP_TOKEN_STORE");
   common::isolate_global_home();
   guard
 }

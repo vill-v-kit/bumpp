@@ -447,8 +447,12 @@ fn print_release_plan(plan: &crate::release::ReleasePlan, out: &mut impl Write) 
   info_line(out, "release plan (dry run — no changes made)");
   match &plan.token_source {
     Some(source) => info_line(out, &format!("token source: {}", source.describe())),
-    // 警告行复用真实执行的报错文案（仅降级不改动措辞，同一事实源）
-    None => warn_line(out, &crate::release::missing_token_message(plan.provider)),
+    // 警告行复用真实执行的报错文案（仅降级不改动措辞，同一事实源）；
+    // plan.host 即有效 host（gitlab 缺失文案的 --host 指引消费）
+    None => warn_line(
+      out,
+      &crate::release::missing_token_message(plan.provider, Some(&plan.host)),
+    ),
   }
   info_line(out, &format!("provider: {}", plan.provider.display()));
   info_line(out, &format!("host: {}", plan.host));

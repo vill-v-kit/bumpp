@@ -174,7 +174,8 @@ pub fn plan_release(
   cwd: &Path,
   overrides: Option<&Map<String, Value>>,
 ) -> Result<ReleasePlan, ReleaseError> {
-  let resolved = super::resolve_token_tolerant(provider, cwd);
+  // 有效 host 解析提前到 token 链之前（与真实执行同一顺序，预演与执行同路）
+  let resolved = super::resolve_token_tolerant_with_host(provider, cwd, overrides)?;
   let preview = PreviewEffects::new();
   dispatch_plan(
     &preview,
@@ -207,7 +208,7 @@ pub(crate) fn plan_release_dispatch(
   cwd: &Path,
   overrides: Option<&Map<String, Value>>,
 ) -> Result<Option<super::ResolvedToken>, ReleaseError> {
-  let resolved = super::resolve_token_tolerant(provider, cwd);
+  let resolved = super::resolve_token_tolerant_with_host(provider, cwd, overrides)?;
   dispatch_plan(
     eff,
     provider,

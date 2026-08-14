@@ -26,16 +26,10 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 /// 全局配置目录指向不存在路径（token 存储随之落空，按空表继续）
 fn sanitized_env() -> MutexGuard<'static, ()> {
   let guard = ENV_LOCK.lock().unwrap();
-  for key in [
-    "GH_TOKEN",
-    "GITHUB_TOKEN",
-    "GITLAB_TOKEN",
-    "GITEE_TOKEN",
-    "GITCODE_TOKEN",
-    "VBUMPP_TOKEN_STORE",
-  ] {
+  for key in common::PROVIDER_TOKEN_ENV_VARS {
     std::env::remove_var(key);
   }
+  std::env::remove_var("VBUMPP_TOKEN_STORE");
   common::isolate_global_home();
   guard
 }
@@ -300,6 +294,57 @@ fn missing_token_warns_and_still_previews() {
   assert!(out.contains("tag_name: v2.0.0"), "{out}");
   assert!(
     out.contains("POST https://gitee.com/api/v5/repos/owner/repo/releases"),
+    "{out}"
+  );
+}
+
+#[test]
+fn gitlab_scoped_store_token_reports_store_source() {
+  let _guard = sanitized_env();
+  let dir = TempDir::new().unwrap();
+  let path = init_release_repo(&dir, "2.0.0", "git@gitlab.com:owner/repo.git");
+  // 配置自建 host + host 作用域键：dry-run 的宽容解析链与真实执行同路消费
+  std::fs::write(
+    path.join(".vbumpprc.json"),
+    "{\n  \"gitlab\": {\n    \"host\": \"https://gitlab-a.com\"\n  }\n}\n",
+  )
+  .unwrap();
+  let store = dir.path().join("tokens.bin");
+  save_token_at(&store, "gitlab@https://gitlab-a.com", "scoped-token-gl").unwrap();
+  std::env::set_var("VBUMPP_TOKEN_STORE", &store);
+
+  let (out, err, code) = run_release(
+    &["release", "2.0.0", "--provider", "gitlab", "--dry-run"],
+    &path,
+  );
+  assert_eq!(code, 0, "校验通过 exit 0：{err}");
+  assert!(err.is_empty(), "{err}");
+  assert!(out.contains("token source: token store"), "{out}");
+  assert!(out.contains("host: https://gitlab-a.com"), "{out}");
+  assert!(
+    !out.contains("no Gitlab token detected"),
+    "scoped 键命中不得报缺失：{out}"
+  );
+  assert!(!out.contains("scoped-token-gl"), "{out}");
+}
+
+#[test]
+fn gitlab_missing_token_warns_with_host_guidance() {
+  let _guard = sanitized_env();
+  let dir = TempDir::new().unwrap();
+  let path = init_release_repo(&dir, "2.0.0", "git@gitlab.com:owner/repo.git");
+
+  let (out, err, code) = run_release(
+    &["release", "2.0.0", "--provider", "gitlab", "--dry-run"],
+    &path,
+  );
+  assert_eq!(code, 0, "token 缺失降级为警告，预览照常 exit 0：{err}");
+  // 有效 host 缺省 https://gitlab.com——警告行带 host 指引（与真实执行报错同文案）
+  assert!(
+    out.contains(
+      "no Gitlab token detected for https://gitlab.com; \
+       run vbumpp token set gitlab --host https://gitlab.com to add one"
+    ),
     "{out}"
   );
 }

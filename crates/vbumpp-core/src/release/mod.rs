@@ -9,8 +9,9 @@
 //! HTTP 原语在 http.rs。
 //!
 //! token 解析链统一为：Token 存储 → 各家环境变量 →（仅 github）`gh auth token`
-//! 兜底。明文 token 不出本模块（ADR-0014：不跨 napi 边界）——错误消息经
-//! `ReleaseError::redact` 脱敏（原始与 form 编码形态都替换为掩码）。
+//! 兜底；gitlab 在存储级内先 host 作用域精确键（`gitlab@<有效 host>`）、再
+//! provider 级键回落。明文 token 不出本模块（ADR-0014：不跨 napi 边界）——
+//! 错误消息经 `ReleaseError::redact` 脱敏（原始与 form 编码形态都替换为掩码）。
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -191,7 +192,10 @@ pub fn create_release_with(
   cwd: &Path,
   overrides: Option<&Map<String, Value>>,
 ) -> Result<(), ReleaseError> {
-  let resolved = resolve_token_real(provider, cwd)?;
+  // 有效 host 的解析提前到 token 链之前（gitlab host 作用域键的查找前提）；
+  // API 调用仍在 dispatch 内用配置原始 host 串拼接，调用行为不变
+  let host = effective_host(provider, cwd, overrides)?;
+  let resolved = resolve_token_real(provider, host.as_deref(), cwd)?;
   dispatch(
     eff,
     provider,
@@ -201,6 +205,33 @@ pub fn create_release_with(
     cwd,
     overrides,
   )
+}
+
+/// gitlab 有效 host（token 键化与缺失文案消费）：四层合并配置的 `gitlab.host`，
+/// 缺省 `https://gitlab.com`（合成归 gitlab.rs 单一事实源）；非 gitlab 返回
+/// None。键化经 COL-79 同一规范化函数（调用方负责），本函数只产出配置的原始串
+pub(crate) fn effective_host(
+  provider: Provider,
+  cwd: &Path,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<Option<String>, ReleaseError> {
+  if provider != Provider::Gitlab {
+    return Ok(None);
+  }
+  let document =
+    crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
+  Ok(Some(gitlab::effective_host(document.as_ref(), overrides)?))
+}
+
+/// 宽容解析的完整前奏（dry-run 两入口共用）：有效 host 解析 → 宽容 token
+/// 解析（与 `create_release_with` 的严格形态同一顺序，预演与执行同路）
+pub(crate) fn resolve_token_tolerant_with_host(
+  provider: Provider,
+  cwd: &Path,
+  overrides: Option<&Map<String, Value>>,
+) -> Result<Option<ResolvedToken>, ReleaseError> {
+  let host = effective_host(provider, cwd, overrides)?;
+  Ok(resolve_token_tolerant(provider, host.as_deref(), cwd))
 }
 
 /// 创建分发（真实创建与 dry-run 计划共用同一条链，预演与执行同路）：
@@ -269,31 +300,47 @@ pub struct ResolvedToken {
   pub source: TokenSource,
 }
 
-/// 解析链纯核（ADR-0014）：store → 各家环境变量 →（仅 github）gh CLI。
+/// 解析链纯核（ADR-0014）：store → 各家环境变量 →（仅 github）gh CLI；
+/// gitlab 在 store 级内先 host 作用域精确键（`gitlab@<有效 host>`，与
+/// `token set --host` 同一规范化函数键化）、再 provider 级键回落——回落是
+/// 向后兼容硬要求（存量自建实例用户的 token 都在 provider 级键下）。
+/// `host` 为有效 host（四层合并的 `gitlab.host`），仅 gitlab 消费。
 /// 三个数据源注入以便测试；空字符串按 JS `||` 语义视为缺失
 #[doc(hidden)]
 pub fn resolve_token(
   provider: Provider,
+  host: Option<&str>,
   tokens: &BTreeMap<String, String>,
   env: &dyn Fn(&str) -> Option<String>,
   gh_cli: &dyn Fn() -> Option<String>,
 ) -> Option<String> {
-  resolve_token_sourced(provider, tokens, env, gh_cli).map(|r| r.token)
+  resolve_token_sourced(provider, host, tokens, env, gh_cli).map(|r| r.token)
 }
 
 /// `resolve_token` 的来源携带形态：同一解析链，返回「token + 来源」
 pub fn resolve_token_sourced(
   provider: Provider,
+  host: Option<&str>,
   tokens: &BTreeMap<String, String>,
   env: &dyn Fn(&str) -> Option<String>,
   gh_cli: &dyn Fn() -> Option<String>,
 ) -> Option<ResolvedToken> {
-  if let Some(token) = tokens.get(provider.name()) {
-    if !token.is_empty() {
-      return Some(ResolvedToken {
-        token: token.clone(),
-        source: TokenSource::Store,
-      });
+  // host 作用域精确键（仅 gitlab——其他 provider 没有 host 配置通路）。
+  // host 无法规范化时跳过精确键查找照旧回落：非法 host 由 API 层报错，
+  // token 链不抢先变更既有行为
+  let scoped_key = match (provider, host) {
+    (Provider::Gitlab, Some(host)) => crate::token::host_scoped_key(provider.name(), host).ok(),
+    _ => None,
+  };
+  let keys = [scoped_key.as_deref(), Some(provider.name())];
+  for key in keys.into_iter().flatten() {
+    if let Some(token) = tokens.get(key) {
+      if !token.is_empty() {
+        return Some(ResolvedToken {
+          token: token.clone(),
+          source: TokenSource::Store,
+        });
+      }
     }
   }
   for var in provider.env_vars() {
@@ -319,27 +366,43 @@ pub fn resolve_token_sourced(
 }
 
 /// 「未检测到 token」文案的单一事实源：严格报错（真实执行 exit 1）与
-/// dry-run 警告行逐字节一致，仅降级不改动措辞
-pub fn missing_token_message(provider: Provider) -> String {
-  format!(
-    "no {} token detected; run vbumpp token set {} to add one",
-    provider.display(),
-    provider.name()
-  )
+/// dry-run 警告行逐字节一致，仅降级不改动措辞。gitlab 带有效 host 指引
+/// （host 作用域键的录入引导）；其余 provider 文案不含 host
+pub fn missing_token_message(provider: Provider, host: Option<&str>) -> String {
+  match (provider, host) {
+    (Provider::Gitlab, Some(host)) => format!(
+      "no {} token detected for {host}; run vbumpp token set {} --host {host} to add one",
+      provider.display(),
+      provider.name()
+    ),
+    _ => format!(
+      "no {} token detected; run vbumpp token set {} to add one",
+      provider.display(),
+      provider.name()
+    ),
+  }
 }
 
 /// 生产数据源包装（严格形态）：真实 token 存储 → `std::env::var` →
 /// `gh auth token`；缺失即「未检测到 token」报错（文案不变）
-fn resolve_token_real(provider: Provider, cwd: &Path) -> Result<ResolvedToken, ReleaseError> {
-  resolve_token_tolerant(provider, cwd).ok_or_else(|| ReleaseError::Token {
-    message: missing_token_message(provider),
+fn resolve_token_real(
+  provider: Provider,
+  host: Option<&str>,
+  cwd: &Path,
+) -> Result<ResolvedToken, ReleaseError> {
+  resolve_token_tolerant(provider, host, cwd).ok_or_else(|| ReleaseError::Token {
+    message: missing_token_message(provider, host),
   })
 }
 
 /// 生产数据源包装（宽容形态，dry-run 消费）：同一解析链，缺失返回 None
 /// 由调用方降级为警告。真实 token 存储读取失败警告后按空表继续
 /// （对齐 JS bump.ts 的 catch-warn 语义）
-fn resolve_token_tolerant(provider: Provider, cwd: &Path) -> Option<ResolvedToken> {
+fn resolve_token_tolerant(
+  provider: Provider,
+  host: Option<&str>,
+  cwd: &Path,
+) -> Option<ResolvedToken> {
   let tokens = match crate::token::read_token_store() {
     Ok(tokens) => tokens,
     Err(e) => {
@@ -350,9 +413,15 @@ fn resolve_token_tolerant(provider: Provider, cwd: &Path) -> Option<ResolvedToke
       BTreeMap::new()
     }
   };
-  resolve_token_sourced(provider, &tokens, &|key| std::env::var(key).ok(), &|| {
-    crate::exec::capture("gh", &["auth".into(), "token".into()], cwd)
-      .ok()
-      .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-  })
+  resolve_token_sourced(
+    provider,
+    host,
+    &tokens,
+    &|key| std::env::var(key).ok(),
+    &|| {
+      crate::exec::capture("gh", &["auth".into(), "token".into()], cwd)
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+    },
+  )
 }
