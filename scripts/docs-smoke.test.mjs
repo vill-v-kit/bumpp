@@ -72,6 +72,16 @@ describe('assert-artifacts', () => {
     await writeFile(join(dir, '_next/static/chunks/app.js'), 'b="/bumpp/api/search"')
   })
 
+  it('bundle 为模板字面量形态（运行时 basePath 拼接）→ exit 0', async () => {
+    await writeFile(
+      join(dir, '_next/static/chunks/app.js'),
+      'from:`${l.basePath}/api/search`',
+    )
+    const r = await runSmoke(['assert-artifacts', dir, SITE])
+    expect(r.code).toBe(0)
+    await writeFile(join(dir, '_next/static/chunks/app.js'), 'b="/bumpp/api/search"')
+  })
+
   it('llms.txt 同源链接缺 basePath → exit 1', async () => {
     await writeFile(join(dir, 'llms.txt'), '- [文档](https://vill-v-kit.github.io/docs)')
     const r = await runSmoke(['assert-artifacts', dir, SITE])

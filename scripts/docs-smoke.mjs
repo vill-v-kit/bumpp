@@ -8,11 +8,11 @@
  *   node scripts/docs-smoke.mjs assert-artifacts <outDir> <siteBaseUrl>
  *     构建后、部署前对导出产物做静态断言：
  *       1. <outDir>/api/search 存在且非空（静态搜索索引已导出）
- *       2. 产物 JS bundle 中出现 "<basePath>/api/search"（搜索客户端显式
- *          携带 basePath 抓取索引；fumadocs staticClient 默认回退
- *          '/api/search'，子路径部署下客户端会 404。注意产物里同时存在
- *          库代码内嵌的默认形参 '/api/search'，无法靠负向 grep 区分，
- *          所以这里只做正向断言）
+ *       2. 产物 JS bundle 中出现 "<basePath>/api/search" 或模板字面量形态
+ *          `${…basePath…}/api/search`（搜索客户端显式携带 basePath 抓取
+ *          索引；fumadocs staticClient 默认回退 '/api/search'，子路径部署
+ *          下客户端会 404。注意产物里同时存在库代码内嵌的默认形参
+ *          '/api/search'，无法靠负向 grep 区分，所以这里只做正向断言）
  *       3. llms.txt / llms-full.txt 中所有同源绝对链接都以 siteBaseUrl
  *          为前缀（llms 生成物链接必须带 basePath）
  *
@@ -66,18 +66,25 @@ async function assertArtifacts(outDir, siteBaseUrl) {
   }
 
   // 2. bundle 正向断言：搜索客户端携带 basePath 抓取索引
-  const expected = `"${basePath}/api/search"`
+  //    两种打包形态都算数——内联字面量 "<basePath>/api/search"（旧），或经
+  //    运行时 basePath 导出拼接的模板字面量 `${…basePath…}/api/search`（新）
+  const expectedLiteral = `"${basePath}/api/search"`
+  const expectedTemplate = 'basePath}/api/search`'
   const jsFiles = await collectFiles(outDir, (name) => name.endsWith('.js'))
   let found = false
   for (const file of jsFiles) {
-    if ((await readFile(file, 'utf8')).includes(expected)) {
+    const content = await readFile(file, 'utf8')
+    if (
+      content.includes(expectedLiteral) ||
+      content.includes(expectedTemplate)
+    ) {
       found = true
       break
     }
   }
   if (!found) {
     failures.push(
-      `产物 bundle 中未出现 ${expected}——搜索客户端可能丢了 basePath` +
+      `产物 bundle 中未出现 ${expectedLiteral} 或 ${expectedTemplate}——搜索客户端可能丢了 basePath` +
         '（fumadocs staticClient 默认回退 /api/search，子路径部署下会 404）',
     )
   }
