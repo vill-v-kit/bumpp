@@ -36,11 +36,17 @@ vbumpp package.json packages/*/package.json
 # 录入/更新 token（输入时隐藏回显）
 vbumpp token set gitee
 
-# 查看已配置的 token（不显示明文）
-vbumpp token list
+# 自建 GitLab 实例按实例录入（与项目配置 gitlab.host 对应）
+vbumpp token set gitlab --host https://gitlab.example.com
 
-# 删除 token
+# 查看已配置的 token（不显示明文；host 条目显示为 gitlab (https://...)）
+vbumpp token list
+vbumpp token list --host https://gitlab.example.com
+
+# 删除 token（默认先列清单再确认；--yes 跳过确认，--dry-run 只看清单）
 vbumpp token remove gitee
+vbumpp token remove gitlab --host https://gitlab.example.com
+vbumpp token remove gitlab --all   # provider 级键 + 全部 host 条目
 ```
 
 token 加密存储于 `~/.vbumpp/tokens.bin`（可用 `VBUMPP_TOKEN_STORE` 覆盖路径），是 token 的唯一文件来源

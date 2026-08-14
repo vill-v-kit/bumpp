@@ -21,6 +21,14 @@ token 加密后以二进制形式安全存储
 host = "http://192.168.31.31"
 ```
 
+私有实例的 token 按实例录入（与配置的 host 对应；多个私有实例可与 gitlab.com 并存）：
+
+```shell
+vbumpp token set gitlab --host http://192.168.31.31
+```
+
+gitlab 的 token 读取顺序：当前配置 host 的精确条目 → provider 级 `gitlab` 条目 → `GITLAB_TOKEN` 环境变量。
+
 ## 简单使用
 
 ```shell

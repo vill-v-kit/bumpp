@@ -41,7 +41,7 @@ vbumpp token remove gitee
 | Gitee | `GITEE_TOKEN` |
 | GitCode | `GITCODE_TOKEN` |
 
-GitHub Actions 里直接用内置的 `${{ secrets.GITHUB_TOKEN }}` 即可。token 的优先级：本机录入 > 环境变量 >（仅 GitHub）`gh auth token`。
+GitHub Actions 里直接用内置的 `${{ secrets.GITHUB_TOKEN }}` 即可。token 的优先级：本机录入 > 环境变量 >（仅 GitHub）`gh auth token`；gitlab 的本机录入再细分两级——当前配置 `gitlab.host` 的精确条目优先，provider 级 `gitlab` 条目回落（见下文）。
 
 ## 自建 GitLab 实例
 
@@ -52,6 +52,47 @@ GitHub Actions 里直接用内置的 `${{ secrets.GITHUB_TOKEN }}` 即可。toke
 [gitlab]
 host = "https://gitlab.example.com"
 ```
+
+`host` 保留端口与路径（兼容 relative-url-root 部署）；显式 `http://` 原样保留，覆盖内网纯 HTTP 实例。
+
+## 多个私有 GitLab 实例
+
+每个仓库配各自的 `gitlab.host`，token 按实例逐一录入（host 作用域条目）。两个私有实例与 gitlab.com 并存的完整形态：
+
+```sh
+# 两个私有实例各录一份；gitlab.com 用 provider 级条目
+vbumpp token set gitlab --host https://gitlab-a.com
+vbumpp token set gitlab --host https://gitlab-b.com
+vbumpp token set gitlab
+```
+
+```toml
+# 仓库 A 的 .vbumpprc.toml
+[gitlab]
+host = "https://gitlab-a.com"
+```
+
+```toml
+# 仓库 B 的 .vbumpprc.toml
+[gitlab]
+host = "https://gitlab-b.com"
+```
+
+录入的 `--host` 与配置的 `host` 都不要求写法精确一致：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目。查看与删除同样按实例进行：
+
+```sh
+vbumpp token list --host https://gitlab-a.com    # 只看某个实例
+vbumpp token remove gitlab --host https://gitlab-a.com
+vbumpp token remove gitlab --all                 # 自定义 host 多了一键清
+```
+
+gitlab 的 token 解析链（逐级回落，全部缺失才报错并提示对应的 `--host` 录入命令）：
+
+| 优先级 | 来源 |
+| --- | --- |
+| 1 | 当前配置 `gitlab.host`（缺省 `https://gitlab.com`）的精确条目（`vbumpp token set gitlab --host <url>` 录入） |
+| 2 | provider 级 `gitlab` 条目（`vbumpp token set gitlab` 录入——存量配置零感知回落） |
+| 3 | `GITLAB_TOKEN` 环境变量 |
 
 ## 失败重试
 

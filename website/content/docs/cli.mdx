@@ -13,11 +13,13 @@ usage:
   vbumpp [...files]                bump version and generate changelog
   vbumpp release <version>         retry platform release from a changelog section
   vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted
+  (set/list/remove accept --host <url> for gitlab; remove also accepts --all, --yes, --dry-run)
 
 options:
   -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)
   -r, --recursive             recursively
   --provider <provider>       release provider (github / gitlab / gitee / gitcode)
+  --dry-run                   preview the bump/release plan without side effects
   -h, --help                  show help
   -v, --version               show version
 ```
@@ -129,10 +131,40 @@ vbumpp release "$VERSION" --provider "$PROVIDER" --dry-run
 管理各平台的 access token（详见[平台 Release 指南](/docs/release)）：
 
 ```sh
-vbumpp token set gitee      # 录入
-vbumpp token list           # 查看已配置了哪些平台
-vbumpp token remove gitee   # 删除
+vbumpp token set gitee                                # 录入（输入时隐藏回显）
+vbumpp token set gitlab --host https://gitlab-a.com   # 录入某个自建 GitLab 实例
+vbumpp token list                                     # 查看已配置的 token（不显示明文）
+vbumpp token list --host https://gitlab-a.com         # 只看某个实例
+vbumpp token remove gitee                             # 删除（先列清单再确认）
 ```
+
+`--host` 只支持 gitlab：set / remove 对其他 provider 带 `--host` 报错拒绝（目前只有 gitlab 有 host 配置通路）；list 的 `--host` 是实例过滤条件。host 写法宽松：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目（无 scheme 自动补 `https://`，显式 `http://` 原样保留；端口与路径保留）；`token list` 里 host 条目显示为 `gitlab (https://gitlab-a.com)`。
+
+### remove 的交互矩阵
+
+删除是破坏性操作，默认**先列清单再二次确认**（确认默认 No，拒绝即取消、退出码仍为 `0`）：
+
+```sh
+$ vbumpp token remove gitlab --all
+ℹ tokens to remove:
+ℹ   gitlab
+ℹ   gitlab (https://gitlab-a.com)
+Remove the listed tokens? [y/N]
+```
+
+| 目标形式 | 删除范围 |
+| --- | --- |
+| `vbumpp token remove gitlab` | 仅 provider 级键（不动各 host 条目） |
+| `vbumpp token remove gitlab --host <url>` | 仅该实例的条目 |
+| `vbumpp token remove gitlab --all` | gitlab 的 provider 级键 + 全部 host 条目 |
+| `vbumpp token remove --all` | 全部平台的所有 token |
+
+| 修饰 flag | 行为 |
+| --- | --- |
+| `--dry-run` | 只打印将删清单，不确认、不删除（优先级最高，与 `--yes` 同给也只打印） |
+| `--yes` | 跳过确认直接删除（CI 等非交互环境用它） |
+
+非 TTY 环境（CI、管道）不给 `--yes` 会因无法交互确认而报错、退出码 `1`——不会静默删；`--host` 与 `--all` 同给是用法错误（退出码 `1`）。目标不存在时只警告、退出码仍为 `0`。
 
 ## 退出码
 

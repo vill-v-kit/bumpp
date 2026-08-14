@@ -183,9 +183,9 @@ pub fn confirm_remove(prompt: &str) -> Result<bool, TokenError> {
 
 // ---------------------------------------------------------------------------
 // host 作用域键：`provider@host`（如 `gitlab@https://gitlab-a.com`）。
-// provider 级旧键零迁移保留，两级键共存。写入（token set）与读取（后续
-// release 解析链——host 作用域键优先、provider 级键回落，尚未落地）共用
-// 同一规范化函数——两侧归一一致才能保证相撞到同一键。
+// provider 级旧键零迁移保留，两级键共存。写入（token set）与读取（release
+// 解析链——host 作用域键优先、provider 级键回落）共用同一规范化函数——
+// 两侧归一一致才能保证相撞到同一键。
 // ---------------------------------------------------------------------------
 
 /// host 规范化为 base URL：无 scheme 自动补 `https://`（显式 `http://` 原样
