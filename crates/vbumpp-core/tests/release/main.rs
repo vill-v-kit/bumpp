@@ -3,7 +3,7 @@
 //! 目录镜像 src/release/（ADR-0014）：共享 mock 线束与共享层测试在根部，
 //! token 链与各 provider 行为各一文件。
 
-#[path = "../common/mod.rs"]
+#[path = "../common.rs"]
 mod common;
 
 mod gitcode;
