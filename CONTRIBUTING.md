@@ -24,7 +24,7 @@ mise exec zig@0.15.2 github:rust-cross/cargo-zigbuild@0.23.0 -- \
 
 由 hk 驱动（配置见根 `hk.pkl`）：
 
-- `pre-commit`：`cargo fmt --all -- --check`（秒级）
+- `pre-commit`：`cargo fmt --all -- --check` + `pnpm exec tsc --noEmit`（秒级；后者是仓库脚本的类型门——node 直跑 TS 只做 type stripping 不做类型检查）
 - `pre-push`：`cargo clippy --workspace --all-targets`（分钟级）
 
 CI 仅在 `v*` tag 推送时触发（见下文 CI 节），这两个 hook 让 fmt/clippy 问题在提交/推送时刻暴露，而不是攒到发版当场（ADR-0031）。确需绕过：`HK=0 git commit` / `git commit --no-verify`，责任自负。
