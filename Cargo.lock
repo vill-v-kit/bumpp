@@ -68,9 +68,11 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 name = "bumpp-core-napi"
 version = "6.1.2"
 dependencies = [
+ "indexmap",
  "napi",
  "napi-build",
  "napi-derive",
+ "serde",
  "serde_json",
  "vbumpp-core",
 ]
@@ -599,6 +601,8 @@ checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
 dependencies = [
  "equivalent",
  "hashbrown",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -699,6 +703,7 @@ dependencies = [
  "bitflags",
  "ctor",
  "futures",
+ "indexmap",
  "napi-build",
  "napi-sys",
  "nohash-hasher",

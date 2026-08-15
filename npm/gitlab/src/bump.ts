@@ -6,4 +6,4 @@ import type { BumpVersion, Config } from '@vill-v/bumpp'
  * 自建实例经配置 `gitlab.host` 段）
  */
 export const bumpVersion = (option: Config = {}): Promise<BumpVersion> =>
-  coreBumpVersion({ ...option }, 'gitlab')
+  coreBumpVersion(option, 'gitlab')

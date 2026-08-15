@@ -1,78 +1,33 @@
-import type { BumpState, BumpVersionResult, GenerateChangelogResult } from '@vill-v/bumpp-core'
+// ADR-0037：配置类型以 napi 边界结构体为单一事实源，TS 类型机械生成——
+// 手写门面 interface 已删除，此处仅再导出生成类型并保留旧名兼容别名
+import type { BumpConfig, BumpVersionResult, ChangelogSection } from '@vill-v/bumpp-core'
 
-export type { BumpState, BumpVersionResult, GenerateChangelogResult }
-
-/**
- * changelog 段单个 type 分组
- */
-export interface ChangelogTypeEntry {
-  title: string
-}
-
-/**
- * changelog 段 `repo` 的对象形态
- */
-export interface RepoConfig {
-  provider?: string
-  domain?: string
-  repo?: string
-}
-
-/**
- * changelog 段配置（ADR-0013 支持键集；Rust 单一解析路径内部消费，JS 仅透传）
- */
-export interface ChangelogOptions {
-  output?: string
-  types?: Record<string, ChangelogTypeEntry | false>
-  repo?: string | RepoConfig
-  scopeMap?: Record<string, string>
-  noAuthors?: boolean
-  hideAuthorEmail?: boolean
-  excludeAuthors?: string[]
-  templates?: {
-    tagBody?: string
-  }
-  commitMessage?: string
-}
+export type {
+  BumpConfig,
+  BumpState,
+  BumpVersionResult,
+  ChangelogSection,
+  ChangelogTypeEntry,
+  ChangelogTypes,
+  ChangelogTypeValue,
+  GenerateChangelogResult,
+  GitlabSection,
+  RepoConfig,
+  ScriptsSection,
+  TemplatesSection,
+} from '@vill-v/bumpp-core'
 
 /**
- * 用户配置信息：扁平镜像配置文件形状（ADR-0013）——bumpp 键居顶层，
- * `changelog` / `gitlab` 段并列；统一经 Rust 单一解析路径解析
- * （overrides > 项目 .vbumpprc.* > 全局 ~/.vbumpp/config.* > 内建默认）
+ * 用户配置信息：napi 生成 `BumpConfig` 的别名——扁平镜像配置文件形状
+ * （ADR-0013），另含 overrides 专用机制键 `configFilePath`；统一经 Rust
+ * 单一解析路径解析（overrides > 项目 .vbumpprc.* > 全局 ~/.vbumpp/config.* > 内建默认）
  */
-export interface Config {
-  release?: string
-  files?: string[]
-  commit?: boolean | string
-  tag?: boolean | string
-  push?: boolean
-  sign?: boolean
-  all?: boolean
-  noVerify?: boolean
-  confirm?: boolean
-  ignoreScripts?: boolean
-  install?: boolean
-  execute?: string
-  scripts?: {
-    preversion?: string
-    version?: string
-    postversion?: string
-  }
-  preid?: string
-  currentVersion?: string
-  recursive?: boolean
-  configFilePath?: string
-  /**
-   * changelog 段配置
-   */
-  changelog?: ChangelogOptions
-  /**
-   * gitlab 段（ADR-0014）：自建实例 host，缺省 https://gitlab.com
-   */
-  gitlab?: {
-    host?: string
-  }
-}
+export type Config = BumpConfig
+
+/**
+ * changelog 段配置：napi 生成 `ChangelogSection` 的别名
+ */
+export type ChangelogOptions = ChangelogSection
 
 /**
  * bumpVersion 返回结果（ADR-0014 收缩后）：版本状态 + changelog（无 tag 时缺省）。

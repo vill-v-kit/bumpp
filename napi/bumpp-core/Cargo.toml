@@ -8,13 +8,17 @@ description = "napi-rs Node bindings for vbumpp-core (the pure Rust bumpp versio
 homepage = "https://github.com/vill-v-kit/bumpp"
 repository = "https://github.com/vill-v-kit/bumpp"
 
+# rlib 供集成测试（tests/）链入；cdylib 仍是 napi build 的产出形态
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 vbumpp-core.workspace = true
-napi = { version = "3.12.0", features = ["serde-json", "async"] }
+# object_indexmap：changelog.types 经 IndexMap 保住 JS 对象声明序（ADR-0037）
+napi = { version = "3.12.0", features = ["serde-json", "async", "object_indexmap"] }
 napi-derive = "3.6.1"
+indexmap = { version = "2", features = ["serde"] }
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 
 [build-dependencies]

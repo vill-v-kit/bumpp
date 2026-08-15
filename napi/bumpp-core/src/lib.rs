@@ -4,23 +4,31 @@
 //! `bumpVersion`、CLI 单入口 `cliRun`。平台 Release 四导出已删——独立
 //! release 由 CLI `vbumpp release` 子命令承接（ADR-0016）；上游 parity 面
 //! （versionBump 系、loadBumpConfig）与 changelog 系函数收归 Rust 内部。
+//! `bumpVersion` 入参为类型化边界结构体（ADR-0037，见 `config` 模块）。
+
+pub mod config;
 
 use std::env;
 use std::fmt::Display;
 use std::path::PathBuf;
 
+use napi::bindgen_prelude::AsyncTask;
+use napi::{Env, Error, Result, Task};
 use napi_derive::napi;
-use serde_json::{Map, Value};
 
-fn resolve_cwd(cwd: Option<String>) -> napi::Result<PathBuf> {
+use crate::config::BumpConfig;
+use vbumpp_core::info;
+use vbumpp_core::{cli, orchestrate, release};
+
+fn resolve_cwd(cwd: Option<String>) -> Result<PathBuf> {
   match cwd {
     Some(c) => Ok(PathBuf::from(c)),
     None => Ok(env::current_dir()?),
   }
 }
 
-fn to_napi_err(e: impl Display) -> napi::Error {
-  napi::Error::from_reason(e.to_string())
+fn to_napi_err(e: impl Display) -> Error {
+  Error::from_reason(e.to_string())
 }
 
 // ---------------------------------------------------------------------------
@@ -33,18 +41,15 @@ pub struct CliRunTask {
 }
 
 #[napi]
-impl napi::Task for CliRunTask {
+impl Task for CliRunTask {
   type Output = i32;
   type JsValue = i32;
 
-  fn compute(&mut self) -> napi::Result<Self::Output> {
-    Ok(vbumpp_core::cli::run_from_argv(
-      &self.argv,
-      self.provider.as_deref(),
-    ))
+  fn compute(&mut self) -> Result<Self::Output> {
+    Ok(cli::run_from_argv(&self.argv, self.provider.as_deref()))
   }
 
-  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+  fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
     Ok(output)
   }
 }
@@ -52,11 +57,8 @@ impl napi::Task for CliRunTask {
 /// CLI：argv 全权交 Rust 解析执行，返回退出码由调用壳回写 `process.exitCode`；
 /// `provider` 为平台变体身份（`@vill-v/bumpp-github` 等变体 bin 经位置参数注入）
 #[napi]
-pub fn cli_run(
-  argv: Vec<String>,
-  provider: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<CliRunTask> {
-  napi::bindgen_prelude::AsyncTask::new(CliRunTask { argv, provider })
+pub fn cli_run(argv: Vec<String>, provider: Option<String>) -> AsyncTask<CliRunTask> {
+  AsyncTask::new(CliRunTask { argv, provider })
 }
 
 // ---------------------------------------------------------------------------
@@ -83,8 +85,8 @@ pub struct BumpState {
   pub skipped_files: Vec<String>,
 }
 
-impl From<vbumpp_core::info::BumpState> for BumpState {
-  fn from(s: vbumpp_core::info::BumpState) -> Self {
+impl From<info::BumpState> for BumpState {
+  fn from(s: info::BumpState) -> Self {
     Self {
       release: s.release,
       current_version: s.current_version,
@@ -114,31 +116,33 @@ pub struct BumpVersionResult {
 }
 
 pub struct BumpVersionTask {
-  overrides: Option<Map<String, Value>>,
+  overrides: Option<BumpConfig>,
   provider: Option<String>,
   cwd: Option<String>,
 }
 
 #[napi]
-impl napi::Task for BumpVersionTask {
+impl Task for BumpVersionTask {
   type Output = BumpVersionResult;
   type JsValue = BumpVersionResult;
 
-  fn compute(&mut self) -> napi::Result<Self::Output> {
+  fn compute(&mut self) -> Result<Self::Output> {
     let provider = self
       .provider
       .as_deref()
       .map(|p| {
-        vbumpp_core::release::Provider::parse(p).ok_or_else(|| {
-          napi::Error::from_reason(format!(
+        release::Provider::parse(p).ok_or_else(|| {
+          Error::from_reason(format!(
             "unknown provider: {p} (expected github / gitlab / gitee / gitcode)"
           ))
         })
       })
       .transpose()?;
-    let outcome = vbumpp_core::orchestrate::bump_version(
-      &vbumpp_core::orchestrate::BumpVersionOptions {
-        overrides: self.overrides.take(),
+    // 类型化边界产物转合并层载体（ADR-0037：结构体是校验载体，Map 是合并载体）
+    let overrides = self.overrides.take().map(BumpConfig::into_map);
+    let outcome = orchestrate::bump_version(
+      &orchestrate::BumpVersionOptions {
+        overrides,
         provider,
       },
       &resolve_cwd(self.cwd.take())?,
@@ -153,20 +157,21 @@ impl napi::Task for BumpVersionTask {
     })
   }
 
-  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+  fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
     Ok(output)
   }
 }
 
 /// 完整 bump 编排：统一配置解析 → 交互选版本 → changelog → 文件/脚本/git →
-/// 可选平台 Release（`provider` 传 'github' | 'gitlab' | 'gitee' | 'gitcode' 时）
+/// 可选平台 Release（`provider` 传 'github' | 'gitlab' | 'gitee' | 'gitcode' 时）。
+/// `overrides` 为类型化配置覆盖（ADR-0037：类型不符在边界即运行期报错）
 #[napi]
 pub fn bump_version(
-  overrides: Option<Map<String, Value>>,
+  overrides: Option<BumpConfig>,
   provider: Option<String>,
   cwd: Option<String>,
-) -> napi::bindgen_prelude::AsyncTask<BumpVersionTask> {
-  napi::bindgen_prelude::AsyncTask::new(BumpVersionTask {
+) -> AsyncTask<BumpVersionTask> {
+  AsyncTask::new(BumpVersionTask {
     overrides,
     provider,
     cwd,
