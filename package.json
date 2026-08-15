@@ -8,10 +8,12 @@
     "build": "turbo run build",
     "check:home-demo-cast": "node scripts/demo-cast-drift.ts",
     "check:licenses": "node scripts/check-licenses.ts",
+    "check:schema": "node scripts/schema-drift.ts",
     "collect:artifacts": "node scripts/collect-artifacts.ts",
     "create:npm-dirs": "node scripts/create-npm-dirs.ts",
     "prepare": "hk install",
     "pretest": "turbo run build",
+    "regen:schema": "node scripts/regen-schema.ts",
     "release": "HK=0 vbumpp -r && node scripts/verify-tag-ci.ts && pnpm build",
     "test": "vitest"
   },

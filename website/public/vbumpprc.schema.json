@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BumpConfig",
+  "description": "Bump configuration shape (19 top-level keys plus `$schema`). Every field is optional: absence means \"not declared\" and defaults are resolved at the merge layer.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Editor schema association key (valid in both JSON and TOML); carries no runtime semantics.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "all": {
+      "description": "Stage all changes when committing (`git add -A`); by default only the updated files are committed.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "changelog": {
+      "description": "Changelog generation settings.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChangelogSection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commit": {
+      "description": "Whether to git commit the version bump; a string is used as the custom commit message.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoolOrString"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "confirm": {
+      "description": "Ask for confirmation before execution; not asked again after picking a version interactively.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "currentVersion": {
+      "description": "Manually specify the current version, overriding auto-detection.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "execute": {
+      "description": "An extra command to run after the version update.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "files": {
+      "description": "Files whose version number should be updated (glob patterns); when empty, common manifest files are auto-detected.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "gitlab": {
+      "description": "Self-hosted GitLab release settings.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GitlabSection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ignoreScripts": {
+      "description": "Skip all lifecycle scripts.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "install": {
+      "description": "Run the ecosystem install after the version update (JavaScript: package-manager install; Cargo: `cargo check --workspace`).",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "noGitCheck": {
+      "description": "Skip the git state check before bumping; defaults to skipping (mechanism key).",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "noVerify": {
+      "description": "Skip git hooks when committing and tagging.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "preid": {
+      "description": "Prerelease identifier (the `beta` in `1.0.0-beta.1`).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "push": {
+      "description": "Whether to git push after the bump.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "recursive": {
+      "description": "Recursively bump the whole tree (monorepo); equivalent to `-r`.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "release": {
+      "description": "Skip the interactive menu and use the given bump type (e.g. `patch`) or explicit version directly.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scripts": {
+      "description": "Lifecycle scripts run at each phase of the bump.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScriptsSection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sign": {
+      "description": "GPG-sign the commit and tag.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "tag": {
+      "description": "Whether to create a git tag; a string is used as the custom tag name.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoolOrString"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "ChangelogSection": {
+      "description": "Changelog generation settings; the key set mirrors the consumer resolver.",
+      "type": "object",
+      "properties": {
+        "output": {
+          "description": "Output path of the changelog file (default CHANGELOG.md).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "types": {
+          "description": "Commit-type grouping table; value shape see ChangelogTypeValue. Key-wise deep merge and declaration order are consumer semantics; this shape only validates.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ChangelogTypeValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "repo": {
+          "description": "Repository used for compare links (`owner/repo` shorthand or an object); inferred from the git remote when omitted.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChangelogRepo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scopeMap": {
+          "description": "Display-name overrides for commit scopes.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "noAuthors": {
+          "description": "Do not generate the contributors list.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "hideAuthorEmail": {
+          "description": "Hide email addresses in the contributors line.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "excludeAuthors": {
+          "description": "Exclude authors whose name matches a substring (e.g. bot accounts).",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "templates": {
+          "description": "Changelog templates.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemplatesSection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "commitMessage": {
+          "description": "Commit message used to commit the changelog file (default \"chore: update {{output}}\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ChangelogTypeValue": {
+      "description": "Either false (hide this group from the changelog) or an object with an optional title overriding the group heading.",
+      "oneOf": [
+        {
+          "const": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "title": {
+              "description": "Group heading shown in the changelog.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ChangelogRepo": {
+      "description": "Either the `owner/repo` shorthand string, or an object with optional provider / domain / repo.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "description": "Release provider name (github / gitlab / gitee / gitcode).",
+              "type": "string"
+            },
+            "domain": {
+              "description": "Self-hosted instance domain; omitted for the provider's public site.",
+              "type": "string"
+            },
+            "repo": {
+              "description": "Repository in `owner/repo` form.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "TemplatesSection": {
+      "description": "Changelog templates; only tagBody is part of the shape.",
+      "type": "object",
+      "properties": {
+        "tagBody": {
+          "description": "Format of the version heading inside the changelog (default \"v{{newVersion}}\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "BoolOrString": {
+      "description": "A boolean, or a string carrying a custom value.",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "GitlabSection": {
+      "description": "GitLab release settings. Key-name validation lives in the pre-pass; this shape only checks types.",
+      "type": "object",
+      "properties": {
+        "host": {
+          "description": "Base URL of the self-hosted GitLab instance.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ScriptsSection": {
+      "description": "Lifecycle script slots: shell commands run at each phase of the version bump.",
+      "type": "object",
+      "properties": {
+        "preversion": {
+          "description": "Shell command run before the version files are updated.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Shell command run after the version files are updated, before commit/tag.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "postversion": {
+          "description": "Shell command run after commit/tag, before push.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -48,6 +48,8 @@ async function makeFixture() {
       '- [发布说明](https://github.com/vill-v-kit/bumpp/releases)', // 异源链接不受约束
     ].join('\n'),
   )
+  // schema 产物随静态导出（ADR-0037 / COL-104）
+  await writeFile(join(dir, 'vbumpprc.schema.json'), '{"type":"object"}')
   return dir
 }
 
@@ -97,6 +99,22 @@ describe('assert-artifacts', () => {
     await writeFile(join(dir, 'llms.txt'), '- [文档](https://vill-v-kit.github.io/bumpp/docs)')
   })
 
+  it('schema 产物缺失 → exit 1', async () => {
+    await rm(join(dir, 'vbumpprc.schema.json'))
+    const r = await runSmoke(['assert-artifacts', dir, SITE])
+    expect(r.code).toBe(1)
+    expect(r.stderr).toMatch(/schema 产物未进静态导出/)
+    await writeFile(join(dir, 'vbumpprc.schema.json'), '{"type":"object"}')
+  })
+
+  it('schema 产物损坏（非 JSON）→ exit 1', async () => {
+    await writeFile(join(dir, 'vbumpprc.schema.json'), 'not json')
+    const r = await runSmoke(['assert-artifacts', dir, SITE])
+    expect(r.code).toBe(1)
+    expect(r.stderr).toMatch(/不是合法 JSON/)
+    await writeFile(join(dir, 'vbumpprc.schema.json'), '{"type":"object"}')
+  })
+
   it('参数缺失 → exit 2', async () => {
     const r = await runSmoke(['assert-artifacts', dir])
     expect(r.code).toBe(2)
@@ -124,11 +142,11 @@ describe('check-live', () => {
   })
 
   it('先 404 后 200（模拟 Pages 传播延迟）→ exit 0', async () => {
-    // 3 个资源（/、/api/search、/llms.txt）：第一轮全 404、第二轮起全 200
+    // 4 个资源（/、/api/search、/llms.txt、/vbumpprc.schema.json）：第一轮全 404、第二轮起全 200
     let hits = 0
     handler = (_req, res) => {
       hits += 1
-      res.writeHead(hits > 3 ? 200 : 404).end()
+      res.writeHead(hits > 4 ? 200 : 404).end()
     }
     const r = await runSmoke(['check-live', base], fastEnv)
     expect(r.code).toBe(0)

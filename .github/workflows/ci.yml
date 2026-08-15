@@ -56,6 +56,13 @@ jobs:
       - name: vitest
         run: pnpm test run
 
+      # ADR-0037 防腐腿（COL-104）：重跑两处 schema 产物再生并 diff 提交物——
+      # 配置形状变更后忘再生、或手改产物，显式暴露而非静默发生。挂在 test 腿：
+      # npm 包副本随包上架直接到用户手里，漂移必须拦在 publish 之前；cargo
+      # test 已产出 target/debug/vbumpp，再生直接复用，不另起 release 构建
+      - name: schema artifact drift check
+        run: pnpm check:schema
+
   # ADR-0036 防腐腿（COL-93）：重跑首页演示采集并 diff 提交产物——CLI 输出
   # 变更后演示腐烂显式暴露，而非静默发生。macOS 宿主：采集脚本依赖 BSD
   # script(1) 的 -q /dev/null 语法。不进 publish 的 needs——演示漂移是网站

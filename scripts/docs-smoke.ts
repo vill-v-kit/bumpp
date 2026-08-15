@@ -15,10 +15,14 @@
  *          '/api/search'，无法靠负向 grep 区分，所以这里只做正向断言）
  *       3. llms.txt / llms-full.txt 中所有同源绝对链接都以 siteBaseUrl
  *          为前缀（llms 生成物链接必须带 basePath）
+ *       4. vbumpprc.schema.json 存在、非空且是合法 JSON（schema 产物随静态
+ *          导出上架，ADR-0037 / COL-104；Pages 规范 URL 由此成立）
  *
  *   node scripts/docs-smoke.ts check-live <siteBaseUrl>
  *     部署后轮询线上关键资源直到全部 200（Pages 有传播延迟，需重试）：
- *       <siteBaseUrl>/、<siteBaseUrl>/api/search、<siteBaseUrl>/llms.txt
+ *       <siteBaseUrl>/、<siteBaseUrl>/api/search、<siteBaseUrl>/llms.txt、
+ *       <siteBaseUrl>/vbumpprc.schema.json（schema 的 Pages 规范 URL，
+ *       SchemaStore 收录指向它——地址长期稳定是对外承诺）
  *     轮询预算可用环境变量覆盖（测试 stub 用）：
  *       DOCS_SMOKE_ROUNDS（默认 18）、DOCS_SMOKE_INTERVAL_MS（默认 10000）
  *
@@ -28,7 +32,7 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const SMOKE_UA = 'vill-v-kit/bumpp docs-smoke (https://github.com/vill-v-kit/bumpp)'
-const LIVE_PATHS = ['/', '/api/search', '/llms.txt']
+const LIVE_PATHS = ['/', '/api/search', '/llms.txt', '/vbumpprc.schema.json']
 
 const [command, ...args] = process.argv.slice(2)
 
@@ -104,6 +108,24 @@ async function assertArtifacts(outDir: string, siteBaseUrl: string): Promise<str
         failures.push(`${name} 中同源链接未带 basePath: ${link}`)
       }
     }
+  }
+
+  // 4. schema 产物随静态导出（ADR-0037 / COL-104）：website/public/ → out/，
+  //    Pages 规范 URL（<siteBaseUrl>/vbumpprc.schema.json）依赖它
+  const schemaPath = join(outDir, 'vbumpprc.schema.json')
+  try {
+    const info = await stat(schemaPath)
+    if (info.size === 0) {
+      failures.push(`${schemaPath} 是空文件（schema 产物导出失败）`)
+    } else {
+      try {
+        JSON.parse(await readFile(schemaPath, 'utf8'))
+      } catch {
+        failures.push(`${schemaPath} 不是合法 JSON（schema 产物损坏）`)
+      }
+    }
+  } catch {
+    failures.push(`${schemaPath} 不存在（schema 产物未进静态导出）`)
   }
 
   return failures
