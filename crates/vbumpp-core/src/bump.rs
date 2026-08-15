@@ -135,6 +135,46 @@ impl<'a> BumpOptions<'a> {
       current_version: str_of("currentVersion"),
     }
   }
+
+  /// 自形状结构体（`config::shape_of` 产物）构造（ADR-0037 编排用）：
+  /// release 槽固定为已确定的新版本；逐键语义与 `from_merged` 一致
+  /// （execute / preid / currentVersion 与 commit / tag 的空串均按缺失）
+  pub fn from_config(config: &'a crate::config::BumpConfig, new_version: &'a str) -> Self {
+    use crate::config::BoolOrString;
+    let commit = match &config.commit {
+      Some(BoolOrString::Bool(b)) => Some(CommitInput::Bool(*b)),
+      Some(BoolOrString::Str(s)) if !s.is_empty() => Some(CommitInput::Message(s)),
+      _ => None,
+    };
+    let tag = match &config.tag {
+      Some(BoolOrString::Bool(b)) => Some(TagInput::Bool(*b)),
+      Some(BoolOrString::Str(s)) if !s.is_empty() => Some(TagInput::Name(s)),
+      _ => None,
+    };
+    let non_empty = |v: &'a Option<String>| v.as_deref().filter(|s| !s.is_empty());
+    Self {
+      release: Some(new_version),
+      files: config.files.clone().unwrap_or_default(),
+      recursive: config.recursive.unwrap_or(false),
+      commit,
+      tag,
+      push: config.push.unwrap_or(false),
+      sign: config.sign.unwrap_or(false),
+      all: config.all.unwrap_or(false),
+      no_verify: config.no_verify.unwrap_or(false),
+      confirm: config.confirm.unwrap_or(false),
+      ignore_scripts: config.ignore_scripts.unwrap_or(false),
+      install: config.install.unwrap_or(false),
+      execute: non_empty(&config.execute),
+      scripts: config.scripts.as_ref().map(|s| Scripts {
+        preversion: s.preversion.clone(),
+        version: s.version.clone(),
+        postversion: s.postversion.clone(),
+      }),
+      preid: non_empty(&config.preid),
+      current_version: non_empty(&config.current_version),
+    }
+  }
 }
 
 /// 一次进度事件的负载快照（上游 `{ event, script, ...operation.results }`）

@@ -2,16 +2,17 @@
 //! （ADR-0013）：项目级 `.vbumpprc.{json,jsonc,toml}` + 全局级
 //! `~/.vbumpp/config.{json,jsonc,toml}`（`.json`/`.jsonc` 同走 JSONC 解析）。
 //!
+//! 文件层校验（ADR-0037）键名 + 类型双重：键名 pre-pass（`customVersion` 迁移文案、
+//! 未知键全列、gitlab 严格键集）在前，形状结构体反序列化在后——类型不符报错指出键路径与期望类型，不再静默回落。
+//!
 //! 合并顺序（浅展开，整体替换）：`bumpConfigDefaults` ← 全局文件 ← 项目文件
 //! ← overrides；changelog 段例外——`types` 按键深合并逐层生效（ADR-0013）。
 //! 上游经 napi 传入的 JS `undefined` 会序列化为 `null`，剥离时对齐上游的
 //! `v !== void 0` 过滤。
 //!
-//! 探测：同级认名集合内命中 2 个及以上即报错（多配置并存几乎一定是迁移事故）。
-//! loader 只认上述文件名（及 `configFilePath` override——按扩展名
-//! `.json` / `.jsonc` / `.toml` 分派，指定时替代项目层探测，全局层照常叠加）；
-//! 旧名（`bump.config.*` / `vbumpp.config.*` / `changelog.config.*`）不探测、
-//! 不读取、不报错，静默失效（ADR-0013）。
+//! 探测：同级认名集合内命中 2 个及以上即报错（多配置并存几乎一定是迁移事故）；`configFilePath`
+//! override 按扩展名 `.json` / `.jsonc` / `.toml` 分派，指定时替代项目层探测，全局层照常叠加；
+//! 旧名（`bump.config.*` / `vbumpp.config.*` / `changelog.config.*`）不探测、不读取，静默失效（ADR-0013）。
 
 use std::error::Error;
 use std::fmt;
@@ -22,17 +23,22 @@ use serde_json::{Map, Value};
 
 use crate::plugins::recursive_manifest_globs;
 
+pub mod shape;
+
+pub use shape::{shape_of, BoolOrString, BumpConfig};
+
 /// 项目级探测文件名集合（ADR-0013）
 const PROJECT_CONFIG_FILES: [&str; 3] = [".vbumpprc.json", ".vbumpprc.jsonc", ".vbumpprc.toml"];
 /// 全局级探测文件名集合（全局配置目录 `~/.vbumpp/` 内）
 const GLOBAL_CONFIG_FILES: [&str; 3] = ["config.json", "config.jsonc", "config.toml"];
 
 /// 顶层键名白名单（COL-60）：configuration.mdx 顶层配置项表 + 机制键
-/// （`noGitCheck`）。文档声称「写错键名会直接报错（并告诉你是哪个键）」
-/// （configuration.mdx / migration-v6.mdx）——文件层严格 schema，防配置
-/// 静默失效；overrides 层不校验（编程式 API 上游 parity）。`configFilePath`
-/// 不在列：它是 overrides 专用机制键，配置文件内自指无意义，写即报错。
-const SUPPORTED_TOP_LEVEL_KEYS: [&str; 19] = [
+/// （`noGitCheck`）+ 编辑器 schema 关联键（`$schema`，ADR-0037）。文件层严格
+/// schema 防配置静默失效；overrides 层不校验（编程式 API 上游 parity）。
+/// `configFilePath` 不在列：overrides 专用机制键，配置文件内自指无意义。
+/// 与 `BumpConfig` 结构体键集的一致性由测试钉死（tests/config_shape.rs）
+pub const SUPPORTED_TOP_LEVEL_KEYS: [&str; 20] = [
+  "$schema",
   "all",
   "changelog",
   "commit",
@@ -384,6 +390,11 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
           message: format!("config file {}: {message}", crate::display::path(cwd, path)),
         });
       }
+      // 类型校验（ADR-0037）：键名 pre-pass 之后经形状结构体反序列化——类型不符
+      // 从静默回落默认改为报错（键路径 + 期望类型）；未知键各有定制 pre-pass 文案
+      shape::shape_of(&map).map_err(|message| LoadConfigError::UnsupportedConfig {
+        message: format!("config file {}: {message}", crate::display::path(cwd, path)),
+      })?;
       Ok(map)
     }
     // 上游 `{...非对象}` 的行为（数组展开为索引键等）属于病理用法，明确拒绝
@@ -452,8 +463,7 @@ fn gitlab_section_error(source: &Map<String, Value>) -> Option<String> {
   gitlab_host_of(source).err().map(|e| e.to_string())
 }
 
-/// TOML datetime 在 JSON 值域无表达（serde 会静默降为 ISO 字符串）——
-/// 配置中出现即报错（ADR-0013），请用户显式写字符串
+/// TOML datetime 在 JSON 值域无表达（serde 会静默降为 ISO 字符串），出现即报错（ADR-0013）
 fn reject_toml_datetimes(
   value: &toml::Value,
   path: &Path,

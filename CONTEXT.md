@@ -24,8 +24,12 @@ bump 流程三时序槽位（`preversion` / `version` / `postversion`）的通�
 _Avoid_: npm scripts（上游旧义——从 package.json scripts 读取经 `npm run`，通道已移除）
 
 **配置文件**:
-工具配置的两级文件——项目级 `.vbumpprc.{json,jsonc,toml}` 与全局级 `~/.vbumpp/config.{json,jsonc,toml}`（ADR-0013；`.jsonc` 为 `.json` 的别名，同走 JSONC 解析，注释与尾逗号均可用）。加载全权归 Rust，四层合并：overrides > 项目 > 全局 > 内建默认；bumpp 键居顶层，`changelog` 段、`scripts` 字段、`gitlab` 段并列；全项目仅这一条解析路径，解析结果不向 JS 导出。同级探测到多个配置文件即报错并全部列出；旧名不探测、静默失效。
+工具配置的两级文件——项目级 `.vbumpprc.{json,jsonc,toml}` 与全局级 `~/.vbumpp/config.{json,jsonc,toml}`（ADR-0013；`.jsonc` 为 `.json` 的别名，同走 JSONC 解析，注释与尾逗号均可用）。加载全权归 Rust，四层合并：overrides > 项目 > 全局 > 内建默认；bumpp 键居顶层，`changelog` 段、`scripts` 字段、`gitlab` 段并列；全项目仅这一条解析路径，解析结果不向 JS 导出。文件层键名与类型双重严格校验——未知键一次全列、类型不符（如 `files` 非数组）即报错而非静默回落默认（ADR-0037）；`$schema` 键为合法自引用（编辑器关联配置 Schema）。同级探测到多个配置文件即报错并全部列出；旧名不探测、静默失效。
 _Avoid_: bump.config.json（旧名）、vbumpp.config（esconf 旧制，已移除）、YAML 配置（不支持，ADR-0013）
+
+**配置 Schema (Config schema)**:
+配置文件形状的机器可读描述（JSON Schema），自 vbumpp-core 内的配置形状单一事实源（Rust 结构体）机械生成，经 `vbumpp schema` 子命令输出（stdout 或 `--write` 落盘项目 `vbumpprc.schema.json` / 全局 `~/.vbumpp/schema.json`）。分发三路：SchemaStore 收录（编辑器对 `.vbumpprc.{json,jsonc,toml}` 零配置提示，TOML 侧由 Taplo 消费）、npm 包内副本、文档站 Pages 规范 URL；产物提交进仓库并以 CI 漂移腿防腐（ADR-0037）。
+_Avoid_: 配置校验器（schema 是形状描述物，校验是其消费方）、TS 类型门面（指 overrides 的编程式类型，另一条通路）
 
 **全局配置目录 (`~/.vbumpp/`)**:
 用户级数据的家——全局配置文件与 Token 存储同放此目录。`VBUMPP_HOME` 覆盖整个目录；`VBUMPP_TOKEN_STORE` 仅覆盖 token 存储文件路径（兼容保留，优先级高于 `VBUMPP_HOME`）。
@@ -80,7 +84,7 @@ _Avoid_: Corepack 配置（过窄——信号也包括文件且支持范围宽�
 _Avoid_: Corepack 声明（这些字段可由其他工具消费）、包管理器配置（暗示 vbumpp 执行完整配置语义）
 
 **Core**:
-纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面由 ADR-0014 与 ADR-0016 确定：编排 `bumpVersion(options, provider?)`、CLI 单入口 `cliRun(argv, provider?)`；独立 release 由 CLI `vbumpp release` 子命令承接；上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。
+纯 Rust + napi-rs 实现的版本、changelog 与平台 Release 引擎包 `@vill-v/bumpp-core`（`napi/bumpp-core`）。napi 面由 ADR-0014 与 ADR-0016 确定：编排 `bumpVersion(options, provider?)`、CLI 单入口 `cliRun(argv, provider?)`；独立 release 由 CLI `vbumpp release` 子命令承接；上游 parity 面（`versionBump` 系、`loadBumpConfig`）与 changelog 系函数收归 Rust 内部，`@vill-v/bumpp/changelog` 子路径移除。进度为 Rust 内置打印（ADR-0002），`ProgressEvent` 不向 Node 层导出。`bumpVersion` 的 options 为 napi 类型化结构体边界——TS 类型自动生成，npm 侧不手写门面 interface；未知键由 TS 编译期把关、类型不符由 napi 运行期报错（ADR-0037）。
 _Avoid_: bumpp（指上游 antfu/bumpp 依赖本身）、next（实验包，已由 core 替代并删除）、changelogen（上游 unjs 依赖本身，使用面已重写并移除）
 
 **Platform package**:

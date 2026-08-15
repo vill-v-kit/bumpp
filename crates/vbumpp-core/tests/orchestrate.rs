@@ -197,3 +197,49 @@ fn default_probe_table_supplies_current_version_source() {
     "默认探测表兜底：来源为探测到的清单文件名"
   );
 }
+
+// ---------------------------------------------------------------------------
+// 版本确定三键语义防回退（ADR-0037 形状改造后）：release / preid /
+// currentVersion 非 string 或空串报错，不静默当缺省
+// ---------------------------------------------------------------------------
+
+#[test]
+fn version_keys_empty_string_errors() {
+  for key in ["release", "preid", "currentVersion"] {
+    let dir = TempDir::new().unwrap();
+    let path = common::init_bump_repo(&dir, &format!("{key} = \"\"\npush = false\n"));
+    let err = bump(&path).unwrap_err();
+    match err {
+      OrchestrateError::Config { message } => {
+        assert!(message.contains(key), "应指出键名：{message}");
+        assert!(message.contains("must be a non-empty string"), "{message}");
+      }
+      other => panic!("应为 Config，实际 {other:?}（键 {key}）"),
+    }
+  }
+}
+
+#[test]
+fn version_keys_non_string_errors_at_shape_layer() {
+  // ADR-0037 后非 string 类型在形状层即报（键名 + 期望类型）；
+  // overrides 层同拦（编排消费同一形状产物）
+  for key in ["release", "preid", "currentVersion"] {
+    common::isolate_global_home();
+    let dir = TempDir::new().unwrap();
+    let err = bump_version(
+      &BumpVersionOptions {
+        overrides: Some(serde_json::json!({ key: 123 }).as_object().unwrap().clone()),
+        provider: None,
+      },
+      dir.path(),
+    )
+    .unwrap_err();
+    match err {
+      OrchestrateError::Config { message } => {
+        assert!(message.contains(key), "应指出键名：{message}");
+        assert!(message.contains("expected a string"), "{message}");
+      }
+      other => panic!("应为 Config，实际 {other:?}（键 {key}）"),
+    }
+  }
+}

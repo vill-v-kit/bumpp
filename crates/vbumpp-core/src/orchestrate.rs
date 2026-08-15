@@ -11,6 +11,7 @@ use serde_json::{Map, Value};
 
 use crate::bump::BumpOptions;
 use crate::changelog::GenerateChangelogOutcome;
+use crate::config::BumpConfig;
 use crate::effects::{Effects, RealEffects};
 use crate::info::BumpState;
 use crate::release::Provider;
@@ -25,12 +26,14 @@ pub struct BumpVersionOptions {
 
 /// 编排产出（对齐 JS `BumpVersion` 收缩后的形状，ADR-0014）；
 /// `bump` 为 versionBump 的结果（commit message / tag 名 / 逐文件清单——
-/// COL-85 dry-run 的 git 动作与判定行数据源）
+/// COL-85 dry-run 的 git 动作与判定行数据源）；`config` 为合并配置的
+/// 形状解析产物（ADR-0037），dry-run 计划复用它做命令分类
 #[derive(Debug)]
 pub struct BumpVersionOutcome {
   pub state: BumpState,
   pub changelog: Option<GenerateChangelogOutcome>,
   pub bump: crate::bump::BumpResults,
+  pub config: BumpConfig,
 }
 
 #[derive(Debug)]
@@ -134,22 +137,28 @@ pub fn bump_version_at(
   display: &mut dyn FnMut(&str),
 ) -> Result<BumpVersionOutcome, OrchestrateError> {
   // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013）----
-  let mut merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
+  let merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
 
-  // ---- 版本确定三键（COL-60）：release / preid / currentVersion 自 merged 配置
+  // ---- 形状解析（ADR-0037）：merged 一次过结构体，编排与 dry-run 计划
+  //（BumpVersionOutcome.config）共用同一份产物；文件层类型校验已拦文件
+  // 来源，overrides 层类型不符在此报错 ----
+  let mut config =
+    crate::config::shape_of(&merged).map_err(|message| OrchestrateError::Config { message })?;
+
+  // ---- 版本确定三键（COL-60）：release / preid / currentVersion 自形状产物
   // 穿入 version_bump_info——release 携带即非交互（release type / 版本号直选），
   // 缺省或 "prompt" 走交互菜单；preid / currentVersion 缺它则 pre* 释放算错
   // 标识、新版本基线仍来自文件探测
-  let release = config_str(&merged, "release")?;
-  let preid = config_str(&merged, "preid")?;
-  let current_version = config_str(&merged, "currentVersion")?;
+  let release = config_str(config.release.as_deref(), "release")?;
+  let preid = config_str(config.preid.as_deref(), "preid")?;
+  let current_version = config_str(config.current_version.as_deref(), "currentVersion")?;
 
   // ---- confirm 门控（COL-60）：交互选定版本即确认，不再二次问（文档语义：
   // 「命令行交互选定版本后不会再问」）；非交互路径按 merged confirm 执行——
   // 缺省 true 二次确认（上游语义），CI / 脚本场景配 confirm = false ----
   let interactive = release.as_deref().is_none_or(|r| r == "prompt");
   if interactive {
-    merged.insert("confirm".into(), Value::Bool(false));
+    config.confirm = Some(false);
   }
 
   // ---- 最近 tag（真实 tag 名；无 tag / 非 git 仓库软失败 None）----
@@ -159,7 +168,7 @@ pub fn bump_version_at(
   // 上游 parity：operation.files = options.files（收集前清单；含未命中的
   // 显式路径）——当前版本的来源探测随它（显式点名文件参与来源）；文件更新
   // 判定清单在 bump 段另经 normalize_files 收集（上游同名量两者分开）
-  let info_files = info_files_of(&merged);
+  let info_files = config.files.clone().unwrap_or_default();
   let state = crate::info::version_bump_info(
     &crate::info::BumpInfoOptions {
       release: release.as_deref(),
@@ -192,9 +201,9 @@ pub fn bump_version_at(
     None => None,
   };
 
-  // ---- versionBump（merged + release 固定为已确定的新版本；
+  // ---- versionBump（config 形状产物 + release 固定为已确定的新版本；
   // 显示汇透传——其进度行与编排成功行汇入同一计划）----
-  let bump_options = BumpOptions::from_merged(&merged, &state.new_version);
+  let bump_options = BumpOptions::from_config(&config, &state.new_version);
   let bump = crate::bump::version_bump_at(eff, &bump_options, cwd, display, &mut |_| {})?;
 
   // ---- 平台 Release（spinner → 进度打印）----
@@ -223,36 +232,22 @@ pub fn bump_version_at(
     state,
     changelog,
     bump,
+    config,
   })
 }
 
-/// 字符串型配置键提取（COL-60）：缺省 / null 为 None；空串与非字符串值报错——
-/// 配置写错不允许静默回落（release 空串/错类型若静默当缺省会意外弹交互菜单；
-/// 空串报错对齐上游 `release: ""` 经 loose 解析抛错的行为）
-fn config_str(merged: &Map<String, Value>, key: &str) -> Result<Option<String>, OrchestrateError> {
-  match merged.get(key) {
-    None | Some(Value::Null) => Ok(None),
-    Some(Value::String(s)) if !s.is_empty() => Ok(Some(s.clone())),
+/// 字符串型配置键提取（COL-60）：缺省 / null 为 None（结构体已归一为
+/// None）；空串报错——配置写错不允许静默回落（release 空串若静默当缺省
+/// 会意外弹交互菜单；空串报错对齐上游 `release: ""` 经 loose 解析抛错的
+/// 行为）；非字符串类型由形状解析在前报错，不到此处
+fn config_str(value: Option<&str>, key: &str) -> Result<Option<String>, OrchestrateError> {
+  match value {
+    None => Ok(None),
+    Some(s) if !s.is_empty() => Ok(Some(s.to_owned())),
     Some(_) => Err(OrchestrateError::Config {
       message: format!(
         "config key \"{key}\" must be a non-empty string — fix the value or remove the key"
       ),
     }),
   }
-}
-
-/// `versionBumpInfo` 的候选文件清单（上游 `options.files` parity：收集前
-/// 原样清单——含未命中的显式路径；`BumpOptions::from_merged` 的 files
-/// 同一提取规则）
-fn info_files_of(merged: &Map<String, Value>) -> Vec<String> {
-  merged
-    .get("files")
-    .and_then(Value::as_array)
-    .map(|a| {
-      a.iter()
-        .filter_map(Value::as_str)
-        .map(str::to_owned)
-        .collect()
-    })
-    .unwrap_or_default()
 }

@@ -141,16 +141,21 @@ fn arrays_are_replaced_not_concatenated() {
 
 #[test]
 fn nested_objects_are_replaced_not_deep_merged() {
+  // 浅展开语义用类型合法的 scripts 段验证（ADR-0037 后 commit 对象在
+  // 文件层即类型报错，不再是静默回落的载体）
   let dir = TempDir::new().unwrap();
   write(
     &dir,
     ".vbumpprc.json",
-    r#"{ "commit": { "message": "from config" } }"#,
+    r#"{ "scripts": { "preversion": "from config" } }"#,
   );
-  let merged = load(&dir, overrides(json!({ "commit": { "all": true } })));
+  let merged = load(
+    &dir,
+    overrides(json!({ "scripts": { "version": "echo overridden" } })),
+  );
   assert_eq!(
-    merged["commit"],
-    json!({ "all": true }),
+    merged["scripts"],
+    json!({ "version": "echo overridden" }),
     "上游浅展开语义：嵌套对象整体替换"
   );
 }
@@ -599,4 +604,215 @@ fn gitlab_host_loads_from_config_file() {
     json!({ "host": "https://gitlab.internal" }),
     "gitlab 段合法时原样进入合并配置"
   );
+}
+
+// ---------------------------------------------------------------------------
+// 文件层类型校验（ADR-0037）：键名 pre-pass 之后经形状结构体反序列化——
+// 类型不符从静默回落默认改为报错，指出键路径与期望类型；合法配置行为不变
+// ---------------------------------------------------------------------------
+
+fn type_error(dir: &TempDir, name: &str, content: &str) -> String {
+  common::isolate_global_home();
+  write(dir, name, content);
+  match load_bump_config(None, dir.path()).unwrap_err() {
+    LoadConfigError::UnsupportedConfig { message } => message,
+    other => panic!("应为 UnsupportedConfig，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn files_non_array_errors_naming_key_and_type() {
+  // 工单例：files: "x" 此前静默变空跑，现在即时报错
+  let dir = TempDir::new().unwrap();
+  let message = type_error(&dir, ".vbumpprc.json", r#"{ "files": "x" }"#);
+  assert!(message.contains("files"), "应指出键名：{message}");
+  assert!(
+    message.contains("expected a sequence"),
+    "应指出期望类型：{message}"
+  );
+  assert!(
+    message.contains(".vbumpprc.json"),
+    "应含文件路径：{message}"
+  );
+}
+
+#[test]
+fn files_non_string_item_errors() {
+  let dir = TempDir::new().unwrap();
+  let message = type_error(&dir, ".vbumpprc.json", r#"{ "files": ["a", 1] }"#);
+  assert!(message.contains("files"), "{message}");
+  assert!(message.contains("expected a string"), "{message}");
+}
+
+#[test]
+fn commit_and_tag_type_errors() {
+  // 工单例：commit: 123 此前静默禁用 git 提交，现在报错
+  for (key, content) in [
+    ("commit", r#"{ "commit": 123 }"#),
+    ("tag", r#"{ "tag": { "name": "x" } }"#),
+  ] {
+    let dir = TempDir::new().unwrap();
+    let message = type_error(&dir, ".vbumpprc.json", content);
+    assert!(message.contains(key), "应指出键名：{message}");
+    assert!(
+      message.contains("must be a boolean or a string"),
+      "应指出期望类型：{message}"
+    );
+  }
+}
+
+#[test]
+fn commit_bool_and_string_both_still_load() {
+  for content in [r#"{ "commit": false }"#, r#"{ "commit": "chore: rel" }"#] {
+    let dir = TempDir::new().unwrap();
+    write(&dir, ".vbumpprc.json", content);
+    common::isolate_global_home();
+    assert!(load_bump_config(None, dir.path()).is_ok(), "{content}");
+  }
+}
+
+#[test]
+fn scripts_non_object_errors() {
+  let dir = TempDir::new().unwrap();
+  let message = type_error(&dir, ".vbumpprc.json", r#"{ "scripts": ["echo"] }"#);
+  assert!(message.contains("scripts"), "{message}");
+}
+
+#[test]
+fn scripts_slot_non_string_errors_with_nested_path() {
+  let dir = TempDir::new().unwrap();
+  let message = type_error(&dir, ".vbumpprc.json", r#"{ "scripts": { "version": 1 } }"#);
+  assert!(
+    message.contains("scripts.version"),
+    "应含嵌套键路径：{message}"
+  );
+  assert!(message.contains("expected a string"), "{message}");
+}
+
+#[test]
+fn changelog_section_type_errors_at_file_layer() {
+  // changelog 段内类型不符在文件层即报（含嵌套键路径），不等 changelog 生成
+  for (content, path) in [
+    (r#"{ "changelog": "x" }"#, "changelog"),
+    (r#"{ "changelog": { "output": 1 } }"#, "changelog.output"),
+    (
+      r#"{ "changelog": { "excludeAuthors": "a" } }"#,
+      "changelog.excludeAuthors",
+    ),
+    (
+      r#"{ "changelog": { "types": { "feat": "x" } } }"#,
+      "changelog.types.feat",
+    ),
+    (
+      r#"{ "changelog": { "types": { "feat": { "title": 1 } } } }"#,
+      "changelog.types.feat",
+    ),
+    (
+      r#"{ "changelog": { "repo": { "provider": 1 } } }"#,
+      "changelog.repo",
+    ),
+  ] {
+    let dir = TempDir::new().unwrap();
+    let message = type_error(&dir, ".vbumpprc.json", content);
+    assert!(message.contains(path), "应含键路径 {path}：{message}");
+  }
+}
+
+#[test]
+fn changelog_valid_shapes_still_load() {
+  // 防回退：null 键值、types 空对象、types 值 false、types 值 true（消费侧
+  // 报原有文案，文件层不拦）均不改变加载行为
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.json",
+    r#"{ "changelog": {
+      "output": null,
+      "types": { "feat": false, "fix": {}, "docs": true, "perf": null }
+    } }"#,
+  );
+  let merged = load(&dir, None);
+  assert_eq!(merged["changelog"]["types"]["feat"], false);
+}
+
+#[test]
+fn changelog_unknown_keys_stay_in_resolve_prepass() {
+  // 嵌套段未知键（changelogen 遗产键等）仍由消费侧定制文案报错——
+  // 文件层不拦（结构体不开 deny_unknown_fields）
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.json",
+    r#"{ "changelog": { "tokens": {}, "from": "v1" } }"#,
+  );
+  let merged = load(&dir, None);
+  assert!(merged["changelog"].get("tokens").is_some());
+}
+
+#[test]
+fn type_errors_in_toml_report_key_and_type() {
+  let dir = TempDir::new().unwrap();
+  let message = type_error(&dir, ".vbumpprc.toml", "files = \"x\"\ncommit = 123\n");
+  // TOML 同样即时报错（首错即止，键名 + 期望类型不变）
+  assert!(message.contains(".vbumpprc.toml"), "{message}");
+  assert!(
+    message.contains("files") || message.contains("commit"),
+    "{message}"
+  );
+}
+
+#[test]
+fn wrong_typed_overrides_error_at_orchestration() {
+  // overrides 层不走文件层 pre-pass，但编排消费同一形状产物：类型不符报错
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  let err = vbumpp_core::orchestrate::bump_version(
+    &vbumpp_core::orchestrate::BumpVersionOptions {
+      overrides: overrides(json!({ "commit": 123 })),
+      provider: None,
+    },
+    dir.path(),
+  )
+  .unwrap_err();
+  let message = err.to_string();
+  assert!(message.contains("commit"), "{message}");
+  assert!(
+    message.contains("must be a boolean or a string"),
+    "{message}"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// `$schema` 编辑器关联键（ADR-0037）：白名单在册，JSON / TOML 写它不报错
+// ---------------------------------------------------------------------------
+
+#[test]
+fn schema_key_accepted_in_json() {
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.json",
+    r#"{ "$schema": "https://example.com/vbumpprc.schema.json", "tag": false }"#,
+  );
+  let merged = load(&dir, None);
+  assert_eq!(merged["tag"], false, "其余键照常生效");
+}
+
+#[test]
+fn schema_key_accepted_in_toml() {
+  let dir = TempDir::new().unwrap();
+  write(
+    &dir,
+    ".vbumpprc.toml",
+    "\"$schema\" = \"./vbumpprc.schema.json\"\ntag = false\n",
+  );
+  let merged = load(&dir, None);
+  assert_eq!(merged["tag"], false);
+}
+
+#[test]
+fn schema_key_non_string_errors() {
+  let dir = TempDir::new().unwrap();
+  let message = type_error(&dir, ".vbumpprc.json", r#"{ "$schema": 1 }"#);
+  assert!(message.contains("$schema"), "{message}");
 }

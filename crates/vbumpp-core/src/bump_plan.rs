@@ -189,11 +189,12 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
     None => None,
   };
 
-  // ---- 拦截命令分类依据（配置原文；与链内消费同一 merged 语义）----
-  let merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
-  let execute_text = merged
-    .get("execute")
-    .and_then(Value::as_str)
+  // ---- 拦截命令分类依据（配置原文）：复用编排链的形状解析产物
+  //（BumpVersionOutcome.config，ADR-0037）——无二次加载、无 Value 导航 ----
+  let execute_text = outcome
+    .config
+    .execute
+    .as_deref()
     .filter(|s| !s.is_empty())
     .map(str::to_owned);
   // execute 的判定 token：链内 shell_words tokenize 的首个 token（空 execute
@@ -202,21 +203,18 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
     .as_deref()
     .and_then(|e| shell_words::split(e).ok())
     .and_then(|parts| parts.first().cloned());
-  let scripts_config: Vec<(String, String)> = merged
-    .get("scripts")
-    .and_then(Value::as_object)
+  let scripts_config: Vec<(String, String)> = outcome
+    .config
+    .scripts
+    .as_ref()
     .map(|s| {
       [
-        ("preversion", s.get("preversion")),
-        ("version", s.get("version")),
-        ("postversion", s.get("postversion")),
+        ("preversion", s.preversion.as_deref()),
+        ("version", s.version.as_deref()),
+        ("postversion", s.postversion.as_deref()),
       ]
       .into_iter()
-      .filter_map(|(slot, value)| {
-        value
-          .and_then(Value::as_str)
-          .map(|c| (slot.to_string(), c.to_string()))
-      })
+      .filter_map(|(slot, command)| command.map(|c| (slot.to_owned(), c.to_owned())))
       .collect()
     })
     .unwrap_or_default();
