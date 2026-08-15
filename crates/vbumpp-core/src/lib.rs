@@ -2,7 +2,6 @@
 //! 不依赖 napi——Node 绑定层在 `napi/bumpp-core`。
 
 pub mod bump;
-pub mod bump_plan;
 pub mod changelog;
 pub mod cli;
 pub mod commits;

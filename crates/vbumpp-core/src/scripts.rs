@@ -2,6 +2,7 @@
 //! 由 versionBump 流程在 preversion / version / postversion 三个时序槽位调用。
 //! 本模块提供单条命令的执行原语；槽位编排见 bump.rs。
 
+use std::iter::once;
 use std::path::Path;
 
 use crate::effects::{Effects, RealEffects};
@@ -25,7 +26,7 @@ pub fn run_script_with(eff: &dyn Effects, cwd: &Path, command: &str) -> Result<(
   let args: Vec<String> = flags
     .into_iter()
     .map(str::to_string)
-    .chain(std::iter::once(command.to_string()))
+    .chain(once(command.to_string()))
     .collect();
   eff.run(shell, &args, cwd)
 }

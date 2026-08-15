@@ -8,13 +8,15 @@
 //! 错误契约：`run` 的错误类型与 `exec::run` 一致（调用方原样传播）；
 //! `http_*` 仅传输层失败返回 Err（ureq 错误描述，状态码裁决归调用方）。
 
+use std::fs;
 use std::io;
 use std::path::Path;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use serde_json::Value;
 
-use crate::exec::ExecError;
+use crate::exec::{run, ExecError};
 
 /// HTTP 响应（传输层产物）：状态码 + 响应体全文（读取失败按空串回落——
 /// 对齐原 check_status 的 `unwrap_or_default`，非 2xx 报错提取不受影响）
@@ -46,11 +48,11 @@ pub struct RealEffects;
 
 impl Effects for RealEffects {
   fn write_file(&self, path: &Path, content: &str) -> io::Result<()> {
-    std::fs::write(path, content)
+    fs::write(path, content)
   }
 
   fn run(&self, program: &str, args: &[String], cwd: &Path) -> Result<(), ExecError> {
-    crate::exec::run(program, args, cwd).map(|_| ())
+    run(program, args, cwd).map(|_| ())
   }
 
   fn http_get(&self, url: &str, headers: &[(&str, String)]) -> Result<HttpResponse, String> {
@@ -82,7 +84,7 @@ impl Effects for RealEffects {
 /// 同 agent 的行为
 static AGENT: LazyLock<ureq::Agent> = LazyLock::new(|| {
   ureq::Agent::config_builder()
-    .timeout_global(Some(std::time::Duration::from_secs(30)))
+    .timeout_global(Some(Duration::from_secs(30)))
     .http_status_as_error(false)
     .build()
     .into()

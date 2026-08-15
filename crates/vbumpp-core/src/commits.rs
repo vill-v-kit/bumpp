@@ -4,12 +4,12 @@
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output};
 use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::git::RawCommit;
+use crate::git::{GitAuthor, RawCommit};
 use crate::version::ReleaseType;
 
 /// 上游 `ConventionalCommitRegex`：未锚定、`/i`（type 保留原样大小写）、
@@ -82,7 +82,7 @@ pub fn determine_semver_change(commits: &[CommitInfo]) -> ReleaseType {
 }
 
 /// 静默执行 git 命令（查询类）；上游 execCommand 吞掉一切错误 → None
-fn git_output(cwd: &Path, args: &[&str]) -> Option<std::process::Output> {
+fn git_output(cwd: &Path, args: &[&str]) -> Option<Output> {
   let output = Command::new("git")
     .args(args)
     .current_dir(cwd)
@@ -184,7 +184,7 @@ pub struct CommitReference {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisplayCommit {
   pub short_hash: String,
-  pub author: crate::git::GitAuthor,
+  pub author: GitAuthor,
   pub commit_type: String,
   /// scopeMap 已在解析时应用（changelogen 同位）
   pub scope: String,

@@ -14,10 +14,14 @@ use std::sync::Mutex;
 
 use serde_json::Value;
 
+use crate::display;
 use crate::effects::{Effects, HttpResponse};
 use crate::exec::ExecError;
-use crate::orchestrate::{BumpVersionOptions, BumpVersionOutcome, OrchestrateError};
+use crate::orchestrate::{
+  bump_version_at, BumpVersionOptions, BumpVersionOutcome, OrchestrateError,
+};
 use crate::plugins::FileVerdict;
+use crate::release::{assemble_plan, plan_release_dispatch, PlannedRequest, ReleasePlan};
 
 /// 拦截的一次 spawn（记录序列保序；装配按 execute → install → scripts →
 /// 其余（git）四类淘汰式分类——分类规则见 `plan_bump`）
@@ -55,7 +59,7 @@ pub struct BumpPlan {
   /// 编排产出的 changelog 版本节（无历史 tag 为 None——渲染层标注跳过原因）
   pub changelog: Option<String>,
   /// 平台 Release 计划（--provider 传入时）：COL-84 同一装配产物与渲染
-  pub release: Option<crate::release::ReleasePlan>,
+  pub release: Option<ReleasePlan>,
 }
 
 /// 记录型效应（dry-run 注入）：全部副作用只记录不执行；HTTP 应答合成响应
@@ -65,7 +69,7 @@ pub struct BumpPlan {
 struct Recorder {
   runs: Mutex<Vec<RecordedRun>>,
   writes: Mutex<Vec<PathBuf>>,
-  http: Mutex<Vec<crate::release::PlannedRequest>>,
+  http: Mutex<Vec<PlannedRequest>>,
 }
 
 impl Recorder {
@@ -77,7 +81,7 @@ impl Recorder {
     self.writes.lock().unwrap().clone()
   }
 
-  fn http(&self) -> Vec<crate::release::PlannedRequest> {
+  fn http(&self) -> Vec<PlannedRequest> {
     self.http.lock().unwrap().clone()
   }
 
@@ -103,14 +107,10 @@ impl Effects for Recorder {
   }
 
   fn http_get(&self, url: &str, _headers: &[(&str, String)]) -> Result<HttpResponse, String> {
-    self
-      .http
-      .lock()
-      .unwrap()
-      .push(crate::release::PlannedRequest {
-        method: "GET",
-        url: url.to_owned(),
-      });
+    self.http.lock().unwrap().push(PlannedRequest {
+      method: "GET",
+      url: url.to_owned(),
+    });
     Ok(HttpResponse {
       status: 200,
       body: r#"{"id":0}"#.to_owned(),
@@ -123,14 +123,10 @@ impl Effects for Recorder {
     _headers: &[(&str, String)],
     _body: &Value,
   ) -> Result<HttpResponse, String> {
-    self
-      .http
-      .lock()
-      .unwrap()
-      .push(crate::release::PlannedRequest {
-        method: "POST",
-        url: url.to_owned(),
-      });
+    self.http.lock().unwrap().push(PlannedRequest {
+      method: "POST",
+      url: url.to_owned(),
+    });
     Ok(HttpResponse {
       status: 201,
       body: "{}".to_owned(),
@@ -149,7 +145,7 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
     overrides: options.overrides.clone(),
     provider: None,
   };
-  let outcome: BumpVersionOutcome = crate::orchestrate::bump_version_at(
+  let outcome: BumpVersionOutcome = bump_version_at(
     &recorder,
     &bump_only,
     cwd,
@@ -169,7 +165,7 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
         .map(|c| c.markdown.as_str())
         .unwrap_or("");
       recorder.clear_http();
-      let resolved = crate::release::plan_release_dispatch(
+      let resolved = plan_release_dispatch(
         &recorder,
         provider,
         &outcome.state.new_version,
@@ -177,7 +173,7 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
         cwd,
         options.overrides.as_ref(),
       )?;
-      Some(crate::release::assemble_plan(
+      Some(assemble_plan(
         provider,
         &outcome.state.new_version,
         markdown,
@@ -270,7 +266,7 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
     .bump
     .verdicts
     .iter()
-    .map(|(abs, verdict)| (crate::display::path(cwd, Path::new(abs)), *verdict))
+    .map(|(abs, verdict)| (display::path(cwd, Path::new(abs)), *verdict))
     .collect();
   // 判定行排序（收集清单为排序序；missing 补行附尾后整体重排为路径序——
   // 计划按文件名字典序逐行预演，与收集序一致）

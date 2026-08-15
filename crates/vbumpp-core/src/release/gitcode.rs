@@ -7,6 +7,7 @@ use std::path::Path;
 use super::http::{post_json, resolve_owner_repo};
 use super::{github_like, Provider, ReleaseError};
 use crate::effects::{Effects, RealEffects};
+use crate::git::get_current_git_branch;
 
 const BASE_URL: &str = "https://api.gitcode.com/api/v5";
 
@@ -54,7 +55,7 @@ fn send(
   cwd: &Path,
 ) -> Result<(), ReleaseError> {
   let (owner, repo) = resolve_owner_repo(cwd)?;
-  let branch = crate::git::get_current_git_branch(cwd)?;
+  let branch = get_current_git_branch(cwd)?;
   let body = github_like::release_body(new_version, markdown, &branch);
   let encoded: String = url::form_urlencoded::byte_serialize(token.as_bytes()).collect();
   let url = format!(

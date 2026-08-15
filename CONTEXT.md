@@ -68,7 +68,7 @@ _Avoid_: 内部包（过宽，`crates/` 亦属内部）、native package
 _Avoid_: platform（指 OS/CPU 平台）、registry（指发布平台）
 
 **插件底座 (Plugin base)**:
-`src/plugins/`——全部生态能力的单一归属。trait + 静态链 + 编排在 `mod.rs`；插件类型在根部（`plugins/node.rs` 等），方法委托至 `version/` / `install/` / `recursive/` 三能力子目录的生态同名纯函数文件（Rust coherence：单 trait 的 impl 不可拆文件，ADR-0007）。
+`src/plugins/`——全部生态能力的单一归属。trait + 静态链 + 编排在模块入口 `plugins.rs`；插件类型在根部（`plugins/node.rs` 等），方法委托至 `version/` / `install/` / `recursive/` 三能力子目录的生态同名纯函数文件（Rust coherence：单 trait 的 impl 不可拆文件，ADR-0007）。
 _Avoid_: files 插件链（ADR-0007 时代的旧称）
 
 **清单 (Manifest)**:

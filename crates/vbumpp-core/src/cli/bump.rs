@@ -2,6 +2,7 @@
 //! dry-run 计划渲染（COL-85）——平台 Release 计划行的渲染（print_release_plan）
 //! 在此，release 子命令的 dry-run 复用。
 
+use std::env;
 use std::io::Write;
 use std::path::Path;
 
@@ -10,6 +11,11 @@ use serde_json::{json, Map, Value};
 use super::output::{error_line, info_line, warn_line};
 use super::parse::BumpArgs;
 use super::RunEnv;
+use crate::bump::plan::plan_bump;
+use crate::display;
+use crate::orchestrate::{bump_version, BumpVersionOptions};
+use crate::plugins::FileVerdict;
+use crate::release::{missing_token_message, Provider, ReleasePlan};
 
 /// argv → overrides（旧 cli.ts 的 JS 对象构造原样收编）：`recursive` 与
 /// `changelog.output` 始终传（cac 默认值语义）；`files` 仅在非空时注入——
@@ -34,11 +40,11 @@ pub fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
 pub fn resolve_provider(
   flag: Option<&str>,
   injected: Option<&str>,
-) -> Result<Option<crate::release::Provider>, String> {
+) -> Result<Option<Provider>, String> {
   flag
     .or(injected)
     .map(|p| {
-      crate::release::Provider::parse(p).ok_or_else(|| {
+      Provider::parse(p).ok_or_else(|| {
         format!("unknown provider: {p} (expected github / gitlab / gitee / gitcode)")
       })
     })
@@ -61,7 +67,7 @@ pub(super) fn bump_command(
   };
   let cwd = match env.cwd {
     Some(path) => path.to_path_buf(),
-    None => match std::env::current_dir() {
+    None => match env::current_dir() {
       Ok(cwd) => cwd,
       Err(e) => {
         error_line(err, &format!("cannot resolve current directory: {e}"));
@@ -69,7 +75,7 @@ pub(super) fn bump_command(
       }
     },
   };
-  let options = crate::orchestrate::BumpVersionOptions {
+  let options = BumpVersionOptions {
     overrides: Some(bump_overrides(args)),
     provider,
   };
@@ -77,7 +83,7 @@ pub(super) fn bump_command(
   if args.dry_run {
     return bump_dry_run(&options, &cwd, out, err);
   }
-  match crate::orchestrate::bump_version(&options, &cwd) {
+  match bump_version(&options, &cwd) {
     Ok(_) => 0,
     Err(e) => {
       error_line(err, &e.to_string());
@@ -91,22 +97,22 @@ pub(super) fn bump_command(
 /// 将写盘清单、脚本与命令文本、git 动作完整文本、changelog 全文预览、
 /// --provider 时的平台 Release 预览（COL-84 渲染同形）
 fn bump_dry_run(
-  options: &crate::orchestrate::BumpVersionOptions,
+  options: &BumpVersionOptions,
   cwd: &Path,
   out: &mut impl Write,
   err: &mut impl Write,
 ) -> i32 {
-  match crate::bump_plan::plan_bump(options, cwd) {
+  match plan_bump(options, cwd) {
     Ok(plan) => {
       info_line(out, "bump plan (dry run — no changes made)");
       // 逐文件预演判定（与真实执行同一代码段产出的三态）
       for (file, verdict) in &plan.verdicts {
         let line = match verdict {
-          crate::plugins::FileVerdict::Updated => {
+          FileVerdict::Updated => {
             format!("{file}: update → {}", plan.new_version)
           }
-          crate::plugins::FileVerdict::UpToDate => format!("{file}: up-to-date"),
-          crate::plugins::FileVerdict::Missing => format!("{file}: missing"),
+          FileVerdict::UpToDate => format!("{file}: up-to-date"),
+          FileVerdict::Missing => format!("{file}: missing"),
         };
         info_line(out, &line);
       }
@@ -121,7 +127,7 @@ fn bump_dry_run(
       if !plan.writes.is_empty() {
         info_line(out, "files to write:");
         for path in &plan.writes {
-          info_line(out, &format!("  {}", crate::display::path(cwd, path)));
+          info_line(out, &format!("  {}", display::path(cwd, path)));
         }
       }
       if !plan.scripts.is_empty() || !plan.installs.is_empty() || plan.execute.is_some() {
@@ -169,16 +175,13 @@ fn bump_dry_run(
 }
 
 /// bump dry-run 的平台 Release 计划行渲染（与 `release_dry_run` 同一份行格式）
-pub(super) fn print_release_plan(plan: &crate::release::ReleasePlan, out: &mut impl Write) {
+pub(super) fn print_release_plan(plan: &ReleasePlan, out: &mut impl Write) {
   info_line(out, "release plan (dry run — no changes made)");
   match &plan.token_source {
     Some(source) => info_line(out, &format!("token source: {}", source.describe())),
     // 警告行复用真实执行的报错文案（仅降级不改动措辞，同一事实源）；
     // plan.host 即有效 host（gitlab 缺失文案的 --host 指引消费）
-    None => warn_line(
-      out,
-      &crate::release::missing_token_message(plan.provider, Some(&plan.host)),
-    ),
+    None => warn_line(out, &missing_token_message(plan.provider, Some(&plan.host))),
   }
   info_line(out, &format!("provider: {}", plan.provider.display()));
   info_line(out, &format!("host: {}", plan.host));

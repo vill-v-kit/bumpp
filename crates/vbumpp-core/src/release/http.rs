@@ -9,10 +9,11 @@ use serde_json::Value;
 
 use super::{Provider, ReleaseError};
 use crate::effects::{Effects, HttpResponse};
+use crate::git::resolve_repo_config;
 
 /// `owner/repo` 解析（package.json `repository` 优先、git remote 兜底）
 pub(crate) fn resolve_owner_repo(cwd: &Path) -> Result<(String, String), ReleaseError> {
-  let repo = crate::git::resolve_repo_config(cwd)
+  let repo = resolve_repo_config(cwd)
     .and_then(|r| r.repo)
     .ok_or_else(|| ReleaseError::Git {
       message: "cannot resolve the remote repository".into(),

@@ -14,14 +14,18 @@
 //! 错误消息经 `ReleaseError::redact` 脱敏（原始与 form 编码形态都替换为掩码）。
 
 use std::collections::BTreeMap;
+use std::env;
 use std::error::Error;
 use std::fmt;
 use std::path::Path;
 
 use serde_json::{Map, Value};
 
+use crate::config::{custom_config_path, read_document, LoadConfigError};
 use crate::effects::{Effects, RealEffects};
-use crate::git::RepoConfig;
+use crate::exec::{capture, ExecError};
+use crate::git::{resolve_repo_config, RepoConfig};
+use crate::token::{host_scoped_key, read_token_store};
 
 pub mod gitcode;
 pub mod gitee;
@@ -147,16 +151,16 @@ impl ReleaseError {
   }
 }
 
-impl From<crate::exec::ExecError> for ReleaseError {
-  fn from(e: crate::exec::ExecError) -> Self {
+impl From<ExecError> for ReleaseError {
+  fn from(e: ExecError) -> Self {
     Self::Git {
       message: e.to_string(),
     }
   }
 }
 
-impl From<crate::config::LoadConfigError> for ReleaseError {
-  fn from(e: crate::config::LoadConfigError) -> Self {
+impl From<LoadConfigError> for ReleaseError {
+  fn from(e: LoadConfigError) -> Self {
     Self::Config {
       message: e.to_string(),
     }
@@ -218,8 +222,7 @@ pub(crate) fn effective_host(
   if provider != Provider::Gitlab {
     return Ok(None);
   }
-  let document =
-    crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
+  let document = read_document(cwd, custom_config_path(overrides).as_deref())?;
   Ok(Some(gitlab::effective_host(document.as_ref(), overrides)?))
 }
 
@@ -250,7 +253,7 @@ pub(crate) fn dispatch(
     domain,
     repo: Some(_),
     ..
-  }) = crate::git::resolve_repo_config(cwd)
+  }) = resolve_repo_config(cwd)
   {
     println!(
       "{} repo: domain {} ({provider})",
@@ -329,7 +332,7 @@ pub fn resolve_token_sourced(
   // host 无法规范化时跳过精确键查找照旧回落：非法 host 由 API 层报错，
   // token 链不抢先变更既有行为
   let scoped_key = match (provider, host) {
-    (Provider::Gitlab, Some(host)) => crate::token::host_scoped_key(provider.name(), host).ok(),
+    (Provider::Gitlab, Some(host)) => host_scoped_key(provider.name(), host).ok(),
     _ => None,
   };
   let keys = [scoped_key.as_deref(), Some(provider.name())];
@@ -403,7 +406,7 @@ fn resolve_token_tolerant(
   host: Option<&str>,
   cwd: &Path,
 ) -> Option<ResolvedToken> {
-  let tokens = match crate::token::read_token_store() {
+  let tokens = match read_token_store() {
     Ok(tokens) => tokens,
     Err(e) => {
       eprintln!(
@@ -413,15 +416,9 @@ fn resolve_token_tolerant(
       BTreeMap::new()
     }
   };
-  resolve_token_sourced(
-    provider,
-    host,
-    &tokens,
-    &|key| std::env::var(key).ok(),
-    &|| {
-      crate::exec::capture("gh", &["auth".into(), "token".into()], cwd)
-        .ok()
-        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-    },
-  )
+  resolve_token_sourced(provider, host, &tokens, &|key| env::var(key).ok(), &|| {
+    capture("gh", &["auth".into(), "token".into()], cwd)
+      .ok()
+      .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+  })
 }

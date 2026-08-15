@@ -1,6 +1,6 @@
 //! versionBump 全链路编排——真实临时 git 仓库，对齐上游时序与事件序列。
 
-mod common;
+use super::common;
 
 use std::fs;
 use std::sync::{Arc, Mutex};

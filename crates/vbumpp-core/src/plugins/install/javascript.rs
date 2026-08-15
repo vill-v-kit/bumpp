@@ -9,9 +9,11 @@
 
 use std::error::Error;
 use std::fmt;
+use std::fs;
 use std::path::Path;
 
 use crate::effects::{Effects, RealEffects};
+use crate::jsonc;
 use crate::plugins::InstallError;
 
 /// JavaScript 适配入口：detect → `<pm> install`（上游 `options.install` 语义）
@@ -84,8 +86,8 @@ pub fn detect_package_manager(cwd: &Path) -> Result<&'static str, PmError> {
 /// None（fall through 到其他目录，而非误判为 npm）。同级顺序：顶层
 /// packageManager → devEngines.packageManager（ADR-0006）
 fn detect_from_package_json(dir: &Path) -> Option<&'static str> {
-  let text = std::fs::read_to_string(dir.join("package.json")).ok()?;
-  let jsonc_parser::ast::Value::Object(root) = crate::jsonc::parse(&text)? else {
+  let text = fs::read_to_string(dir.join("package.json")).ok()?;
+  let jsonc_parser::ast::Value::Object(root) = jsonc::parse(&text)? else {
     return None;
   };
   detect_from_package_manager_field(&root).or_else(|| detect_from_dev_engines_field(&root))
@@ -98,7 +100,7 @@ fn known_agent(name: &str) -> Option<&'static str> {
 
 /// 上游 `packageManager-field` 策略：字段值 `<name>@<version>` 的 name 部分
 fn detect_from_package_manager_field(root: &jsonc_parser::ast::Object) -> Option<&'static str> {
-  let field = crate::jsonc::get_prop(root, "packageManager")?
+  let field = jsonc::get_prop(root, "packageManager")?
     .value
     .as_string_lit()?;
   known_agent(field.value.split('@').next()?)
@@ -108,12 +110,10 @@ fn detect_from_package_manager_field(root: &jsonc_parser::ast::Object) -> Option
 /// `name`（version / onFail / 未知属性不参与调度）；字符串、数组、缺失或
 /// 非字符串 name、未知名称一律宽容回退 None
 fn detect_from_dev_engines_field(root: &jsonc_parser::ast::Object) -> Option<&'static str> {
-  let dev_engines = crate::jsonc::get_prop(root, "devEngines")?
+  let dev_engines = jsonc::get_prop(root, "devEngines")?.value.as_object()?;
+  let pm = jsonc::get_prop(dev_engines, "packageManager")?
     .value
     .as_object()?;
-  let pm = crate::jsonc::get_prop(dev_engines, "packageManager")?
-    .value
-    .as_object()?;
-  let name = crate::jsonc::get_prop(pm, "name")?.value.as_string_lit()?;
+  let name = jsonc::get_prop(pm, "name")?.value.as_string_lit()?;
   known_agent(&name.value)
 }

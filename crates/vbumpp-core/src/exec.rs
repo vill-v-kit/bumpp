@@ -3,9 +3,10 @@
 
 use std::error::Error;
 use std::fmt;
-use std::io::Write;
+use std::io::{stderr, stdout, Write};
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
+use std::thread;
 
 #[derive(Debug)]
 pub enum ExecError {
@@ -63,9 +64,9 @@ pub fn capture_with_stdin(
   let mut child = Command::new(program)
     .args(args)
     .current_dir(cwd)
-    .stdin(std::process::Stdio::piped())
-    .stdout(std::process::Stdio::piped())
-    .stderr(std::process::Stdio::piped())
+    .stdin(Stdio::piped())
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
     .spawn()
     .map_err(|e| ExecError::Spawn {
       message: format!("failed to execute {program} {}: {e}", args.join(" ")),
@@ -74,7 +75,7 @@ pub fn capture_with_stdin(
   // 写入失败（child 早退断管）吞掉——退出码由调用方裁决
   let mut pipe = child.stdin.take().expect("stdin is piped");
   let input = stdin.to_owned();
-  let writer = std::thread::spawn(move || pipe.write_all(&input));
+  let writer = thread::spawn(move || pipe.write_all(&input));
   let output = child.wait_with_output().map_err(|e| ExecError::Io {
     message: format!("failed to read output of {program}: {e}"),
   })?;
@@ -94,9 +95,9 @@ fn spawn(program: &str, args: &[String], cwd: &Path) -> Result<Output, ExecError
 
 fn replay(output: &Output) {
   if !output.stdout.is_empty() {
-    let _ = std::io::stdout().write_all(&output.stdout);
+    let _ = stdout().write_all(&output.stdout);
   }
   if !output.stderr.is_empty() {
-    let _ = std::io::stderr().write_all(&output.stderr);
+    let _ = stderr().write_all(&output.stderr);
   }
 }

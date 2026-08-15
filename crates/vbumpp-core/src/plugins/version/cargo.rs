@@ -14,11 +14,13 @@
 //! （库 crate 可不提交 lock，不视为漂移）。找到则必须同步成功——条目缺失、版本
 //! 漂移、lock 解析失败均立即报错（`FilesError::Lock`），且清单不先行改写。
 
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Formatted, Item, Table, Value};
 
 use super::super::{read_text, FilePlan, FileWrite, FilesError, WriteKind};
+use crate::display;
 
 /// Cargo 清单识别：basename `cargo.toml`（小写比较——与 MANIFEST_BASENAMES
 /// 常量的磁盘惯例名无关，识别面保持大小写不敏感）
@@ -37,7 +39,7 @@ pub(crate) fn matches(rel_path: &Path) -> bool {
 /// `[workspace.package].version` 字面量；继承形态（`version.workspace = true`）、
 /// 读取/解析失败均返回 None；semver 校验由编排层统一承担
 pub(crate) fn read_version(path: &Path) -> Option<String> {
-  let text = std::fs::read_to_string(path).ok()?;
+  let text = fs::read_to_string(path).ok()?;
   let doc = text.parse::<DocumentMut>().ok()?;
   let package_version = doc
     .get("package")
@@ -64,7 +66,7 @@ pub(crate) fn plan(
   // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
   // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
   let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
-    message: format!("failed to parse {}: {e}", crate::display::posix(rel_path)),
+    message: format!("failed to parse {}: {e}", display::posix(rel_path)),
   })?;
 
   let package = doc.get("package").and_then(Item::as_table_like);
@@ -82,7 +84,7 @@ pub(crate) fn plan(
       .ok_or_else(|| FilesError::Lock {
         message: format!(
           "{} has no [package] name field; cannot sync Cargo.lock by crate name",
-          crate::display::posix(rel_path)
+          display::posix(rel_path)
         ),
       })?
       .to_string();
@@ -210,11 +212,11 @@ fn sync_lock_by_name(
       message: match name_seen {
         true => format!(
           "{} has crate \"{name}\" at a version other than the Cargo.toml current version {current} (version drift)",
-          crate::display::path(cwd, lock_path)
+          display::path(cwd, lock_path)
         ),
         false => format!(
           "{} has no [[package]] entry for crate \"{name}\"",
-          crate::display::path(cwd, lock_path)
+          display::path(cwd, lock_path)
         ),
       },
     });
@@ -237,7 +239,7 @@ fn sync_lock_workspace_members(
     return Err(FilesError::Lock {
       message: format!(
         "{} has no workspace member entry at version {current} (version drift)",
-        crate::display::path(cwd, lock_path)
+        display::path(cwd, lock_path)
       ),
     });
   }
@@ -276,17 +278,11 @@ fn sweep_lock(
 }
 
 fn parse_lock(lock_path: &Path, cwd: &Path) -> Result<DocumentMut, FilesError> {
-  let text = std::fs::read_to_string(lock_path).map_err(|e| FilesError::Lock {
-    message: format!(
-      "failed to read {}: {e}",
-      crate::display::path(cwd, lock_path)
-    ),
+  let text = fs::read_to_string(lock_path).map_err(|e| FilesError::Lock {
+    message: format!("failed to read {}: {e}", display::path(cwd, lock_path)),
   })?;
   text.parse::<DocumentMut>().map_err(|e| FilesError::Lock {
-    message: format!(
-      "failed to parse {}: {e}",
-      crate::display::path(cwd, lock_path)
-    ),
+    message: format!("failed to parse {}: {e}", display::path(cwd, lock_path)),
   })
 }
 

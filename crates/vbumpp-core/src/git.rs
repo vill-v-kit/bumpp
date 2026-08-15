@@ -2,6 +2,8 @@
 //! 写操作（commit / tag / push）对齐上游 bumpp v11；只读历史操作（tag / diff / branch /
 //! remote 解析）对齐 changelogen 0.6.2 同名函数（ADR-0012）。
 
+use std::collections::HashSet;
+use std::fs;
 use std::path::Path;
 use std::sync::LazyLock;
 
@@ -62,7 +64,7 @@ pub fn filter_tracked(cwd: &Path, paths: &[String]) -> Option<Vec<String>> {
   ];
   args.extend(paths.iter().cloned());
   let output = capture("git", &args, cwd).ok()?;
-  let tracked: std::collections::HashSet<String> = split_nul(&output.stdout).into_iter().collect();
+  let tracked: HashSet<String> = split_nul(&output.stdout).into_iter().collect();
   Some(
     paths
       .iter()
@@ -359,7 +361,7 @@ pub fn resolve_repo_config(cwd: &Path) -> Option<RepoConfig> {
 /// 其余形态或 object 无 url 均以空串短路为全 None 配置）；falsy（`""` / `false` /
 /// `0` / `null` 等）落到 git remote 分支；文件缺失/不可解析/无该键同落 remote
 fn read_package_repository(cwd: &Path) -> Option<String> {
-  let content = std::fs::read_to_string(cwd.join("package.json")).ok()?;
+  let content = fs::read_to_string(cwd.join("package.json")).ok()?;
   let value: serde_json::Value = serde_json::from_str(&content).ok()?;
   let repository = value.get("repository")?;
   if !js_truthy(repository) {

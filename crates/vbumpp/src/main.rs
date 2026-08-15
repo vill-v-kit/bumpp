@@ -5,7 +5,12 @@
 //! 与 `release` 子命令）的唯一归属在 Core 的 cli 模块，本壳仅透传 argv 并
 //! 以返回码退出。
 
+use std::env;
+use std::process;
+
+use vbumpp_core::cli::run_from_argv;
+
 fn main() {
-  let argv: Vec<String> = std::env::args().skip(1).collect();
-  std::process::exit(vbumpp_core::cli::run_from_argv(&argv, None));
+  let argv: Vec<String> = env::args().skip(1).collect();
+  process::exit(run_from_argv(&argv, None));
 }

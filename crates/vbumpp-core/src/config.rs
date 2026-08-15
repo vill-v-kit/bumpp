@@ -14,6 +14,7 @@
 //! override 按扩展名 `.json` / `.jsonc` / `.toml` 分派，指定时替代项目层探测，全局层照常叠加；
 //! 旧名（`bump.config.*` / `vbumpp.config.*` / `changelog.config.*`）不探测、不读取，静默失效（ADR-0013）。
 
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -21,6 +22,8 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
+use crate::display;
+use crate::home::vbumpp_home;
 use crate::plugins::recursive_manifest_globs;
 
 pub mod shape;
@@ -105,7 +108,7 @@ pub fn load_bump_config(
   overrides: Option<Map<String, Value>>,
   cwd: &Path,
 ) -> Result<Map<String, Value>, LoadConfigError> {
-  load_bump_config_with_home(overrides, cwd, crate::home::vbumpp_home().as_deref())
+  load_bump_config_with_home(overrides, cwd, vbumpp_home().as_deref())
 }
 
 /// `load_bump_config` 的可注入形态：全局目录显式给出（None = 跳过全局层），
@@ -158,7 +161,7 @@ pub(crate) fn merge_bump_config(
 
   // files 去重（保序，首次出现为准）——原 JS 后处理的无条件去重随加载器一并迁移
   if let Some(files) = merged.get_mut("files").and_then(Value::as_array_mut) {
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = HashSet::new();
     files.retain(|f| f.as_str().is_none_or(|s| seen.insert(s.to_owned())));
   }
   merged
@@ -179,7 +182,7 @@ pub(crate) fn read_document(
   cwd: &Path,
   config_file_path: Option<&str>,
 ) -> Result<Option<Map<String, Value>>, LoadConfigError> {
-  read_document_with_home(cwd, config_file_path, crate::home::vbumpp_home().as_deref())
+  read_document_with_home(cwd, config_file_path, vbumpp_home().as_deref())
 }
 
 /// `read_document` 的可注入形态：全局目录显式给出（None = 跳过全局层），
@@ -225,7 +228,7 @@ fn probe_config(
     _ => Err(LoadConfigError::AmbiguousConfig {
       message: format!(
         "multiple config files found in {}: {} — keep only one (supported: {})",
-        crate::display::path(cwd, dir),
+        display::path(cwd, dir),
         found
           .iter()
           .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
@@ -318,7 +321,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
   let content = fs::read_to_string(path).map_err(|e| LoadConfigError::Io {
     message: format!(
       "failed to read config file {}: {e}",
-      crate::display::path(cwd, path)
+      display::path(cwd, path)
     ),
   })?;
   let value: Value = match ConfigFormat::of(path) {
@@ -327,7 +330,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
         LoadConfigError::Parse {
           message: format!(
             "failed to parse config file {}: {e}",
-            crate::display::path(cwd, path)
+            display::path(cwd, path)
           ),
         }
       })?
@@ -337,14 +340,14 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
         toml::from_str(&content).map_err(|e| LoadConfigError::Parse {
           message: format!(
             "failed to parse config file {}: {e}",
-            crate::display::path(cwd, path)
+            display::path(cwd, path)
           ),
         })?;
       reject_toml_datetimes(&toml_value, path, cwd)?;
       serde_json::to_value(toml_value).map_err(|e| LoadConfigError::Parse {
         message: format!(
           "failed to parse config file {}: {e}",
-          crate::display::path(cwd, path)
+          display::path(cwd, path)
         ),
       })?
     }
@@ -357,7 +360,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
           message: format!(
             "config file {} contains the customVersion option: config files cannot carry \
              functions; this option was removed in the rewrite — delete the key.",
-            crate::display::path(cwd, path)
+            display::path(cwd, path)
           ),
         });
       }
@@ -373,7 +376,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
         return Err(LoadConfigError::UnsupportedConfig {
           message: format!(
             "config file {} contains unsupported {}: {} — supported top-level keys: {}",
-            crate::display::path(cwd, path),
+            display::path(cwd, path),
             if unknown.len() == 1 { "key" } else { "keys" },
             unknown
               .iter()
@@ -387,22 +390,19 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
       // gitlab 段严格 schema（ADR-0014）：随文件加载即校验，与 provider 无关
       if let Some(message) = gitlab_section_error(&map) {
         return Err(LoadConfigError::UnsupportedConfig {
-          message: format!("config file {}: {message}", crate::display::path(cwd, path)),
+          message: format!("config file {}: {message}", display::path(cwd, path)),
         });
       }
       // 类型校验（ADR-0037）：键名 pre-pass 之后经形状结构体反序列化——类型不符
       // 从静默回落默认改为报错（键路径 + 期望类型）；未知键各有定制 pre-pass 文案
       shape::shape_of(&map).map_err(|message| LoadConfigError::UnsupportedConfig {
-        message: format!("config file {}: {message}", crate::display::path(cwd, path)),
+        message: format!("config file {}: {message}", display::path(cwd, path)),
       })?;
       Ok(map)
     }
     // 上游 `{...非对象}` 的行为（数组展开为索引键等）属于病理用法，明确拒绝
     _ => Err(LoadConfigError::Parse {
-      message: format!(
-        "config file {} must be an object",
-        crate::display::path(cwd, path)
-      ),
+      message: format!("config file {} must be an object", display::path(cwd, path)),
     }),
   }
 }
@@ -474,7 +474,7 @@ fn reject_toml_datetimes(
       message: format!(
         "config file {} contains a TOML datetime value ({dt}): not expressible in the \
          JSON value domain — use a string instead",
-        crate::display::path(cwd, path)
+        display::path(cwd, path)
       ),
     }),
     toml::Value::Array(items) => items
@@ -493,7 +493,7 @@ fn unsupported_config(path: &Path, cwd: &Path) -> LoadConfigError {
       "supported config file formats: .json / .jsonc / .toml (.vbumpprc.* or the file \
        configFilePath points to); the given config file {} is not supported — this \
        implementation does not execute TS/JS config.",
-      crate::display::path(cwd, path)
+      display::path(cwd, path)
     ),
   }
 }

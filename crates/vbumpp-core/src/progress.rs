@@ -5,6 +5,8 @@ use std::path::Path;
 
 use dialoguer::console::style;
 
+use crate::display;
+
 /// 进度事件（上游 `ProgressEvent` 枚举；`Script` 为 ADR-0011 通用化后的形态，
 /// 替代上游 `NpmScript`——npm scripts 通道已移除，事件不回传 JS，见 ADR-0002）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,7 +45,7 @@ pub fn format_line(
   file: Option<&str>,
   cwd: &Path,
 ) -> String {
-  let file = file.map(|f| crate::display::path(cwd, Path::new(f)));
+  let file = file.map(|f| display::path(cwd, Path::new(f)));
   match event {
     ProgressEvent::FileUpdated => {
       format!(

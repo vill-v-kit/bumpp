@@ -9,12 +9,16 @@ use std::path::Path;
 
 use serde_json::{Map, Value};
 
-use crate::bump::BumpOptions;
-use crate::changelog::GenerateChangelogOutcome;
-use crate::config::BumpConfig;
+use crate::bump::{version_bump_at, BumpError, BumpOptions, BumpResults};
+use crate::changelog::{
+  generate_changelog_with, ChangelogError, GenerateChangelogOptions, GenerateChangelogOutcome,
+};
+use crate::config::{load_bump_config, shape_of, BumpConfig, LoadConfigError};
 use crate::effects::{Effects, RealEffects};
-use crate::info::BumpState;
-use crate::release::Provider;
+use crate::exec::ExecError;
+use crate::git::get_last_git_tag;
+use crate::info::{version_bump_info, BumpInfoOptions, BumpState, InfoError};
+use crate::release::{create_release_with, Provider, ReleaseError};
 
 /// 编排入参：`overrides` 为扁平全量配置覆盖（与配置文件同形，含 `changelog` /
 /// `gitlab` 段）；`provider` 缺省仅 bump，传值则 bump 完成后接平台 Release
@@ -32,7 +36,7 @@ pub struct BumpVersionOptions {
 pub struct BumpVersionOutcome {
   pub state: BumpState,
   pub changelog: Option<GenerateChangelogOutcome>,
-  pub bump: crate::bump::BumpResults,
+  pub bump: BumpResults,
   pub config: BumpConfig,
 }
 
@@ -61,48 +65,48 @@ impl fmt::Display for OrchestrateError {
 
 impl Error for OrchestrateError {}
 
-impl From<crate::config::LoadConfigError> for OrchestrateError {
-  fn from(e: crate::config::LoadConfigError) -> Self {
+impl From<LoadConfigError> for OrchestrateError {
+  fn from(e: LoadConfigError) -> Self {
     Self::Config {
       message: e.to_string(),
     }
   }
 }
 
-impl From<crate::exec::ExecError> for OrchestrateError {
-  fn from(e: crate::exec::ExecError) -> Self {
+impl From<ExecError> for OrchestrateError {
+  fn from(e: ExecError) -> Self {
     Self::Git {
       message: e.to_string(),
     }
   }
 }
 
-impl From<crate::info::InfoError> for OrchestrateError {
-  fn from(e: crate::info::InfoError) -> Self {
+impl From<InfoError> for OrchestrateError {
+  fn from(e: InfoError) -> Self {
     Self::Info {
       message: e.to_string(),
     }
   }
 }
 
-impl From<crate::changelog::ChangelogError> for OrchestrateError {
-  fn from(e: crate::changelog::ChangelogError) -> Self {
+impl From<ChangelogError> for OrchestrateError {
+  fn from(e: ChangelogError) -> Self {
     Self::Changelog {
       message: e.to_string(),
     }
   }
 }
 
-impl From<crate::bump::BumpError> for OrchestrateError {
-  fn from(e: crate::bump::BumpError) -> Self {
+impl From<BumpError> for OrchestrateError {
+  fn from(e: BumpError) -> Self {
     Self::Bump {
       message: e.to_string(),
     }
   }
 }
 
-impl From<crate::release::ReleaseError> for OrchestrateError {
-  fn from(e: crate::release::ReleaseError) -> Self {
+impl From<ReleaseError> for OrchestrateError {
+  fn from(e: ReleaseError) -> Self {
     Self::Release {
       message: e.to_string(),
     }
@@ -137,13 +141,12 @@ pub fn bump_version_at(
   display: &mut dyn FnMut(&str),
 ) -> Result<BumpVersionOutcome, OrchestrateError> {
   // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013）----
-  let merged = crate::config::load_bump_config(options.overrides.clone(), cwd)?;
+  let merged = load_bump_config(options.overrides.clone(), cwd)?;
 
   // ---- 形状解析（ADR-0037）：merged 一次过结构体，编排与 dry-run 计划
   //（BumpVersionOutcome.config）共用同一份产物；文件层类型校验已拦文件
   // 来源，overrides 层类型不符在此报错 ----
-  let mut config =
-    crate::config::shape_of(&merged).map_err(|message| OrchestrateError::Config { message })?;
+  let mut config = shape_of(&merged).map_err(|message| OrchestrateError::Config { message })?;
 
   // ---- 版本确定三键（COL-60）：release / preid / currentVersion 自形状产物
   // 穿入 version_bump_info——release 携带即非交互（release type / 版本号直选），
@@ -162,15 +165,15 @@ pub fn bump_version_at(
   }
 
   // ---- 最近 tag（真实 tag 名；无 tag / 非 git 仓库软失败 None）----
-  let current_tag = crate::git::get_last_git_tag(cwd)?;
+  let current_tag = get_last_git_tag(cwd)?;
 
   // ---- 版本确定（JS：`versionBumpInfo()`）----
   // 上游 parity：operation.files = options.files（收集前清单；含未命中的
   // 显式路径）——当前版本的来源探测随它（显式点名文件参与来源）；文件更新
   // 判定清单在 bump 段另经 normalize_files 收集（上游同名量两者分开）
   let info_files = config.files.clone().unwrap_or_default();
-  let state = crate::info::version_bump_info(
-    &crate::info::BumpInfoOptions {
+  let state = version_bump_info(
+    &BumpInfoOptions {
       release: release.as_deref(),
       files: &info_files,
       current_version: current_version.as_deref(),
@@ -182,9 +185,9 @@ pub fn bump_version_at(
   // ---- changelog：存在 tag 才生成（spinner → 进度打印）----
   let changelog = match current_tag {
     Some(tag) => {
-      let outcome = crate::changelog::generate_changelog_with(
+      let outcome = generate_changelog_with(
         eff,
-        &crate::changelog::GenerateChangelogOptions {
+        &GenerateChangelogOptions {
           overrides: options.overrides.clone(),
           from: tag,
           to: state.new_version.clone(),
@@ -204,7 +207,7 @@ pub fn bump_version_at(
   // ---- versionBump（config 形状产物 + release 固定为已确定的新版本；
   // 显示汇透传——其进度行与编排成功行汇入同一计划）----
   let bump_options = BumpOptions::from_config(&config, &state.new_version);
-  let bump = crate::bump::version_bump_at(eff, &bump_options, cwd, display, &mut |_| {})?;
+  let bump = version_bump_at(eff, &bump_options, cwd, display, &mut |_| {})?;
 
   // ---- 平台 Release（spinner → 进度打印）----
   if let Some(provider) = options.provider {
@@ -212,7 +215,7 @@ pub fn bump_version_at(
       .as_ref()
       .map(|c| c.markdown.as_str())
       .unwrap_or("");
-    crate::release::create_release_with(
+    create_release_with(
       eff,
       provider,
       &state.new_version,

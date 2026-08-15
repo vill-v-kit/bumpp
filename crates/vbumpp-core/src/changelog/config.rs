@@ -11,7 +11,7 @@ use std::fmt;
 
 use serde_json::{Map, Value};
 
-use crate::git::RepoConfig;
+use crate::git::{get_repo_config, RepoConfig};
 
 /// 单个 type 分组的配置（changelogen 的 `ChangelogConfigType` 收窄：仅 `title`）
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -258,7 +258,7 @@ fn apply_types(config: &mut ChangelogConfig, value: &Value) -> Result<(), Change
 /// git::get_repo_config 解析；object 直取 provider / domain / repo 三可选字段（严格键集）
 fn parse_repo(value: &Value) -> Result<RepoConfig, ChangelogConfigError> {
   match value {
-    Value::String(s) => Ok(crate::git::get_repo_config(s)),
+    Value::String(s) => Ok(get_repo_config(s)),
     Value::Object(map) => {
       let mut repo = RepoConfig {
         provider: None,

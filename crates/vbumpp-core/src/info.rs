@@ -7,7 +7,8 @@ use std::path::Path;
 
 use semver::Version;
 
-use crate::commits::get_recent_commits;
+use crate::commits::{get_recent_commits, CommitInfo};
+use crate::plugins::{default_file_patterns, dispatch_read_version, resolve};
 use crate::prompt::prompt_new_version;
 use crate::version::{next_version, next_versions, ReleaseType};
 
@@ -93,7 +94,7 @@ pub(crate) fn resolve_new_version(
   release: Option<&str>,
   preid: Option<&str>,
   current_version: &str,
-  commits: &[crate::commits::CommitInfo],
+  commits: &[CommitInfo],
 ) -> Result<(Option<String>, String), InfoError> {
   // 上游 normalizeOptions：preid 缺省为 "beta"
   let preid = preid.or(Some("beta"));
@@ -150,14 +151,14 @@ pub(crate) fn get_current_version(
     return Ok((v.to_string(), "user".to_string()));
   }
   let mut files_to_check: Vec<String> = files.to_vec();
-  for probe in crate::plugins::default_file_patterns(false) {
+  for probe in default_file_patterns(false) {
     if !files_to_check.contains(&probe) {
       files_to_check.push(probe);
     }
   }
   for file in &files_to_check {
-    let abs = crate::plugins::resolve(cwd, file);
-    if let Some(version) = crate::plugins::dispatch_read_version(Path::new(file), &abs) {
+    let abs = resolve(cwd, file);
+    if let Some(version) = dispatch_read_version(Path::new(file), &abs) {
       return Ok((version, file.clone()));
     }
   }

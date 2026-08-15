@@ -9,7 +9,7 @@
 //! env 修改为进程全局：涉 token 用例经 ENV_LOCK 串行并净化（tests/release_dry_run.rs
 //! 同先例）。位置说明同 release_dry_run：CLI 应用层通路测试，经 `run_at` 全链路。
 
-mod common;
+use super::common;
 
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard};

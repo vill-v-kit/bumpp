@@ -17,8 +17,10 @@
 
 use std::error::Error;
 use std::fmt;
+use std::fs;
 use std::path::{Component, Path, PathBuf};
 
+use crate::display;
 use crate::effects::{Effects, RealEffects};
 use crate::progress::ProgressEvent;
 
@@ -272,13 +274,10 @@ fn execute_write(eff: &dyn Effects, write: &FileWrite, cwd: &Path) -> Result<(),
     .write_file(&write.path, &write.content)
     .map_err(|e| match &write.kind {
       WriteKind::Manifest { rel_path } => FilesError::Io {
-        message: format!("failed to write {}: {e}", crate::display::posix(rel_path)),
+        message: format!("failed to write {}: {e}", display::posix(rel_path)),
       },
       WriteKind::CargoLock => FilesError::Lock {
-        message: format!(
-          "failed to write {}: {e}",
-          crate::display::path(cwd, &write.path)
-        ),
+        message: format!("failed to write {}: {e}", display::path(cwd, &write.path)),
       },
     })
 }
@@ -325,8 +324,8 @@ fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlug
 }
 
 pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesError> {
-  std::fs::read_to_string(path).map_err(|e| FilesError::Io {
-    message: format!("failed to read {}: {e}", crate::display::posix(rel_path)),
+  fs::read_to_string(path).map_err(|e| FilesError::Io {
+    message: format!("failed to read {}: {e}", display::posix(rel_path)),
   })
 }
 

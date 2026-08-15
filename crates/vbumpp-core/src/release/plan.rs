@@ -11,7 +11,10 @@ use std::sync::Mutex;
 
 use serde_json::{Map, Value};
 
-use super::{github_like, http, Provider, ReleaseError, TokenSource};
+use super::{
+  dispatch, github_like, http, resolve_token_tolerant_with_host, scrub_token, Provider,
+  ReleaseError, ResolvedToken, TokenSource,
+};
 use crate::effects::{Effects, HttpResponse};
 use crate::exec::ExecError;
 
@@ -126,14 +129,14 @@ fn host_of(provider: Provider, requests: &[PlannedRequest]) -> String {
 }
 
 /// 拦截 URL 脱敏后装配计划（真实创建链已走完）。`dispatch` 主体与
-/// `bump_plan` 的宽容编排共用——token 缺失以空串占位续走同一条链
+/// `bump::plan` 的宽容编排共用——token 缺失以空串占位续走同一条链
 /// （占位值只落在不展示的头部/请求体字段）
 pub fn assemble_plan(
   provider: Provider,
   new_version: &str,
   markdown: &str,
   cwd: &Path,
-  resolved: Option<&super::ResolvedToken>,
+  resolved: Option<&ResolvedToken>,
   requests: Vec<PlannedRequest>,
 ) -> Result<ReleasePlan, ReleaseError> {
   let empty = String::new();
@@ -148,7 +151,7 @@ pub fn assemble_plan(
     .into_iter()
     .map(|r| PlannedRequest {
       method: r.method,
-      url: super::scrub_token(&r.url, token),
+      url: scrub_token(&r.url, token),
     })
     .collect();
   let host = host_of(provider, &requests);
@@ -175,7 +178,7 @@ pub fn plan_release(
   overrides: Option<&Map<String, Value>>,
 ) -> Result<ReleasePlan, ReleaseError> {
   // 有效 host 解析提前到 token 链之前（与真实执行同一顺序，预演与执行同路）
-  let resolved = super::resolve_token_tolerant_with_host(provider, cwd, overrides)?;
+  let resolved = resolve_token_tolerant_with_host(provider, cwd, overrides)?;
   let preview = PreviewEffects::new();
   dispatch_plan(
     &preview,
@@ -207,8 +210,8 @@ pub(crate) fn plan_release_dispatch(
   markdown: &str,
   cwd: &Path,
   overrides: Option<&Map<String, Value>>,
-) -> Result<Option<super::ResolvedToken>, ReleaseError> {
-  let resolved = super::resolve_token_tolerant_with_host(provider, cwd, overrides)?;
+) -> Result<Option<ResolvedToken>, ReleaseError> {
+  let resolved = resolve_token_tolerant_with_host(provider, cwd, overrides)?;
   dispatch_plan(
     eff,
     provider,
@@ -225,7 +228,7 @@ pub(crate) fn plan_release_dispatch(
 fn dispatch_plan(
   eff: &dyn Effects,
   provider: Provider,
-  resolved: Option<&super::ResolvedToken>,
+  resolved: Option<&ResolvedToken>,
   new_version: &str,
   markdown: &str,
   cwd: &Path,
@@ -236,5 +239,5 @@ fn dispatch_plan(
     .as_ref()
     .map(|r| r.token.as_str())
     .unwrap_or(&empty);
-  super::dispatch(eff, provider, token, new_version, markdown, cwd, overrides)
+  dispatch(eff, provider, token, new_version, markdown, cwd, overrides)
 }

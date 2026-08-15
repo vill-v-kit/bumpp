@@ -11,11 +11,15 @@ use std::env;
 use std::error::Error;
 use std::fmt;
 use std::fs;
+use std::io::{stderr, ErrorKind, IsTerminal};
 use std::path::{Path, PathBuf};
 
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use rand::RngCore;
+
+use crate::display;
+use crate::home::vbumpp_home;
 
 const STORE_MAGIC: &[u8; 4] = b"VBTK";
 const STORE_VERSION: u8 = 1;
@@ -57,7 +61,7 @@ pub fn store_path() -> Result<PathBuf, TokenError> {
     }
   }
   Ok(
-    crate::home::vbumpp_home()
+    vbumpp_home()
       .ok_or_else(|| TokenError::HomeDir {
         message:
           "cannot resolve the home directory (neither VBUMPP_HOME nor the system home is available)"
@@ -84,7 +88,7 @@ pub fn read_token_store_at(store: &Path) -> Result<BTreeMap<String, String>, Tok
   let blob = fs::read(store).map_err(|e| TokenError::Io {
     message: format!(
       "failed to read token store file {}: {e}",
-      crate::display::posix(store)
+      display::posix(store)
     ),
   })?;
   let key = get_key(store)?;
@@ -92,7 +96,7 @@ pub fn read_token_store_at(store: &Path) -> Result<BTreeMap<String, String>, Tok
   serde_json::from_slice(&plain).map_err(|e| TokenError::Format {
     message: format!(
       "token store file {} is not valid JSON: {e}",
-      crate::display::posix(store)
+      display::posix(store)
     ),
   })
 }
@@ -121,12 +125,12 @@ pub fn remove_token_at(store: &Path, name: &str) -> Result<bool, TokenError> {
   if tokens.is_empty() {
     match fs::remove_file(store) {
       Ok(()) => {}
-      Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+      Err(e) if e.kind() == ErrorKind::NotFound => {}
       Err(e) => {
         return Err(TokenError::Io {
           message: format!(
             "failed to delete token store file {}: {e}",
-            crate::display::posix(store)
+            display::posix(store)
           ),
         })
       }
@@ -162,9 +166,8 @@ pub fn prompt_token(name: &str) -> Result<Option<String>, TokenError> {
 /// 拒绝返回 Ok(false)，对齐 prompt_token 的取消语义）。非 TTY 无法交互：
 /// 报错引导 --yes——不能静默删（confirm 只作用于 remove；set 覆盖不确认）
 pub fn confirm_remove(prompt: &str) -> Result<bool, TokenError> {
-  use std::io::IsTerminal;
   // dialoguer 的交互在 stderr term 上——CI 等重定向场景必然非 TTY
-  if !std::io::stderr().is_terminal() {
+  if !stderr().is_terminal() {
     return Err(TokenError::Prompt {
       message:
         "cannot confirm interactively (not a TTY); re-run with --yes to delete without confirmation"
@@ -247,15 +250,12 @@ fn get_key(store: &Path) -> Result<[u8; KEY_LEN], TokenError> {
   let key_file = key_path(store);
   if key_file.is_file() {
     let raw = fs::read(&key_file).map_err(|e| TokenError::Io {
-      message: format!(
-        "failed to read key file {}: {e}",
-        crate::display::posix(&key_file)
-      ),
+      message: format!("failed to read key file {}: {e}", display::posix(&key_file)),
     })?;
     return <[u8; KEY_LEN]>::try_from(raw.as_slice()).map_err(|_| TokenError::Format {
       message: format!(
         "key file {} is not 32 bytes long",
-        crate::display::posix(&key_file)
+        display::posix(&key_file)
       ),
     });
   }
@@ -326,10 +326,7 @@ fn write_token_store(store: &Path, tokens: &BTreeMap<String, String>) -> Result<
 /// 目录确保（unix 0700——私有目录，每次写入顺带自愈权限）
 fn ensure_dir(dir: &Path) -> Result<(), TokenError> {
   fs::create_dir_all(dir).map_err(|e| TokenError::Io {
-    message: format!(
-      "failed to create directory {}: {e}",
-      crate::display::posix(dir)
-    ),
+    message: format!("failed to create directory {}: {e}", display::posix(dir)),
   })?;
   #[cfg(unix)]
   {
@@ -337,7 +334,7 @@ fn ensure_dir(dir: &Path) -> Result<(), TokenError> {
     fs::set_permissions(dir, fs::Permissions::from_mode(0o700)).map_err(|e| TokenError::Io {
       message: format!(
         "failed to set permissions on directory {}: {e}",
-        crate::display::posix(dir)
+        display::posix(dir)
       ),
     })?;
   }
@@ -347,16 +344,13 @@ fn ensure_dir(dir: &Path) -> Result<(), TokenError> {
 /// 私有文件写入（unix 0600）
 fn write_private(path: &Path, data: &[u8]) -> Result<(), TokenError> {
   fs::write(path, data).map_err(|e| TokenError::Io {
-    message: format!("failed to write {}: {e}", crate::display::posix(path)),
+    message: format!("failed to write {}: {e}", display::posix(path)),
   })?;
   #[cfg(unix)]
   {
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|e| TokenError::Io {
-      message: format!(
-        "failed to set permissions on {}: {e}",
-        crate::display::posix(path)
-      ),
+      message: format!("failed to set permissions on {}: {e}", display::posix(path)),
     })?;
   }
   Ok(())

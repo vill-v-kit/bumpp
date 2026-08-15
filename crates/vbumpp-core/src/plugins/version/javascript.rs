@@ -2,6 +2,8 @@
 //! JSONC 容错解析后仅替换 `version` 值所在的文本区间（package-lock 另含
 //! `packages[""].version`），其余字节原样保留。
 
+use std::cmp::Reverse;
+use std::fs;
 use std::path::Path;
 
 use jsonc_parser::ast::{Object, Value};
@@ -10,7 +12,7 @@ use jsonc_parser::{parse_to_ast, CollectOptions, ParseOptions};
 
 use super::super::recursive::javascript::MANIFEST_BASENAMES;
 use super::super::{read_text, FilePlan, FileWrite, FilesError, WriteKind};
-use crate::jsonc::{get_prop, is_manifest};
+use crate::jsonc::{self, get_prop, is_manifest};
 
 /// manifest 通道识别：basename 小写比较命中清单常量表
 pub(crate) fn matches(rel_path: &Path) -> bool {
@@ -24,8 +26,8 @@ pub(crate) fn matches(rel_path: &Path) -> bool {
 /// 版本解析（ADR-0007）：上游 `readVersion` 的提取部分——JSONC 容错解析 +
 /// is_manifest 门 + `version` 字段取字符串；semver 校验由编排层统一承担
 pub(crate) fn read_version(path: &Path) -> Option<String> {
-  let text = std::fs::read_to_string(path).ok()?;
-  let Value::Object(root) = crate::jsonc::parse(&text)? else {
+  let text = fs::read_to_string(path).ok()?;
+  let Value::Object(root) = jsonc::parse(&text)? else {
     return None;
   };
   if !is_manifest(&root) {
@@ -107,7 +109,7 @@ fn quote(value: &str) -> String {
 /// 将区间替换应用到原文（按起点倒序，避免位移）
 fn apply_edits(text: &str, edits: &[(Range, String)]) -> String {
   let mut sorted: Vec<_> = edits.to_vec();
-  sorted.sort_by_key(|(range, _)| std::cmp::Reverse(range.start));
+  sorted.sort_by_key(|(range, _)| Reverse(range.start));
   let mut result = text.to_owned();
   for (range, replacement) in sorted {
     result.replace_range(range.start..range.end, &replacement);

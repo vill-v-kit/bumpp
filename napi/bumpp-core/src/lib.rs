@@ -5,6 +5,8 @@
 //! release 由 CLI `vbumpp release` 子命令承接（ADR-0016）；上游 parity 面
 //! （versionBump 系、loadBumpConfig）与 changelog 系函数收归 Rust 内部。
 
+use std::env;
+use std::fmt::Display;
 use std::path::PathBuf;
 
 use napi_derive::napi;
@@ -13,11 +15,11 @@ use serde_json::{Map, Value};
 fn resolve_cwd(cwd: Option<String>) -> napi::Result<PathBuf> {
   match cwd {
     Some(c) => Ok(PathBuf::from(c)),
-    None => Ok(std::env::current_dir()?),
+    None => Ok(env::current_dir()?),
   }
 }
 
-fn to_napi_err(e: impl std::fmt::Display) -> napi::Error {
+fn to_napi_err(e: impl Display) -> napi::Error {
   napi::Error::from_reason(e.to_string())
 }
 

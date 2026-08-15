@@ -1,6 +1,7 @@
 //! token 子命令（消息文案与 cli.ts switch 逐条 parity）：set / list / remove
 //! 三动作 + flag 扫描小 helper（ADR-0035 remove 交互矩阵所在地）。
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -237,9 +238,9 @@ pub struct TokenArgs {
   /// 位置参数（`--` 分隔之后一律按位置参数收集，dash 前缀不再解析）
   pub positionals: Vec<String>,
   /// 布尔 flag 命中集（bare `--flag`；remove 矩阵 --all/--yes/--dry-run 消费）
-  pub flags: std::collections::BTreeSet<String>,
+  pub flags: BTreeSet<String>,
   /// 值 flag 命中表（`--flag value` 与 `--flag=value` 双形态；重复取最后）
-  pub values: std::collections::BTreeMap<String, String>,
+  pub values: BTreeMap<String, String>,
 }
 
 /// token 子命令的 flag 扫描小 helper：认 `--flag` / `--flag=value` / `--`
@@ -252,8 +253,8 @@ pub fn scan_token_args(
 ) -> Result<TokenArgs, String> {
   let mut scanned = TokenArgs {
     positionals: Vec::new(),
-    flags: std::collections::BTreeSet::new(),
-    values: std::collections::BTreeMap::new(),
+    flags: BTreeSet::new(),
+    values: BTreeMap::new(),
   };
   let mut positional_only = false;
   let mut i = 0;

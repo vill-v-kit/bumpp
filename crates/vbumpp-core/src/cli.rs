@@ -15,10 +15,12 @@ mod parse;
 mod release;
 mod token;
 
-use std::io::Write;
+use std::io::{stderr, stdout, Write};
 use std::path::Path;
 
 use output::{error_line, print_help, print_version};
+
+use crate::token::TokenError;
 
 // 测试缝（tests/cli/ 直取解析层细节，先例：`release::resolve_token`）：
 // `#[doc(hidden)]` 不入公开文档，`cli::{run_from_argv, run_at, RunEnv}`
@@ -35,8 +37,8 @@ pub use token::scan_token_args;
 /// 优先于该注入（ADR-0016）。返回退出码，由调用壳回写
 /// （Rust 不越权设宿主进程状态）。
 pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
-  let stdout = std::io::stdout();
-  let stderr = std::io::stderr();
+  let stdout = stdout();
+  let stderr = stderr();
   let mut out = stdout.lock();
   let mut err = stderr.lock();
   let env = RunEnv {
@@ -50,12 +52,12 @@ pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
 
 /// token 录入交互的注入签名：返回 Ok(Some(明文)) 保存、Ok(None) 取消、Err 报错
 /// （真实实现为 dialoguer 密码 prompt，ADR-0014）
-pub type TokenPrompt<'a> = &'a dyn Fn(&str) -> Result<Option<String>, crate::token::TokenError>;
+pub type TokenPrompt<'a> = &'a dyn Fn(&str) -> Result<Option<String>, TokenError>;
 
 /// token remove 二次确认的注入签名：返回 Ok(true) 确认删除、Ok(false) 拒绝
 /// （取消，exit 0）、Err 无法交互（非 TTY——报错引导 --yes，exit 1）。
 /// 真实实现为 dialoguer Confirm（默认 No）
-pub type ConfirmPrompt<'a> = &'a dyn Fn(&str) -> Result<bool, crate::token::TokenError>;
+pub type ConfirmPrompt<'a> = &'a dyn Fn(&str) -> Result<bool, TokenError>;
 
 /// 可测内核的环境注入：`store` 覆盖 token 存储路径（None 走环境解析，
 /// `VBUMPP_TOKEN_STORE` → `VBUMPP_HOME` → 系统 home，ADR-0013）；`cwd` 覆盖

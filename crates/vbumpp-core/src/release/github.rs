@@ -6,6 +6,7 @@ use std::path::Path;
 use super::http::{post_json, resolve_owner_repo};
 use super::{github_like, Provider, ReleaseError};
 use crate::effects::{Effects, RealEffects};
+use crate::git::get_current_git_branch;
 
 const BASE_URL: &str = "https://api.github.com";
 
@@ -53,7 +54,7 @@ fn send(
   cwd: &Path,
 ) -> Result<(), ReleaseError> {
   let (owner, repo) = resolve_owner_repo(cwd)?;
-  let branch = crate::git::get_current_git_branch(cwd)?;
+  let branch = get_current_git_branch(cwd)?;
   let body = github_like::release_body(new_version, markdown, &branch);
   let url = github_like::releases_url(base_url, &owner, &repo);
   let headers: [(&str, String); 2] = [

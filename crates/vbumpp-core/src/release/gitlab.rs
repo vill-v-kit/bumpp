@@ -9,6 +9,7 @@ use serde_json::{json, Map, Value};
 
 use super::http::{check_status, get, post_json, resolve_owner_repo};
 use super::{Provider, ReleaseError};
+use crate::config::{custom_config_path, gitlab_host_of, read_document};
 use crate::effects::{Effects, RealEffects};
 
 /// 缺省 host（有效 host 的唯一字面量维护点——token 键化与 API 拼接不得漂移）
@@ -23,8 +24,7 @@ pub(crate) fn create(
   cwd: &Path,
   overrides: Option<&Map<String, Value>>,
 ) -> Result<(), ReleaseError> {
-  let document =
-    crate::config::read_document(cwd, crate::config::custom_config_path(overrides).as_deref())?;
+  let document = read_document(cwd, custom_config_path(overrides).as_deref())?;
   let host = effective_host(document.as_ref(), overrides)?;
   create_with_host_and(eff, &host, token, new_version, markdown, cwd)
 }
@@ -48,7 +48,7 @@ pub fn resolve_gitlab_host(
   // 校验与提取收归 config::gitlab_host_of（文件层在 read_config 已先验过一次）
   let mut host = None;
   for source in [document, overrides].into_iter().flatten() {
-    if let Some(h) = crate::config::gitlab_host_of(source)? {
+    if let Some(h) = gitlab_host_of(source)? {
       host = Some(h);
     }
   }

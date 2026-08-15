@@ -12,6 +12,8 @@ pub use extract::extract_version_section;
 
 use std::error::Error;
 use std::fmt;
+use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
 
 use std::sync::LazyLock;
@@ -20,8 +22,11 @@ use regex::Regex;
 use serde_json::{Map, Value};
 
 use crate::commits::{parse_display_commit, DisplayCommit};
+use crate::config::{custom_config_path, merge_bump_config, read_document, LoadConfigError};
+use crate::display;
 use crate::effects::{Effects, RealEffects};
-use crate::git::RawCommit;
+use crate::exec::ExecError;
+use crate::git::{get_git_diff, resolve_repo_config, RawCommit};
 
 use crate::changelog::config::{resolve_changelog_config, ChangelogConfig, ChangelogConfigError};
 use crate::changelog::markdown::ReleaseRange;
@@ -90,8 +95,8 @@ impl fmt::Display for ChangelogError {
 
 impl Error for ChangelogError {}
 
-impl From<crate::config::LoadConfigError> for ChangelogError {
-  fn from(e: crate::config::LoadConfigError) -> Self {
+impl From<LoadConfigError> for ChangelogError {
+  fn from(e: LoadConfigError) -> Self {
     Self::Config {
       message: e.to_string(),
     }
@@ -106,8 +111,8 @@ impl From<ChangelogConfigError> for ChangelogError {
   }
 }
 
-impl From<crate::exec::ExecError> for ChangelogError {
-  fn from(e: crate::exec::ExecError) -> Self {
+impl From<ExecError> for ChangelogError {
+  fn from(e: ExecError) -> Self {
     Self::Git {
       message: e.to_string(),
     }
@@ -136,11 +141,11 @@ pub fn generate_changelog_with(
 ) -> Result<GenerateChangelogOutcome, ChangelogError> {
   // 统一配置解析：同一份文档一次读取——bumpp 键（含 commit 开关）经
   // merge_bump_config，changelog 段经 resolve_changelog_config（ADR-0013）
-  let document = crate::config::read_document(
+  let document = read_document(
     cwd,
-    crate::config::custom_config_path(options.overrides.as_ref()).as_deref(),
+    custom_config_path(options.overrides.as_ref()).as_deref(),
   )?;
-  let merged = crate::config::merge_bump_config(options.overrides.clone(), document.clone());
+  let merged = merge_bump_config(options.overrides.clone(), document.clone());
   let section_overrides = options
     .overrides
     .as_ref()
@@ -150,10 +155,10 @@ pub fn generate_changelog_with(
   // changelogen `config.repo ||= resolveRepoConfig(cwd)`：配置未覆盖时自
   // package.json `repository` / git remote 解析
   if config.repo.is_none() {
-    config.repo = crate::git::resolve_repo_config(cwd);
+    config.repo = resolve_repo_config(cwd);
   }
 
-  let raw_commits = crate::git::get_git_diff(cwd, &options.from, None)?;
+  let raw_commits = get_git_diff(cwd, &options.from, None)?;
   let range = ReleaseRange {
     from: &options.from,
     to: &options.to,
@@ -194,12 +199,12 @@ fn upsert_changelog(
   markdown: &str,
   cwd: &Path,
 ) -> Result<String, ChangelogError> {
-  let mut changelog_md = match std::fs::read_to_string(output) {
+  let mut changelog_md = match fs::read_to_string(output) {
     Ok(content) => content,
-    Err(e) if e.kind() == std::io::ErrorKind::NotFound => "# Changelog\n\n".to_owned(),
+    Err(e) if e.kind() == ErrorKind::NotFound => "# Changelog\n\n".to_owned(),
     Err(e) => {
       return Err(ChangelogError::Io {
-        message: format!("failed to read {}: {e}", crate::display::path(cwd, output)),
+        message: format!("failed to read {}: {e}", display::path(cwd, output)),
       })
     }
   };
@@ -214,7 +219,7 @@ fn upsert_changelog(
   eff
     .write_file(output, &changelog_md)
     .map_err(|e| ChangelogError::Io {
-      message: format!("failed to write {}: {e}", crate::display::path(cwd, output)),
+      message: format!("failed to write {}: {e}", display::path(cwd, output)),
     })?;
   Ok(changelog_md)
 }
