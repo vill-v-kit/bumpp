@@ -12,6 +12,7 @@ $ vbumpp --help
 usage:
   vbumpp [...files]                bump version and generate changelog
   vbumpp release <version>         retry platform release from a changelog section
+  vbumpp schema                    export the config JSON schema (--write saves ./vbumpprc.schema.json; --global the ~/.vbumpp/schema.json copy)
   vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted
   (set/list/remove accept --host <url> for gitlab; remove also accepts --all, --yes, --dry-run)
 
@@ -125,6 +126,25 @@ $ vbumpp release 5.1.0 --provider github --dry-run
 # 发布前预检：tag / changelog 任一不满足即 exit 1
 vbumpp release "$VERSION" --provider "$PROVIDER" --dry-run
 ```
+
+## `vbumpp schema`
+
+导出配置形状的 JSON Schema（单一事实源：Rust 形状结构体机械导出，与文件层键名 / 类型校验同源）。
+
+```sh
+vbumpp schema                       # stdout 打印纯 JSON（管道 / 重定向友好，无任何其他打印）
+vbumpp schema --write               # 落盘 ./vbumpprc.schema.json（--project 缺省，可显式给出）
+vbumpp schema --write --global      # 落盘 ~/.vbumpp/schema.json（VBUMPP_HOME 生效）
+```
+
+`--project` 与 `--global` 互斥，同给报错；未给 `--write` 时落点 flag 不生效，照走 stdout。
+
+**离线编辑器关联**：把本地副本写进项目后，配置即可离线获得补全与报红（顶层未知键会被 schema 拒绝）——
+
+- JSON / JSONC：在 `.vbumpprc.json` 里声明相对路径 `"$schema": "./vbumpprc.schema.json"`，VS Code 等编辑器直接消费
+- TOML：用 Taplo 的 `#:schema` 指令指向同一份文件（如文件首行 `#:schema ./vbumpprc.schema.json`）
+
+三种配置格式共用同一份 schema，不维护 TOML 单独版本。
 
 ## `vbumpp token <action> [name]`
 

@@ -26,8 +26,10 @@ use crate::display;
 use crate::home::vbumpp_home;
 use crate::plugins::recursive_manifest_globs;
 
+pub mod schema;
 pub mod shape;
 
+pub use schema::config_schema;
 pub use shape::{shape_of, BoolOrString, BumpConfig};
 
 /// 项目级探测文件名集合（ADR-0013）

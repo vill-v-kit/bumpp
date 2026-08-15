@@ -7,6 +7,7 @@
 mod common;
 
 mod parse;
+mod schema;
 mod token;
 
 use std::path::Path;
@@ -40,6 +41,7 @@ fn run_full(
   let env = RunEnv {
     store: Some(store),
     cwd,
+    home: None,
     prompt,
     confirm: None,
   };
@@ -64,6 +66,7 @@ fn run_remove(
   let env = RunEnv {
     store: Some(store),
     cwd: None,
+    home: None,
     prompt: None,
     confirm,
   };
@@ -97,6 +100,7 @@ fn help_flag_lists_all_commands() {
   assert_eq!(code, 0, "退出码");
   assert!(out.contains("[...files]"), "{out}");
   assert!(out.contains("token <action> [name]"), "{out}");
+  assert!(out.contains("vbumpp schema"), "{out}");
   assert!(out.contains("set / list / remove"), "{out}");
   assert!(out.contains("-o, --output"), "{out}");
   assert!(out.contains("-r, --recursive"), "{out}");

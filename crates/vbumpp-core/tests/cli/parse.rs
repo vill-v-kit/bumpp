@@ -294,3 +294,84 @@ fn release_parses_dry_run_flag() {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// schema 子命令（ADR-0037）：仅三个布尔 flag，无位置参数与短形态
+// ---------------------------------------------------------------------------
+
+#[test]
+fn schema_defaults_to_stdout_export() {
+  match parse(&argv(&["schema"])) {
+    Ok(Command::Schema(args)) => {
+      assert!(!args.write, "无 flag 即 stdout 通路");
+      assert!(!args.project);
+      assert!(!args.global);
+    }
+    other => panic!("应为 Schema，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn schema_parses_write_and_target_flags() {
+  match parse(&argv(&["schema", "--write", "--global"])) {
+    Ok(Command::Schema(args)) => {
+      assert!(args.write);
+      assert!(args.global);
+      assert!(!args.project);
+    }
+    other => panic!("应为 Schema，实际 {other:?}"),
+  }
+  match parse(&argv(&["schema", "--write", "--project"])) {
+    Ok(Command::Schema(args)) => {
+      assert!(args.write);
+      assert!(args.project);
+    }
+    other => panic!("应为 Schema，实际 {other:?}"),
+  }
+  // 带值形态按 mri 惯例视为 truthy（与其他布尔 flag 对齐）
+  match parse(&argv(&["schema", "--write=false", "--global=x"])) {
+    Ok(Command::Schema(args)) => {
+      assert!(args.write);
+      assert!(args.global);
+    }
+    other => panic!("应为 Schema，实际 {other:?}"),
+  }
+}
+
+#[test]
+fn schema_rejects_conflicting_targets() {
+  assert_eq!(
+    parse(&argv(&["schema", "--project", "--global"])).unwrap_err(),
+    "options --project and --global are mutually exclusive".to_string()
+  );
+}
+
+#[test]
+fn schema_rejects_junk_and_short_flags() {
+  // 无位置参数；无短 flag（报错与 release 同形）；`--` 之后亦无位置参数可收
+  assert_eq!(
+    parse(&argv(&["schema", "foo"])).unwrap_err(),
+    "unexpected argument: foo".to_string()
+  );
+  assert_eq!(
+    parse(&argv(&["schema", "--wat"])).unwrap_err(),
+    "unknown option: --wat".to_string()
+  );
+  assert_eq!(
+    parse(&argv(&["schema", "-r"])).unwrap_err(),
+    "unknown option: -r".to_string()
+  );
+  assert_eq!(
+    parse(&argv(&["schema", "--", "--write"])).unwrap_err(),
+    "unexpected argument: --write".to_string()
+  );
+}
+
+#[test]
+fn schema_global_help_flag_still_wins() {
+  // 全局 flag 优先于子命令（cac parity）：`schema --help` 走 help 通路
+  assert!(matches!(
+    parse(&argv(&["schema", "--help"])),
+    Ok(Command::Help)
+  ));
+}

@@ -6,13 +6,14 @@
 //! 消息文案逐条对齐 JS 时代 cli.ts 的 consola 输出（parity 基准）；着色仿
 //! `progress.rs` 先例（dialoguer `console::style`，非 TTY 自动降级纯文本）。
 //!
-//! 布局：解析（`parse`）、三个子命令（`bump` / `release` / `token`）、
+//! 布局：解析（`parse`）、四个子命令（`bump` / `release` / `schema` / `token`）、
 //! 输出行样式（`output`）各一文件；本文件持入口与环境注入签名。
 
 mod bump;
 mod output;
 mod parse;
 mod release;
+mod schema;
 mod token;
 
 use std::io::{stderr, stdout, Write};
@@ -28,7 +29,7 @@ use crate::token::TokenError;
 #[doc(hidden)]
 pub use bump::{bump_overrides, resolve_provider};
 #[doc(hidden)]
-pub use parse::{parse, BumpArgs, Command, ReleaseArgs};
+pub use parse::{parse, BumpArgs, Command, ReleaseArgs, SchemaArgs};
 #[doc(hidden)]
 pub use token::scan_token_args;
 
@@ -44,6 +45,7 @@ pub fn run_from_argv(argv: &[String], provider: Option<&str>) -> i32 {
   let env = RunEnv {
     store: None,
     cwd: None,
+    home: None,
     prompt: None,
     confirm: None,
   };
@@ -61,12 +63,14 @@ pub type ConfirmPrompt<'a> = &'a dyn Fn(&str) -> Result<bool, TokenError>;
 
 /// 可测内核的环境注入：`store` 覆盖 token 存储路径（None 走环境解析，
 /// `VBUMPP_TOKEN_STORE` → `VBUMPP_HOME` → 系统 home，ADR-0013）；`cwd` 覆盖
-/// bump 执行目录（None 取进程当前目录）；`prompt` 覆盖 token 录入交互
-/// （None 走 dialoguer 密码 prompt，ADR-0014）；`confirm` 覆盖 remove 二次
-/// 确认（None 走 dialoguer Confirm + TTY 守卫）。
+/// bump 执行目录（None 取进程当前目录）；`home` 覆盖全局配置目录（None 走
+/// `VBUMPP_HOME` → `~/.vbumpp`——schema `--global` 落点消费）；`prompt` 覆盖
+/// token 录入交互（None 走 dialoguer 密码 prompt，ADR-0014）；`confirm` 覆盖
+/// remove 二次确认（None 走 dialoguer Confirm + TTY 守卫）。
 pub struct RunEnv<'a> {
   pub store: Option<&'a Path>,
   pub cwd: Option<&'a Path>,
+  pub home: Option<&'a Path>,
   pub prompt: Option<TokenPrompt<'a>>,
   pub confirm: Option<ConfirmPrompt<'a>>,
 }
@@ -87,6 +91,7 @@ pub fn run_at(
     Ok(Command::Token(args)) => token::token_command(&args, env, out, err),
     Ok(Command::Bump(args)) => bump::bump_command(&args, provider, env, out, err),
     Ok(Command::Release(args)) => release::release_command(&args, provider, env, out, err),
+    Ok(Command::Schema(args)) => schema::schema_command(&args, env, out, err),
     Err(message) => {
       error_line(err, &message);
       1

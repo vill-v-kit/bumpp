@@ -11,6 +11,7 @@ pub enum Command {
   Token(Vec<String>),
   Bump(BumpArgs),
   Release(ReleaseArgs),
+  Schema(SchemaArgs),
 }
 
 /// bump 默认命令（`vbumpp [...files]`）的解析产物
@@ -36,6 +37,17 @@ pub struct ReleaseArgs {
   pub dry_run: bool,
 }
 
+/// schema 子命令（`vbumpp schema`，ADR-0037）的解析产物：无 flag 时 stdout
+/// 纯 JSON；`--write` 落盘，落点由 `--project`（默认）/ `--global` 二选一
+#[derive(Debug)]
+pub struct SchemaArgs {
+  pub write: bool,
+  /// 显式 `--project`——落点默认即项目级，该 flag 只为与 `--global` 构成
+  /// 显式互斥对（同给即用法错误）
+  pub project: bool,
+  pub global: bool,
+}
+
 pub fn parse(argv: &[String]) -> Result<Command, String> {
   let mut positional_only = false;
   for arg in argv {
@@ -52,6 +64,7 @@ pub fn parse(argv: &[String]) -> Result<Command, String> {
   match argv.first().map(String::as_str) {
     Some("token") => Ok(Command::Token(argv[1..].to_vec())),
     Some("release") => parse_release(&argv[1..]),
+    Some("schema") => parse_schema(&argv[1..]),
     _ => parse_bump(argv),
   }
 }
@@ -213,4 +226,42 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
     provider,
     dry_run,
   }))
+}
+
+/// schema 子命令解析（ADR-0037）：`vbumpp schema [--write] [--project|--global]`。
+/// 仅三个布尔 flag，无位置参数、无短形态；`--project` 与 `--global` 互斥
+/// （同给即用法错误）；带值形态按 mri 惯例视为 truthy
+fn parse_schema(argv: &[String]) -> Result<Command, String> {
+  let mut args = SchemaArgs {
+    write: false,
+    project: false,
+    global: false,
+  };
+  let mut positional_only = false;
+  for arg in argv {
+    if positional_only {
+      return Err(format!("unexpected argument: {arg}"));
+    }
+    match arg.as_str() {
+      "--" => positional_only = true,
+      "--write" => args.write = true,
+      "--project" => args.project = true,
+      "--global" => args.global = true,
+      _ if arg.starts_with("--") => match arg.split_once('=') {
+        Some(("--write", _)) => args.write = true,
+        Some(("--project", _)) => args.project = true,
+        Some(("--global", _)) => args.global = true,
+        _ => return Err(format!("unknown option: {arg}")),
+      },
+      _ if arg.starts_with('-') && arg.len() > 1 => {
+        // schema 无短 flag（与 release 对齐，报错取首字符）
+        return Err(format!("unknown option: -{}", &arg[1..2]));
+      }
+      _ => return Err(format!("unexpected argument: {arg}")),
+    }
+  }
+  if args.project && args.global {
+    return Err("options --project and --global are mutually exclusive".to_string());
+  }
+  Ok(Command::Schema(args))
 }

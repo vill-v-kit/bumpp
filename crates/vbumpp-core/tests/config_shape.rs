@@ -1,15 +1,17 @@
 //! 配置形状（ADR-0037）：顶层键白名单 const 与 `BumpConfig` 结构体键集的
 //! 一致性钉死——两者同为文件层校验载体（白名单报未知键、结构体报类型），
-//! 漂移即配置静默失效或误报。
+//! 漂移即配置静默失效或误报。schema 断言一律骑 `config_schema()` 导出物
+//! （COL-102：`vbumpp schema` 子命令与仓库产物再生消费同一份）。
 
 use std::collections::BTreeSet;
 
-use vbumpp_core::config::{BumpConfig, SUPPORTED_TOP_LEVEL_KEYS};
+use serde_json::json;
+use vbumpp_core::config::{config_schema, SUPPORTED_TOP_LEVEL_KEYS};
 
 #[test]
 fn whitelist_matches_shape_key_set() {
-  // 结构体键集自 JSON Schema 的 properties 机械提取——与 COL-102 导出同源
-  let schema = serde_json::to_value(schemars::schema_for!(BumpConfig)).unwrap();
+  // 结构体键集自导出 schema 的 properties 机械提取
+  let schema = config_schema();
   let properties = schema["properties"]
     .as_object()
     .expect("BumpConfig 的 schema 应为 object 形态");
@@ -38,9 +40,9 @@ fn whitelist_matches_shape_key_set() {
 #[test]
 fn schema_declares_expected_property_shapes() {
   // 机械导出的抽样形态钉死：commit / tag 为 bool|string 联合，files 为
-  // 字符串数组，$schema 为字符串——COL-102 导出前的形状基线。字段全
-  // Option，schemars 1.x 对 Option<T> 输出 nullable 数组形态
-  let schema = serde_json::to_value(schemars::schema_for!(BumpConfig)).unwrap();
+  // 字符串数组，$schema 为字符串——形状基线。字段全 Option，schemars 1.x
+  // 对 Option<T> 输出 nullable 数组形态
+  let schema = config_schema();
   let defs = &schema["$defs"];
   let properties = schema["properties"].as_object().unwrap();
 
@@ -71,7 +73,7 @@ fn schema_declares_expected_property_shapes() {
 fn schema_descriptions_are_english_only() {
   // schema 内 description 属用户可见字符串，唯一语言英文——递归扫描
   // 全树，任何 CJK 字符即中文 doc 注释泄漏回 schema
-  let schema = serde_json::to_value(schemars::schema_for!(BumpConfig)).unwrap();
+  let schema = config_schema();
 
   fn scan(value: &serde_json::Value, offenders: &mut Vec<String>) {
     match value {
@@ -106,7 +108,7 @@ fn every_field_carries_a_description() {
   // schema 面向用户（编辑器提示 / SchemaStore），一个说明都不能缺：
   // 递归展开 anyOf / oneOf / $ref，凡带 properties 的层，每个属性都
   // 必须携非空 description；$defs 各定义同理
-  let schema = serde_json::to_value(schemars::schema_for!(BumpConfig)).unwrap();
+  let schema = config_schema();
   let defs = &schema["$defs"];
   let mut missing = Vec::new();
 
@@ -166,4 +168,54 @@ fn every_field_carries_a_description() {
     }
   }
   assert!(missing.is_empty(), "缺 description 的字段: {missing:?}");
+}
+
+#[test]
+fn exported_schema_pins_unknown_key_rejection_and_sections() {
+  // 编辑器报红载体：顶层 additionalProperties: false（与文件层白名单
+  // pre-pass 同语义）；changelog / gitlab / scripts 三段（含 templates）
+  // 经 $defs 引用全量覆盖
+  let schema = config_schema();
+  assert_eq!(
+    schema["additionalProperties"],
+    json!(false),
+    "顶层未知键必须被 schema 拒绝"
+  );
+  let defs = schema["$defs"].as_object().expect("嵌套段经 $defs 引用");
+  for name in [
+    "ChangelogSection",
+    "GitlabSection",
+    "ScriptsSection",
+    "TemplatesSection",
+    "BoolOrString",
+    "ChangelogTypeValue",
+    "ChangelogRepo",
+  ] {
+    assert!(defs.contains_key(name), "$defs 缺 {name}");
+  }
+}
+
+#[test]
+fn exported_schema_union_shapes() {
+  // 三处联合形态钉死：commit / tag 的 bool|string 在抽样用例已覆盖，
+  // 此处钉 types 值的 false|对象与 repo 的 string|对象（Option 包装为
+  // anyOf [ref, null]，联合本体在 $defs）
+  let schema = config_schema();
+  let defs = &schema["$defs"];
+
+  let types = defs["ChangelogTypeValue"]["oneOf"].as_array().unwrap();
+  assert_eq!(types[0]["const"], json!(false), "false 禁用分支：{types:?}");
+  assert_eq!(types[1]["type"], "object", "对象分支：{types:?}");
+  assert_eq!(types[1]["properties"]["title"]["type"], "string");
+
+  let repo = defs["ChangelogRepo"]["oneOf"].as_array().unwrap();
+  let kinds: Vec<&str> = repo.iter().map(|v| v["type"].as_str().unwrap()).collect();
+  assert!(
+    kinds.contains(&"string") && kinds.contains(&"object"),
+    "string 短写 | 对象显式：{kinds:?}"
+  );
+  let object_branch = repo.iter().find(|v| v["type"] == "object").unwrap();
+  for key in ["provider", "domain", "repo"] {
+    assert_eq!(object_branch["properties"][key]["type"], "string", "{key}");
+  }
 }

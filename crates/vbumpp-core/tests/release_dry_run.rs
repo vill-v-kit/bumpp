@@ -43,6 +43,7 @@ fn run_release(argv: &[&str], cwd: &Path) -> (String, String, i32) {
   let env = RunEnv {
     store: Some(&store),
     cwd: Some(cwd),
+    home: None,
     prompt: None,
     confirm: None,
   };

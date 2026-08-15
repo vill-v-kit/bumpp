@@ -212,6 +212,7 @@ fn trailing_slash_config_value_collides_via_real_entry() {
   let env = vbumpp_core::cli::RunEnv {
     store: Some(&store),
     cwd: None,
+    home: None,
     prompt: Some(&prompt),
     confirm: None,
   };

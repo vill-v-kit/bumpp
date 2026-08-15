@@ -16,6 +16,7 @@ pub(super) fn print_help(out: &mut impl Write) -> i32 {
     "usage:\n  \
      vbumpp [...files]                bump version and generate changelog\n  \
      vbumpp release <version>         retry platform release from a changelog section\n  \
+     vbumpp schema                    export the config JSON schema (--write saves ./vbumpprc.schema.json; --global the ~/.vbumpp/schema.json copy)\n  \
      vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted\n  \
      (set/list/remove accept --host <url> for gitlab; remove also accepts --all, --yes, --dry-run)\n\
      \noptions:\n  \

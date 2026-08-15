@@ -1,6 +1,6 @@
 // napi 链路冒烟（ADR-0016 三收缩后的导出面）：编排与 CLI 单入口可调用，
 // 平台 Release 四导出、旧 parity 面与 token 三件套不再导出
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -34,12 +34,16 @@ checks.push(['cliRun token list on empty store exits 0', (await cliRun(['token',
 checks.push(['cliRun token remove (absent) exits 0', (await cliRun(['token', 'remove', 'github'])) === 0])
 checks.push(['cliRun token unknown action exits 1', (await cliRun(['token', 'peek'])) === 1])
 checks.push(['cliRun unknown option exits 1', (await cliRun(['--wat'])) === 1])
+checks.push(['cliRun schema exits 0', (await cliRun(['schema'])) === 0])
 
 // bump 通路：空目录直达编排层首错（临时 cwd，不经交互）
 const cwd = process.cwd()
 process.chdir(dir)
 checks.push(['cliRun bump in empty dir exits 1', (await cliRun([])) === 1])
 checks.push(['cliRun bump with unknown provider exits 1', (await cliRun([], 'bogus')) === 1])
+// schema --write 落点默认项目级（临时 cwd，不碰真实工作区）
+checks.push(['cliRun schema --write exits 0', (await cliRun(['schema', '--write'])) === 0])
+checks.push(['cliRun schema --write lands vbumpprc.schema.json', existsSync(join(dir, 'vbumpprc.schema.json'))])
 process.chdir(cwd)
 
 // 四个平台变体 bin 的 provider 注入锚定：空目录跑 bin，退出码 1 且 stderr
