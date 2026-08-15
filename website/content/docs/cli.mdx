@@ -16,7 +16,7 @@ usage:
   (set/list/remove accept --host <url> for gitlab; remove also accepts --all, --yes, --dry-run)
 
 options:
-  -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)
+  -o, --output [output]       where the changelog is generated / read (default: changelog.output in the config, else CHANGELOG.md)
   -r, --recursive             recursively
   --provider <provider>       release provider (github / gitlab / gitee / gitcode)
   --dry-run                   preview the bump/release plan without side effects
@@ -27,7 +27,7 @@ options:
 | flag | 说明 |
 | --- | --- |
 | `-r`, `--recursive` | 递归更新 monorepo 整树包的版本（含 `"private": true` 的包——private 仅表示不发布，版本号随整树一并锁步） |
-| `-o`, `--output <path>` | changelog 写入路径（默认 `CHANGELOG.md`） |
+| `-o`, `--output <path>` | changelog 写入 / 读取路径；给出时优先于配置的 `changelog.output`，未给时回落配置值，两者都没有才用默认 `CHANGELOG.md` |
 | `--provider <name>` | 本次发版要创建 Release 的平台：`github` / `gitlab` / `gitee` / `gitcode`（优先级高于平台变体包的默认平台） |
 | `--dry-run` | 预览模式：只打印执行计划，不产生任何副作用（见下文「预览模式」） |
 | `-h`, `--help` | 显示帮助 |
@@ -89,7 +89,7 @@ vbumpp --dry-run
 vbumpp release 5.1.0 --provider gitee
 ```
 
-它会从 changelog 文件（默认 `CHANGELOG.md`，可用 `-o` 换）里取出 `5.1.0` 这一节的全部内容作为 Release 描述。版本号写 `5.1.0` 或 `v5.1.0` 都行。
+它会从 changelog 文件里取出 `5.1.0` 这一节的全部内容作为 Release 描述。changelog 文件路径与 bump 主命令同一套解析：`-o` 优先，未给时读配置的 `changelog.output`，都没有才用默认 `CHANGELOG.md`。版本号写 `5.1.0` 或 `v5.1.0` 都行。
 
 执行前会检查本地存在 `v5.1.0` 这个 git tag、且 changelog 里能找到 `5.1.0` 这一节。
 

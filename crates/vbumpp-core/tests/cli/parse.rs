@@ -48,7 +48,7 @@ fn bump_parses_positionals_and_flags() {
   let args = parse_bump_args(&["a.json", "b.json", "-r", "--output", "OUT.md"]);
   assert_eq!(args.files, vec!["a.json".to_string(), "b.json".to_string()]);
   assert!(args.recursive);
-  assert_eq!(args.output, "OUT.md");
+  assert_eq!(args.output.as_deref(), Some("OUT.md"));
 }
 
 #[test]
@@ -56,21 +56,31 @@ fn bump_defaults() {
   let args = parse_bump_args(&[]);
   assert!(args.files.is_empty());
   assert!(!args.recursive);
-  assert_eq!(args.output, "CHANGELOG.md");
+  // COL-101：`-o` 未给出即 None——不再物化 cac 默认值，消费侧回落配置
+  assert!(args.output.is_none());
 }
 
 #[test]
 fn bump_output_equals_forms() {
-  assert_eq!(parse_bump_args(&["--output=OUT.md"]).output, "OUT.md");
-  assert_eq!(parse_bump_args(&["-o=OUT.md"]).output, "OUT.md");
-  assert_eq!(parse_bump_args(&["-oOUT.md"]).output, "OUT.md");
+  assert_eq!(
+    parse_bump_args(&["--output=OUT.md"]).output.as_deref(),
+    Some("OUT.md")
+  );
+  assert_eq!(
+    parse_bump_args(&["-o=OUT.md"]).output.as_deref(),
+    Some("OUT.md")
+  );
+  assert_eq!(
+    parse_bump_args(&["-oOUT.md"]).output.as_deref(),
+    Some("OUT.md")
+  );
 }
 
 #[test]
 fn bump_short_flag_cluster() {
   let args = parse_bump_args(&["-ro", "OUT.md"]);
   assert!(args.recursive);
-  assert_eq!(args.output, "OUT.md");
+  assert_eq!(args.output.as_deref(), Some("OUT.md"));
 }
 
 #[test]
@@ -110,13 +120,28 @@ fn overrides_omit_empty_files() {
   let overrides = bump_overrides(&BumpArgs {
     files: vec![],
     recursive: false,
-    output: "CHANGELOG.md".to_string(),
+    output: None,
     provider: None,
     dry_run: false,
   });
   assert!(!overrides.contains_key("files"));
   assert_eq!(overrides["recursive"], json!(false));
-  assert_eq!(overrides["changelog"], json!({ "output": "CHANGELOG.md" }));
+  // COL-101：`-o` 未给出时 changelog 段不注入——配置文件的
+  // `changelog.output` 不再被 CLI 默认值覆盖
+  assert!(!overrides.contains_key("changelog"));
+}
+
+#[test]
+fn overrides_inject_output_only_when_explicit() {
+  // COL-101：显式 `-o` 照常注入（flag 优先于配置）
+  let overrides = bump_overrides(&BumpArgs {
+    files: vec![],
+    recursive: false,
+    output: Some("OUT.md".to_string()),
+    provider: None,
+    dry_run: false,
+  });
+  assert_eq!(overrides["changelog"], json!({ "output": "OUT.md" }));
 }
 
 #[test]
@@ -124,7 +149,7 @@ fn overrides_include_nonempty_files() {
   let overrides = bump_overrides(&BumpArgs {
     files: vec!["a.json".to_string()],
     recursive: true,
-    output: "OUT.md".to_string(),
+    output: Some("OUT.md".to_string()),
     provider: None,
     dry_run: false,
   });
@@ -176,7 +201,7 @@ fn release_parses_version_and_flags() {
     Ok(Command::Release(args)) => {
       assert_eq!(args.version, "5.1.0");
       assert_eq!(args.provider.as_deref(), Some("gitee"));
-      assert_eq!(args.output, "OUT.md");
+      assert_eq!(args.output.as_deref(), Some("OUT.md"));
     }
     other => panic!("应为 Release，实际 {other:?}"),
   }
@@ -184,7 +209,8 @@ fn release_parses_version_and_flags() {
     Ok(Command::Release(args)) => {
       assert_eq!(args.version, "v5.1.0");
       assert_eq!(args.provider.as_deref(), Some("gitlab"));
-      assert_eq!(args.output, "CHANGELOG.md");
+      // COL-101：未给 `-o` 即 None——执行层回落配置 changelog.output
+      assert!(args.output.is_none());
     }
     other => panic!("应为 Release，实际 {other:?}"),
   }
@@ -234,7 +260,7 @@ fn dry_run_overrides_disable_confirm() {
   let overrides = bump_overrides(&BumpArgs {
     files: vec![],
     recursive: false,
-    output: "CHANGELOG.md".to_string(),
+    output: None,
     provider: None,
     dry_run: true,
   });
@@ -243,7 +269,7 @@ fn dry_run_overrides_disable_confirm() {
   let overrides = bump_overrides(&BumpArgs {
     files: vec![],
     recursive: false,
-    output: "CHANGELOG.md".to_string(),
+    output: None,
     provider: None,
     dry_run: false,
   });

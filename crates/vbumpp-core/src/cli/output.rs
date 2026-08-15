@@ -19,7 +19,7 @@ pub(super) fn print_help(out: &mut impl Write) -> i32 {
      vbumpp token <action> [name]     manage tokens (action: set / list / remove), stored encrypted\n  \
      (set/list/remove accept --host <url> for gitlab; remove also accepts --all, --yes, --dry-run)\n\
      \noptions:\n  \
-     -o, --output [output]       where CHANGELOG.md is generated / read (default CHANGELOG.md)\n  \
+     -o, --output [output]       where the changelog is generated / read (default: changelog.output in the config, else CHANGELOG.md)\n  \
      -r, --recursive             recursively\n  \
      --provider <provider>       release provider (github / gitlab / gitee / gitcode)\n  \
      --dry-run                   preview the bump/release plan without side effects\n  \

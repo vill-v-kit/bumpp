@@ -92,7 +92,8 @@ v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配
 vbumpp release <version> --provider <github|gitlab|gitee|gitcode>
 ```
 
-body 从 changelog 文件（`--output`，默认 `CHANGELOG.md`）提取指定版本节；
+body 从 changelog 文件（`--output` 优先，未给时回落配置 `changelog.output`，
+内建默认 `CHANGELOG.md`）提取指定版本节；
 前置校验两道：本地 `v<version>` tag 必须存在、changelog 必须含该版本节。
 `--provider` flag 对 bump 默认命令同样可用（优先于变体包的注入身份）。
 

@@ -17,8 +17,10 @@ use crate::orchestrate::{bump_version, BumpVersionOptions};
 use crate::plugins::FileVerdict;
 use crate::release::{missing_token_message, Provider, ReleasePlan};
 
-/// argv → overrides（旧 cli.ts 的 JS 对象构造原样收编）：`recursive` 与
-/// `changelog.output` 始终传（cac 默认值语义）；`files` 仅在非空时注入——
+/// argv → overrides（旧 cli.ts 的 JS 对象构造收编后 COL-101 收窄）：
+/// `recursive` 始终传；`changelog.output` 仅在显式 `-o` 时注入——cac 默认值
+/// 恒传的 parity 退场（CLI 默认不再覆盖配置文件的 `changelog.output`，
+/// 未给时配置优先、内建默认兜底）；`files` 仅在非空时注入——
 /// ADR-0013 浅合并语义，空 files 整体替换掉配置文件的 files 是旧 defu 行为。
 /// dry-run 注入 confirm=false——`Bump?` 确认在预览语义下跳过（零写盘无需
 /// 二次确认），经配置浅合并在流水线内生效，流水线零预览分支
@@ -28,7 +30,9 @@ pub fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
     overrides.insert("files".to_string(), json!(args.files));
   }
   overrides.insert("recursive".to_string(), json!(args.recursive));
-  overrides.insert("changelog".to_string(), json!({ "output": args.output }));
+  if let Some(output) = &args.output {
+    overrides.insert("changelog".to_string(), json!({ "output": output }));
+  }
   if args.dry_run {
     overrides.insert("confirm".to_string(), json!(false));
   }

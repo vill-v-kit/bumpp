@@ -18,7 +18,9 @@ pub enum Command {
 pub struct BumpArgs {
   pub files: Vec<String>,
   pub recursive: bool,
-  pub output: String,
+  /// `-o` / `--output` 的显式值；None = 未给出——消费侧回落配置
+  /// `changelog.output` 与内建默认（COL-101：不再物化 cac 默认值）
+  pub output: Option<String>,
   pub provider: Option<String>,
   pub dry_run: bool,
 }
@@ -27,7 +29,9 @@ pub struct BumpArgs {
 #[derive(Debug)]
 pub struct ReleaseArgs {
   pub version: String,
-  pub output: String,
+  /// `-o` / `--output` 的显式值；None = 未给出——执行层回落配置
+  /// `changelog.output` 与内建默认（COL-101）
+  pub output: Option<String>,
   pub provider: Option<String>,
   pub dry_run: bool,
 }
@@ -56,7 +60,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
   let mut args = BumpArgs {
     files: Vec::new(),
     recursive: false,
-    output: "CHANGELOG.md".to_string(),
+    output: None,
     provider: None,
     dry_run: false,
   };
@@ -77,7 +81,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
         let Some(value) = argv.get(i) else {
           return Err(format!("option {arg} requires a value"));
         };
-        args.output = value.clone();
+        args.output = Some(value.clone());
         i += 1;
       }
       "--provider" => {
@@ -88,7 +92,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
         i += 1;
       }
       _ if arg.starts_with("--") => match arg.split_once('=') {
-        Some(("--output", value)) => args.output = value.to_string(),
+        Some(("--output", value)) => args.output = Some(value.to_string()),
         Some(("--provider", value)) => args.provider = Some(value.to_string()),
         // 布尔 flag 带值按 mri 惯例视为 truthy（--recursive=false 与
         // --dry-run=false 亦开启）
@@ -109,12 +113,12 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
               let rest = &cluster[offset + c.len_utf8()..];
               let rest = rest.strip_prefix('=').unwrap_or(rest);
               if !rest.is_empty() {
-                args.output = rest.to_string();
+                args.output = Some(rest.to_string());
               } else {
                 let Some(value) = argv.get(i) else {
                   return Err("option -o requires a value".to_string());
                 };
-                args.output = value.clone();
+                args.output = Some(value.clone());
                 i += 1;
               }
               break;
@@ -136,7 +140,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
 /// （平台变体注入可兜底，解析层不知注入身份）。
 fn parse_release(argv: &[String]) -> Result<Command, String> {
   let mut version = None;
-  let mut output = "CHANGELOG.md".to_string();
+  let mut output = None;
   let mut provider = None;
   let mut dry_run = false;
   let mut positional_only = false;
@@ -157,7 +161,7 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
         let Some(value) = argv.get(i) else {
           return Err(format!("option {arg} requires a value"));
         };
-        output = value.clone();
+        output = Some(value.clone());
         i += 1;
       }
       "--provider" => {
@@ -168,7 +172,7 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
         i += 1;
       }
       _ if arg.starts_with("--") => match arg.split_once('=') {
-        Some(("--output", value)) => output = value.to_string(),
+        Some(("--output", value)) => output = Some(value.to_string()),
         Some(("--provider", value)) => provider = Some(value.to_string()),
         // 布尔 flag 带值按 mri 惯例视为 truthy（--dry-run=false 亦开启）
         Some(("--dry-run", _)) => dry_run = true,
@@ -182,12 +186,12 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
         };
         let rest = rest.strip_prefix('=').unwrap_or(rest);
         if !rest.is_empty() {
-          output = rest.to_string();
+          output = Some(rest.to_string());
         } else {
           let Some(value) = argv.get(i) else {
             return Err("option -o requires a value".to_string());
           };
-          output = value.clone();
+          output = Some(value.clone());
           i += 1;
         }
       }

@@ -1,7 +1,8 @@
 //! release 子命令（ADR-0016）：bump 末段 release 失败（网络 / 密钥过期）后的
 //! 独立重试通路——body 从 changelog 文件提取指定版本节，纯创建语义；
-//! dry-run（COL-84）计划装配骑真实创建链，渲染复用 bump 模块的
-//! `print_release_plan`。
+//! changelog 路径 `-o` 优先、未给时回落配置 `changelog.output`（COL-101，
+//! 与 bump 同路解析）；dry-run（COL-84）计划装配骑真实创建链，渲染复用
+//! bump 模块的 `print_release_plan`。
 
 use std::env;
 use std::fs;
@@ -12,9 +13,22 @@ use super::bump::{print_release_plan, resolve_provider};
 use super::output::{error_line, success_line};
 use super::parse::ReleaseArgs;
 use super::RunEnv;
+use crate::changelog::config::resolve_changelog_config;
 use crate::changelog::extract_version_section;
+use crate::config::read_document;
 use crate::exec::capture;
 use crate::release::{create_release, plan_release, Provider};
+
+/// changelog 文件路径解析（COL-101）：`-o` 未给出时经与 bump 同路的配置
+/// 解析取 `changelog.output`（全局 ← 项目文档合并 + changelog 段解析），
+/// 内建默认 CHANGELOG.md 兜底；配置不可解析即时报错（与 bump 通路一致，
+/// 不得静默回落默认）
+fn resolve_changelog_path(cwd: &Path) -> Result<String, String> {
+  let document = read_document(cwd, None).map_err(|e| e.to_string())?;
+  resolve_changelog_config(document.as_ref(), None)
+    .map(|config| config.output)
+    .map_err(|e| e.to_string())
+}
 
 pub(super) fn release_command(
   args: &ReleaseArgs,
@@ -76,18 +90,29 @@ pub(super) fn release_command(
   }
 
   // 前置校验②：changelog 中必须存在该版本节——防静默发空 body 的错误 release
-  let changelog_path = cwd.join(&args.output);
+  // changelog 路径：flag 优先，未给时回落配置 changelog.output（COL-101）
+  let changelog_file = match &args.output {
+    Some(path) => path.clone(),
+    None => match resolve_changelog_path(&cwd) {
+      Ok(path) => path,
+      Err(message) => {
+        error_line(err, &message);
+        return 1;
+      }
+    },
+  };
+  let changelog_path = cwd.join(&changelog_file);
   let content = match fs::read_to_string(&changelog_path) {
     Ok(content) => content,
     Err(e) => {
-      error_line(err, &format!("cannot read {}: {e}", args.output));
+      error_line(err, &format!("cannot read {changelog_file}: {e}"));
       return 1;
     }
   };
   let Some(markdown) = extract_version_section(&content, version) else {
     error_line(
       err,
-      &format!("no changelog section found for {tag} in {}", args.output),
+      &format!("no changelog section found for {tag} in {changelog_file}"),
     );
     return 1;
   };

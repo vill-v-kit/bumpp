@@ -198,3 +198,46 @@ fn bump_with_config_release_runs_non_interactive_end_to_end() {
     "有 tag 应生成 changelog"
   );
 }
+
+/// changelog.output 配置回落用例的共用 fixture（COL-101）：minor 预演 +
+/// 非交互 + 不 push + changelog 输出路径声明 HISTORY.md
+const CHANGELOG_OUTPUT_CONFIG: &str = "release = \"minor\"\nconfirm = false\npush = false\n\n\
+                                       [changelog]\noutput = \"HISTORY.md\"\n";
+
+#[test]
+fn bump_writes_changelog_to_config_output_without_flag() {
+  // COL-101：未给 `-o` 时配置的 changelog.output 生效——CLI 默认值不再
+  // 恒覆盖（cac 默认值 parity 已退场）
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  let cwd = TempDir::new().unwrap();
+  let path = common::init_bump_repo(&cwd, CHANGELOG_OUTPUT_CONFIG);
+
+  let (_out, err, code) = run_full(&[], None, &store_in(&dir), Some(&path), None);
+  assert_eq!(code, 0, "非交互 bump 应成功：{err}");
+  assert!(
+    path.join("HISTORY.md").is_file(),
+    "changelog 应写入配置声明的路径"
+  );
+  assert!(
+    !path.join("CHANGELOG.md").exists(),
+    "CLI 默认值不得覆盖配置值"
+  );
+}
+
+#[test]
+fn bump_output_flag_beats_config_output() {
+  // COL-101：显式 `-o` 优先于配置（flag > 配置 > 内建默认）
+  common::isolate_global_home();
+  let dir = TempDir::new().unwrap();
+  let cwd = TempDir::new().unwrap();
+  let path = common::init_bump_repo(&cwd, CHANGELOG_OUTPUT_CONFIG);
+
+  let (_out, err, code) = run_full(&["-o", "OUT.md"], None, &store_in(&dir), Some(&path), None);
+  assert_eq!(code, 0, "非交互 bump 应成功：{err}");
+  assert!(path.join("OUT.md").is_file(), "changelog 应写入 flag 路径");
+  assert!(
+    !path.join("HISTORY.md").exists(),
+    "flag 给出时配置值不得生效"
+  );
+}

@@ -106,4 +106,4 @@ vbumpp token set gitee
 vbumpp release 5.1.0 --provider gitee
 ```
 
-`release` 命令会从 `CHANGELOG.md` 取出 `5.1.0` 这一节作为 Release 描述，执行前会检查本地存在 `v5.1.0` 的 tag、且 changelog 里有这一节。
+`release` 命令会从 changelog 文件取出 `5.1.0` 这一节作为 Release 描述——路径与 bump 主命令同一套解析（`-o` 优先，未给时读配置的 `changelog.output`，缺省 `CHANGELOG.md`）。执行前会检查本地存在 `v5.1.0` 的 tag、且 changelog 里有这一节。

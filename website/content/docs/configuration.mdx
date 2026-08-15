@@ -79,7 +79,7 @@ postversion = "npm run build"   # commit/tag 完成后、push 前
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| `output` | `"CHANGELOG.md"` | 写入路径 |
+| `output` | `"CHANGELOG.md"` | changelog 文件的写入路径（bump）与读取路径（`release` 补发）；CLI 的 `-o` 给出时优先于本配置 |
 | `types` | 英文分组标题（`🚀 Enhancements` 等） | commit 类型 → changelog 分组；声明顺序即分组顺序；某组填 `false` 则不出现在 changelog |
 | `repo` | 自动从 git remote 推断 | compare 链接用的仓库，`"owner/repo"` 形式 |
 | `scopeMap` | `{}` | commit scope 显示名替换 |

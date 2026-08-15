@@ -13,6 +13,7 @@
 
 mod common;
 
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 
@@ -65,7 +66,7 @@ fn init_release_repo(dir: &TempDir, version: &str, remote: &str) -> PathBuf {
   common::git(&path, &["config", "user.name", "Test"]);
   common::git(&path, &["config", "commit.gpgsign", "false"]);
   common::git(&path, &["remote", "add", "origin", remote]);
-  std::fs::write(
+  fs::write(
     path.join("CHANGELOG.md"),
     format!(
       "# Changelog\n\n## v{version}\n\n### Features\n\n- add x\n\n\
@@ -76,6 +77,19 @@ fn init_release_repo(dir: &TempDir, version: &str, remote: &str) -> PathBuf {
   common::git(&path, &["add", "."]);
   common::git(&path, &["commit", "-m", "chore: init"]);
   common::git(&path, &["tag", &format!("v{version}")]);
+  path
+}
+
+/// 配置回落用例的共用装配：changelog 改名 HISTORY.md + 写入 `.vbumpprc.json`
+/// changelog.output 声明（COL-101）
+fn init_release_repo_with_output_config(dir: &TempDir, remote: &str) -> PathBuf {
+  let path = init_release_repo(dir, "2.0.0", remote);
+  fs::rename(path.join("CHANGELOG.md"), path.join("HISTORY.md")).unwrap();
+  fs::write(
+    path.join(".vbumpprc.json"),
+    "{\n  \"changelog\": { \"output\": \"HISTORY.md\" }\n}\n",
+  )
+  .unwrap();
   path
 }
 
@@ -305,7 +319,7 @@ fn gitlab_scoped_store_token_reports_store_source() {
   let dir = TempDir::new().unwrap();
   let path = init_release_repo(&dir, "2.0.0", "git@gitlab.com:owner/repo.git");
   // 配置自建 host + host 作用域键：dry-run 的宽容解析链与真实执行同路消费
-  std::fs::write(
+  fs::write(
     path.join(".vbumpprc.json"),
     "{\n  \"gitlab\": {\n    \"host\": \"https://gitlab-a.com\"\n  }\n}\n",
   )
@@ -378,7 +392,7 @@ fn dry_run_combines_with_custom_output() {
   let dir = TempDir::new().unwrap();
   let path = init_release_repo(&dir, "2.0.0", "git@gitee.com:owner/repo.git");
   // -o 指定非默认 changelog 文件：校验与预览都从它提取
-  std::fs::rename(path.join("CHANGELOG.md"), path.join("HISTORY.md")).unwrap();
+  fs::rename(path.join("CHANGELOG.md"), path.join("HISTORY.md")).unwrap();
 
   let (out, err, code) = run_release(
     &[
@@ -394,6 +408,84 @@ fn dry_run_combines_with_custom_output() {
   );
   assert_eq!(code, 0, "与 -o 组合正常 exit 0：{err}");
   assert!(out.contains("- add x"), "{out}");
+}
+
+// ---------------------------------------------------------------------------
+// changelog 路径回落配置（COL-101）：flag > 配置 changelog.output > 默认
+// ---------------------------------------------------------------------------
+
+#[test]
+fn release_reads_changelog_output_from_config_without_flag() {
+  let _guard = sanitized_env();
+  let dir = TempDir::new().unwrap();
+  // 票据原场景：changelog 输出路径改在配置里，未给 `-o` 的补发不再报
+  // cannot read CHANGELOG.md，而是从配置路径提取版本节
+  let path = init_release_repo_with_output_config(&dir, "git@gitee.com:owner/repo.git");
+
+  let (out, err, code) = run_release(
+    &["release", "2.0.0", "--provider", "gitee", "--dry-run"],
+    &path,
+  );
+  assert_eq!(code, 0, "配置路径应被消费，exit 0：{err}");
+  assert!(out.contains("- add x"), "版本节应从 HISTORY.md 提取：{out}");
+}
+
+#[test]
+fn release_output_flag_beats_config() {
+  let _guard = sanitized_env();
+  let dir = TempDir::new().unwrap();
+  // 配置指向的 HISTORY.md 已就位：另写一份指向不存在文件的配置，
+  // `-o` 指向真实文件——flag 优先，不因配置失败
+  let path = init_release_repo_with_output_config(&dir, "git@gitee.com:owner/repo.git");
+  fs::write(
+    path.join(".vbumpprc.json"),
+    "{\n  \"changelog\": { \"output\": \"MISSING.md\" }\n}\n",
+  )
+  .unwrap();
+
+  let (out, err, code) = run_release(
+    &[
+      "release",
+      "2.0.0",
+      "--provider",
+      "gitee",
+      "--dry-run",
+      "-o",
+      "HISTORY.md",
+    ],
+    &path,
+  );
+  assert_eq!(code, 0, "flag 优先于配置，exit 0：{err}");
+  assert!(out.contains("- add x"), "{out}");
+}
+
+#[test]
+fn release_errors_on_invalid_config() {
+  let _guard = sanitized_env();
+  // 配置不可解析时补发即时报错（与 bump 通路一致，不得静默回落默认）
+  for (content, expected) in [
+    // 消费侧 pre-pass 专属文案：changelogen 遗留键
+    (
+      "{\n  \"changelog\": { \"tokens\": \"x\" }\n}\n",
+      "contains changelogen legacy key \"tokens\"",
+    ),
+    // 文件层类型校验：键路径 + 期望类型
+    (
+      "{\n  \"changelog\": { \"output\": 1 }\n}\n",
+      "changelog.output",
+    ),
+  ] {
+    let dir = TempDir::new().unwrap();
+    let path = init_release_repo(&dir, "2.0.0", "git@gitee.com:owner/repo.git");
+    fs::write(path.join(".vbumpprc.json"), content).unwrap();
+
+    let (_out, err, code) = run_release(
+      &["release", "2.0.0", "--provider", "gitee", "--dry-run"],
+      &path,
+    );
+    assert_eq!(code, 1, "配置错误应 exit 1：{content}");
+    assert!(err.contains(expected), "期望含 {expected:?}，实际：{err}");
+  }
 }
 
 #[test]
