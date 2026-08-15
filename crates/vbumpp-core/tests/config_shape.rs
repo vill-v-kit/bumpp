@@ -100,3 +100,70 @@ fn schema_descriptions_are_english_only() {
   scan(&schema, &mut offenders);
   assert!(offenders.is_empty(), "description 含中文: {offenders:?}");
 }
+
+#[test]
+fn every_field_carries_a_description() {
+  // schema 面向用户（编辑器提示 / SchemaStore），一个说明都不能缺：
+  // 递归展开 anyOf / oneOf / $ref，凡带 properties 的层，每个属性都
+  // 必须携非空 description；$defs 各定义同理
+  let schema = serde_json::to_value(schemars::schema_for!(BumpConfig)).unwrap();
+  let defs = &schema["$defs"];
+  let mut missing = Vec::new();
+
+  fn walk(
+    node: &serde_json::Value,
+    defs: &serde_json::Value,
+    path: &str,
+    missing: &mut Vec<String>,
+  ) {
+    if let Some(r) = node.get("$ref").and_then(serde_json::Value::as_str) {
+      if let Some(name) = r.strip_prefix("#/$defs/") {
+        walk(&defs[name], defs, path, missing);
+      }
+      return;
+    }
+    if let Some(properties) = node
+      .get("properties")
+      .and_then(serde_json::Value::as_object)
+    {
+      for (key, prop) in properties {
+        let child = if path.is_empty() {
+          key.clone()
+        } else {
+          format!("{path}.{key}")
+        };
+        let described = prop
+          .get("description")
+          .and_then(serde_json::Value::as_str)
+          .is_some_and(|text| !text.is_empty());
+        if !described {
+          missing.push(child.clone());
+        }
+        walk(prop, defs, &child, missing);
+      }
+    }
+    for branch in ["anyOf", "oneOf", "allOf"] {
+      if let Some(items) = node.get(branch).and_then(serde_json::Value::as_array) {
+        for item in items {
+          walk(item, defs, path, missing);
+        }
+      }
+    }
+    // BTreeMap 字段（types / scopeMap）经 additionalProperties 引用值形态
+    if let Some(extra) = node.get("additionalProperties") {
+      walk(extra, defs, path, missing);
+    }
+  }
+
+  walk(&schema, defs, "", &mut missing);
+  for (name, entry) in defs.as_object().unwrap() {
+    let described = entry
+      .get("description")
+      .and_then(serde_json::Value::as_str)
+      .is_some_and(|text| !text.is_empty());
+    if !described {
+      missing.push(format!("$defs.{name}"));
+    }
+  }
+  assert!(missing.is_empty(), "缺 description 的字段: {missing:?}");
+}

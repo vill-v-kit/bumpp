@@ -32,25 +32,59 @@ pub struct BumpConfig {
   )]
   pub schema: Option<String>,
   /// `git commit --all`（无 pathspec 全量提交）
-  #[schemars(description = "`git commit --all`: commit everything without a pathspec.")]
+  #[schemars(
+    description = "Stage all changes when committing (`git add -A`); by default only the updated files are committed."
+  )]
   pub all: Option<bool>,
+  #[schemars(description = "Changelog generation settings.")]
   pub changelog: Option<ChangelogSection>,
+  #[schemars(
+    description = "Whether to git commit the version bump; a string is used as the custom commit message."
+  )]
   pub commit: Option<BoolOrString>,
+  #[schemars(
+    description = "Ask for confirmation before execution; not asked again after picking a version interactively."
+  )]
   pub confirm: Option<bool>,
+  #[schemars(description = "Manually specify the current version, overriding auto-detection.")]
   pub current_version: Option<String>,
+  #[schemars(description = "An extra command to run after the version update.")]
   pub execute: Option<String>,
+  #[schemars(
+    description = "Files whose version number should be updated (glob patterns); when empty, common manifest files are auto-detected."
+  )]
   pub files: Option<Vec<String>>,
+  #[schemars(description = "Self-hosted GitLab release settings.")]
   pub gitlab: Option<GitlabSection>,
+  #[schemars(description = "Skip all lifecycle scripts.")]
   pub ignore_scripts: Option<bool>,
+  #[schemars(
+    description = "Run the ecosystem install after the version update (JavaScript: package-manager install; Cargo: `cargo check --workspace`)."
+  )]
   pub install: Option<bool>,
+  #[schemars(
+    description = "Skip the git state check before bumping; defaults to skipping (mechanism key)."
+  )]
   pub no_git_check: Option<bool>,
+  #[schemars(description = "Skip git hooks when committing and tagging.")]
   pub no_verify: Option<bool>,
+  #[schemars(description = "Prerelease identifier (the `beta` in `1.0.0-beta.1`).")]
   pub preid: Option<String>,
+  #[schemars(description = "Whether to git push after the bump.")]
   pub push: Option<bool>,
+  #[schemars(description = "Recursively bump the whole tree (monorepo); equivalent to `-r`.")]
   pub recursive: Option<bool>,
+  #[schemars(
+    description = "Skip the interactive menu and use the given bump type (e.g. `patch`) or explicit version directly."
+  )]
   pub release: Option<String>,
+  #[schemars(description = "Lifecycle scripts run at each phase of the bump.")]
   pub scripts: Option<ScriptsSection>,
+  #[schemars(description = "GPG-sign the commit and tag.")]
   pub sign: Option<bool>,
+  #[schemars(
+    description = "Whether to create a git tag; a string is used as the custom tag name."
+  )]
   pub tag: Option<BoolOrString>,
 }
 
@@ -90,7 +124,10 @@ impl JsonSchema for BoolOrString {
   }
 
   fn json_schema(_gen: &mut SchemaGenerator) -> Schema {
-    json_schema!({ "oneOf": [{ "type": "boolean" }, { "type": "string" }] })
+    json_schema!({
+      "description": "A boolean, or a string carrying a custom value.",
+      "oneOf": [{ "type": "boolean" }, { "type": "string" }]
+    })
   }
 }
 
@@ -100,8 +137,13 @@ impl JsonSchema for BoolOrString {
   description = "Lifecycle script slots: shell commands run at each phase of the version bump."
 )]
 pub struct ScriptsSection {
+  #[schemars(description = "Shell command run before the version files are updated.")]
   pub preversion: Option<String>,
+  #[schemars(
+    description = "Shell command run after the version files are updated, before commit/tag."
+  )]
   pub version: Option<String>,
+  #[schemars(description = "Shell command run after commit/tag, before push.")]
   pub postversion: Option<String>,
 }
 
@@ -112,6 +154,7 @@ pub struct ScriptsSection {
   description = "GitLab release settings. Key-name validation lives in the pre-pass; this shape only checks types."
 )]
 pub struct GitlabSection {
+  #[schemars(description = "Base URL of the self-hosted GitLab instance.")]
   pub host: Option<String>,
 }
 
@@ -123,6 +166,7 @@ pub struct GitlabSection {
   description = "Changelog generation settings; the key set mirrors the consumer resolver."
 )]
 pub struct ChangelogSection {
+  #[schemars(description = "Output path of the changelog file (default CHANGELOG.md).")]
   pub output: Option<String>,
   /// type 分组表：值形态见 `TypesValue`（null 跳过、`false` 删组、对象
   /// 仅 `title`——空对象 no-op）；按键深合并与声明序语义在消费侧，
@@ -131,12 +175,23 @@ pub struct ChangelogSection {
     description = "Commit-type grouping table; value shape see ChangelogTypeValue. Key-wise deep merge and declaration order are consumer semantics; this shape only validates."
   )]
   pub types: Option<BTreeMap<String, Option<TypesValue>>>,
+  #[schemars(
+    description = "Repository used for compare links (`owner/repo` shorthand or an object); inferred from the git remote when omitted."
+  )]
   pub repo: Option<RepoValue>,
+  #[schemars(description = "Display-name overrides for commit scopes.")]
   pub scope_map: Option<BTreeMap<String, String>>,
+  #[schemars(description = "Do not generate the contributors list.")]
   pub no_authors: Option<bool>,
+  #[schemars(description = "Hide email addresses in the contributors line.")]
   pub hide_author_email: Option<bool>,
+  #[schemars(description = "Exclude authors whose name matches a substring (e.g. bot accounts).")]
   pub exclude_authors: Option<Vec<String>>,
+  #[schemars(description = "Changelog templates.")]
   pub templates: Option<TemplatesSection>,
+  #[schemars(
+    description = "Commit message used to commit the changelog file (default \"chore: update {{output}}\")."
+  )]
   pub commit_message: Option<String>,
 }
 
@@ -146,6 +201,9 @@ pub struct ChangelogSection {
 #[serde(rename_all = "camelCase")]
 #[schemars(description = "Changelog templates; only tagBody is part of the shape.")]
 pub struct TemplatesSection {
+  #[schemars(
+    description = "Format of the version heading inside the changelog (default \"v{{newVersion}}\")."
+  )]
   pub tag_body: Option<String>,
 }
 
@@ -184,11 +242,17 @@ impl JsonSchema for TypesValue {
 
   fn json_schema(_gen: &mut SchemaGenerator) -> Schema {
     json_schema!({
+      "description": "Either false (hide this group from the changelog) or an object with an optional title overriding the group heading.",
       "oneOf": [
         { "const": false },
         {
           "type": "object",
-          "properties": { "title": { "type": "string" } }
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Group heading shown in the changelog."
+            }
+          }
         }
       ]
     })
@@ -238,14 +302,24 @@ impl JsonSchema for RepoValue {
 
   fn json_schema(_gen: &mut SchemaGenerator) -> Schema {
     json_schema!({
+      "description": "Either the `owner/repo` shorthand string, or an object with optional provider / domain / repo.",
       "oneOf": [
         { "type": "string" },
         {
           "type": "object",
           "properties": {
-            "provider": { "type": "string" },
-            "domain": { "type": "string" },
-            "repo": { "type": "string" }
+            "provider": {
+              "type": "string",
+              "description": "Release provider name (github / gitlab / gitee / gitcode)."
+            },
+            "domain": {
+              "type": "string",
+              "description": "Self-hosted instance domain; omitted for the provider's public site."
+            },
+            "repo": {
+              "type": "string",
+              "description": "Repository in `owner/repo` form."
+            }
           }
         }
       ]
