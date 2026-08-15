@@ -116,5 +116,5 @@ _Avoid_: 录屏(指视频/GIF 形态)、模拟演示(手写脚本,与真实输�
 _Avoid_: docs（指 `docs/` 工程内部文档目录）
 
 **仓库脚本 (Repo scripts)**:
-本仓维护用的命令行脚本——`scripts/`、`website/scripts/`、napi 冒烟与 crates fixture 生成器等，一律 TypeScript 由 node 原生直跑（type stripping，node 版本由 mise 的 lts 保证下限），不经编译步骤、不引入转译器。例外两类：发布给用户执行的产物（`npm/*/bin/` 薄壳，用户 node 环境不可控）与工具生成物（napi loader）。
+本仓维护用的命令行脚本——`scripts/`、`website/scripts/`、napi 冒烟与 crates fixture 生成器等，一律 TypeScript 由 node 原生直跑（type stripping，node 版本由 mise 的 lts 保证下限），不经编译步骤、不引入转译器。脚本为 ESM 形态，所在包一律声明 `"type": "module"`（根、`napi/bumpp-core`、`npm/*`、website 清一色）——node 直跑 `.ts` 不经 CJS 解析失败再重试，无 `MODULE_TYPELESS_PACKAGE_JSON` 警告。例外两类：发布给用户执行的产物（`npm/*/bin/` 薄壳，用户 node 环境不可控）与工具生成物（napi loader）。
 _Avoid_: Scripts（指 `.vbumpprc` 的 `scripts` 字段，用户侧概念）、构建脚本（歧义——兼指 Rust build.rs 与包安装期脚本）

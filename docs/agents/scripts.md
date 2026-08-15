@@ -16,6 +16,7 @@
 ## Runtime
 
 - `node scripts/foo.ts` 直接执行，零转译器、零编译产物、零 watcher；pnpm scripts、ci.yml、hk 的调用形态完全一致——本地怎么跑，CI 就怎么跑。
+- 脚本一律 ESM 形态，所在包的 `package.json` 必须声明 `"type": "module"`（根、`napi/bumpp-core`、`npm/*`、`website` 均已声明）——缺了声明，node 直跑会先按 CJS 解析、失败后按 ESM 重解析并打出 `MODULE_TYPELESS_PACKAGE_JSON` 警告。
 - 依赖 node 原生 type stripping（Node ≥22.18 起无 flag 可用）；版本下限由 mise 的 `node = "lts"` 保证——只涨不跌，不钉具体版本号。
 
 ## Type checking

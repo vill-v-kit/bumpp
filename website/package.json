@@ -2,6 +2,7 @@
   "name": "website",
   "version": "6.1.2",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "node scripts/sync-wterm-wasm.ts && next build",
     "capture:home-demo-cast": "bash scripts/capture-home-demo-cast.sh",
