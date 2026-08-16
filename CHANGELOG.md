@@ -1,5 +1,60 @@
 # Changelog
 
+## v6.2.0
+
+[compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.1.2...v6.2.0)
+
+### 🚀 特性
+
+- **release:** Release 子命令新增 --dry-run——校验照走 + token 来源报告 + 平台 Release 计划预览 ([885df5d](https://github.com/vill-v-kit/bumpp/commit/885df5d))
+- **bump:** 默认 bump 命令新增 --dry-run——逐文件预演判定 + 全量执行计划与 changelog 全文预览 ([1309c10](https://github.com/vill-v-kit/bumpp/commit/1309c10))
+- **token:** Token set/list 支持 --host——host 作用域复合键 provider@host 与规范化（无 scheme 补 https、小写、去尾斜杠、保留端口路径），token 子命令抽出 flag 扫描小 helper ([26dbae1](https://github.com/vill-v-kit/bumpp/commit/26dbae1))
+- **release:** Gitlab token 解析链扩为四级——存储 host 作用域精确键优先、provider 级键回落（存量用户零感知）、GITLAB_TOKEN 兜底，缺失报错带 --host 指引；有效 host 解析提前到 token 链之前，dry-run 链同路消费 ([f9b48f8](https://github.com/vill-v-kit/bumpp/commit/f9b48f8))
+- **token:** Token remove 扩展为完整交互矩阵——四目标形态（provider 精确/--host 精确/--all 全清）+ --dry-run 只列清单优先、--yes 跳过确认、默认 No 二次确认、非 TTY 报错引导 --yes ([ea09241](https://github.com/vill-v-kit/bumpp/commit/ea09241))
+- **website:** 首页演示采集管线产 asciicast v2 时间线——第一段 vbumpp --dry-run 计划预览（COL-89） ([35a2cd3](https://github.com/vill-v-kit/bumpp/commit/35a2cd3))
+- **website:** 首页 cast 播放基座——wterm 演示终端按时间线自动播放 dry-run 演示 (COL-90) ([9b27c6f](https://github.com/vill-v-kit/bumpp/commit/9b27c6f))
+- **website:** Wterm.wasm 改为生成物——postinstall/build/dev 自动从 @wterm/core 同步 ([7e3c395](https://github.com/vill-v-kit/bumpp/commit/7e3c395))
+- **website:** 首页滚动演示采集补全四段——-r 整树计划、release 补发预览、token 清单 (COL-91) ([e0fb6d3](https://github.com/vill-v-kit/bumpp/commit/e0fb6d3))
+- **website:** 首页滚动演示区上线——sticky 终端随滚动重放四段子命令演示 (COL-92) ([4e3af3c](https://github.com/vill-v-kit/bumpp/commit/4e3af3c))
+- **config:** 文件层键名与类型双重校验——类型不符报错指出键路径与期望类型 (COL-100) ([188ff0a](https://github.com/vill-v-kit/bumpp/commit/188ff0a))
+- **config:** JSON Schema 说明补齐每个配置字段——面向编辑器提示一个不能缺 (COL-100) ([e35b01d](https://github.com/vill-v-kit/bumpp/commit/e35b01d))
+- **cli:** Vbumpp schema 子命令——stdout 纯 JSON 导出与 --write 落盘项目级 / 全局副本 (COL-102) ([7f3f353](https://github.com/vill-v-kit/bumpp/commit/7f3f353))
+- **napi:** BumpVersion 入参类型化边界结构体，TS 配置类型自动生成 (COL-103) ([c00a663](https://github.com/vill-v-kit/bumpp/commit/c00a663))
+- **scripts:** Schema 产物再生脚本与 CI 漂移校验腿——npm 包副本与 website 静态导出两处提交 (COL-104) ([40457f5](https://github.com/vill-v-kit/bumpp/commit/40457f5))
+
+### 🩹 修复
+
+- **build:** 文档站冒烟断言兼容 basePath 模板拼接形态 ([745ec22](https://github.com/vill-v-kit/bumpp/commit/745ec22))
+- **npm:** Npm 五包补包级 tsconfig——修复 tsdown 构建 dts 产出断裂 (COL-94) ([6d954ff](https://github.com/vill-v-kit/bumpp/commit/6d954ff))
+- **cli:** Changelog.output 统一回落配置——release 读配置、bump 默认值不再覆盖 (COL-101) ([e333fb1](https://github.com/vill-v-kit/bumpp/commit/e333fb1))
+
+### 💅 重构
+
+- **core:** Bump/release 副作用收口统一效应边界——逐文件更新拆判定段（只读）与写盘段，token 解析返回来源 ([71d172e](https://github.com/vill-v-kit/bumpp/commit/71d172e))
+- **structure:** 全仓 mod.rs 清零——changelog/release 模块入口改为 foo.rs + foo/ 目录形态，tests 侧 common 与 plugins 三处 mod.rs 同级改名，模块声明与对外 API 路径（vbumpp_core::changelog::* / release::*）不变；随改名修正 markdown.rs 的管线指向与 tests/release 的 common 引入路径 ([d7b2460](https://github.com/vill-v-kit/bumpp/commit/d7b2460))
+- **cli:** Cli.rs 拆分为 cli/ 子目录——入口持 run_from_argv/run_at/RunEnv，parse/bump/release/token/output 各一文件（对外路径不变，napi 与原生 bin 零改动）；内联测试全部迁出 crate：cli 用例合流重组为 tests/cli/ 的 main.rs + parse/token 子模块（用例数不变），display/progress/extract 三处迁至 tests 镜像文件；解析层细节（parse/bump_overrides/resolve_provider/scan_token_args 等）经 #[doc(hidden)] re-export 测试缝对 tests 暴露 ([8a410b2](https://github.com/vill-v-kit/bumpp/commit/8a410b2))
+
+### 📖 文档
+
+- 各包 README 对齐当前实现，收敛为只讲当前版本用法 ([fc38fb8](https://github.com/vill-v-kit/bumpp/commit/fc38fb8))
+- CONTEXT.md 增补 Dry run 词条——预演与执行同路的语义约定先行落地 ([178a1fa](https://github.com/vill-v-kit/bumpp/commit/178a1fa))
+- 确立 --dry-run 的语义与预演同路结构，website CLI 参考同步 ([c9f4e45](https://github.com/vill-v-kit/bumpp/commit/c9f4e45))
+- 多私有 GitLab token 指引与 remove 矩阵对齐实现——website token/release 章节、两 README、CONTEXT 词条同步，新增决策记录（host 作用域复合键方案、remove 交互矩阵、手写解析器维持） ([1b78070](https://github.com/vill-v-kit/bumpp/commit/1b78070))
+- 确立 Rust crate 结构规范——无 mod.rs 模块入口为强制规则（src/tests 任何位置不得新增）、src 500 / tests 1000 行软上限、tests 镜像 src 与内联测试禁令、fixtures 与共享工具归位；AGENTS.md 与 CONTRIBUTING.md 同步指引 ([a8286a1](https://github.com/vill-v-kit/bumpp/commit/a8286a1))
+- 首页滚动演示定策——自产 asciicast v2 cast 时间线配 wterm 渲染层、dry-run 只读离线确定性采集、产物本地生成提交 + CI 漂移校验、重放式 seek；CONTEXT 增「演示时间线」词条 ([a5b2a8d](https://github.com/vill-v-kit/bumpp/commit/a5b2a8d))
+- **agents:** 仓库脚本 TypeScript 直跑规范落档——scripts.md + AGENTS.md 指引 (COL-98) ([faa5264](https://github.com/vill-v-kit/bumpp/commit/faa5264))
+- Socket 同构免罚假设证伪落档——能力型告警为 napi loader 固有面，生成物决策保留不回滚 (COL-78) ([3c02423](https://github.com/vill-v-kit/bumpp/commit/3c02423))
+
+### 🏡 框架
+
+- **scripts:** 仓库脚本全量迁移 TypeScript——node 原生直跑 + 根 tsc 类型门挂 hk (COL-94, COL-95, COL-96, COL-97) ([7f1103a](https://github.com/vill-v-kit/bumpp/commit/7f1103a))
+- **website:** Website 包声明 "type": "module"——消除 node 直跑 TS 脚本的 typeless 警告 (COL-99) ([bcbcfb8](https://github.com/vill-v-kit/bumpp/commit/bcbcfb8))
+- **rust:** Crate 结构与引入风格治理——超限 bump.rs 拆入 bump/ 子域，引入一律文件头集中完成 ([c0f7d66](https://github.com/vill-v-kit/bumpp/commit/c0f7d66))
+
+### ❤️ Contributors
+
+- Whitekite
+
 ## v6.1.2
 
 [compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.1.1...v6.1.2)
