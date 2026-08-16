@@ -129,22 +129,15 @@ vbumpp release "$VERSION" --provider "$PROVIDER" --dry-run
 
 ## `vbumpp schema`
 
-导出配置形状的 JSON Schema（单一事实源：Rust 形状结构体机械导出，与文件层键名 / 类型校验同源）。
+生成 `.vbumpprc` 配置文件对应的 JSON Schema——编辑器靠它在编写配置时给出补全与报红（JSON / JSONC / TOML 三种格式共用同一份，用法见[配置文件参考](/docs/configuration)）。
 
 ```sh
-vbumpp schema                       # stdout 打印纯 JSON（管道 / 重定向友好，无任何其他打印）
-vbumpp schema --write               # 落盘 ./vbumpprc.schema.json（--project 缺省，可显式给出）
-vbumpp schema --write --global      # 落盘 ~/.vbumpp/schema.json（VBUMPP_HOME 生效）
+vbumpp schema                       # 打印到 stdout（纯 JSON，可直接重定向到文件）
+vbumpp schema --write               # 写入 ./vbumpprc.schema.json（项目级是默认落点，可显式加 --project）
+vbumpp schema --write --global      # 写入 ~/.vbumpp/schema.json（VBUMPP_HOME 生效）
 ```
 
-`--project` 与 `--global` 互斥，同给报错；未给 `--write` 时落点 flag 不生效，照走 stdout。
-
-**离线编辑器关联**：把本地副本写进项目后，配置即可离线获得补全与报红（顶层未知键会被 schema 拒绝）——
-
-- JSON / JSONC：在 `.vbumpprc.json` 里声明相对路径 `"$schema": "./vbumpprc.schema.json"`，VS Code 等编辑器直接消费
-- TOML：用 Taplo 的 `#:schema` 指令指向同一份文件（如文件首行 `#:schema ./vbumpprc.schema.json`）
-
-三种配置格式共用同一份 schema，不维护 TOML 单独版本。
+`--project` 与 `--global` 互斥，不能同时给；不给 `--write` 时落点参数无效，一律打印到 stdout。生成的 schema 与当前安装的 vbumpp 版本一致——离线或内网环境可以把写出的文件提交进仓库，配置里改用相对路径引用它。
 
 ## `vbumpp token <action> [name]`
 

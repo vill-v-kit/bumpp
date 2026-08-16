@@ -25,7 +25,33 @@ v6 是一次大版本升级，底层引擎重写、配置体系统一。好消�
 
 完整示例：
 
-```json
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
+```toml
+# .vbumpprc.toml
+commit = true
+tag = true
+push = true
+
+[scripts]
+preversion = "npm test"
+
+[changelog]
+output = "CHANGELOG.md"
+
+[changelog.types]
+chore = false
+
+[changelog.types.feat]
+title = "🚀 特性"
+```
+
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+// .vbumpprc.jsonc
 {
   "commit": true,
   "tag": true,
@@ -42,6 +68,9 @@ v6 是一次大版本升级，底层引擎重写、配置体系统一。好消�
   }
 }
 ```
+
+</Tab>
+</Tabs>
 
 注意两件事：
 

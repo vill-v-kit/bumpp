@@ -14,12 +14,22 @@ description: 配置文件的位置、合并规则与全部配置项
 
 三种后缀任选。同一目录下放多个配置文件会直接报错并全部列出，请只保留一个。
 
+配置内容受「键名 + 类型」双重校验：写错键名、或类型不符（如 `files` 写成字符串）都会直接报错并指出是哪个键，不会被静默忽略。
+
 合并规则（高优先级覆盖低优先级）：**命令行 / API 入参 > 项目级 > 全局级 > 内建默认**。其中 `changelog.types` 是逐组合并的——只写你想改的那几组即可，没写的组保持默认；其余配置项整体覆盖。
 
 ## 一个常见例子
 
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
 ```toml
 # .vbumpprc.toml
+# 下一行让编辑器给出补全与报红；
+# npm 安装可换成包内副本 "./node_modules/@vill-v/bumpp/vbumpprc.schema.json"，
+# 都拿不到就先跑 `vbumpp schema --write` 生成 ./vbumpprc.schema.json，再指向它
+#:schema https://vill-v-kit.github.io/bumpp/vbumpprc.schema.json
+
 # monorepo 默认递归更新（免去每次敲 -r）
 recursive = true
 
@@ -38,6 +48,40 @@ title = "🩹 修复"
 [changelog.types.chore]
 title = "🏡 框架"
 ```
+
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+// .vbumpprc.jsonc
+{
+  // 下一行让编辑器给出补全与报红；
+  // npm 安装可换成包内副本 "./node_modules/@vill-v/bumpp/vbumpprc.schema.json"，
+  // 都拿不到就先跑 `vbumpp schema --write` 生成 ./vbumpprc.schema.json，再指向它
+  "$schema": "https://vill-v-kit.github.io/bumpp/vbumpprc.schema.json",
+
+  // monorepo 默认递归更新（免去每次敲 -r）
+  "recursive": true,
+
+  // 发版前后跑自己的命令（换成你项目实际的命令即可）
+  "scripts": {
+    "preversion": "npm test",
+    "postversion": "npm run build"
+  },
+
+  // changelog 分组标题改成中文
+  "changelog": {
+    "types": {
+      "feat": { "title": "🚀 特性" },
+      "fix": { "title": "🩹 修复" },
+      "chore": { "title": "🏡 框架" }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
 
 ## 顶层配置项
 
@@ -68,12 +112,31 @@ title = "🏡 框架"
 
 ## `scripts`：发版脚本
 
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
 ```toml
 [scripts]
 preversion = "npm test"        # 版本更新前
 version = ""                    # 版本文件更新后
 postversion = "npm run build"   # commit/tag 完成后、push 前
 ```
+
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+{
+  "scripts": {
+    "preversion": "npm test", // 版本更新前
+    "version": "", // 版本文件更新后
+    "postversion": "npm run build" // commit/tag 完成后、push 前
+  }
+}
+```
+
+</Tab>
+</Tabs>
 
 ## `changelog`：变更记录
 

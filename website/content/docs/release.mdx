@@ -47,11 +47,27 @@ GitHub Actions 里直接用内置的 `${{ secrets.GITHUB_TOKEN }}` 即可。toke
 
 在项目配置里指定实例地址：
 
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
 ```toml
 # .vbumpprc.toml
 [gitlab]
 host = "https://gitlab.example.com"
 ```
+
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+// .vbumpprc.jsonc
+{
+  "gitlab": { "host": "https://gitlab.example.com" }
+}
+```
+
+</Tab>
+</Tabs>
 
 `host` 保留端口与路径（兼容 relative-url-root 部署）；显式 `http://` 原样保留，覆盖内网纯 HTTP 实例。
 
@@ -66,17 +82,49 @@ vbumpp token set gitlab --host https://gitlab-b.com
 vbumpp token set gitlab
 ```
 
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
 ```toml
 # 仓库 A 的 .vbumpprc.toml
 [gitlab]
 host = "https://gitlab-a.com"
 ```
 
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+// 仓库 A 的 .vbumpprc.jsonc
+{
+  "gitlab": { "host": "https://gitlab-a.com" }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
 ```toml
 # 仓库 B 的 .vbumpprc.toml
 [gitlab]
 host = "https://gitlab-b.com"
 ```
+
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+// 仓库 B 的 .vbumpprc.jsonc
+{
+  "gitlab": { "host": "https://gitlab-b.com" }
+}
+```
+
+</Tab>
+</Tabs>
 
 录入的 `--host` 与配置的 `host` 都不要求写法精确一致：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目。查看与删除同样按实例进行：
 
