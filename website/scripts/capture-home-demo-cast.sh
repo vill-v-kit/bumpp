@@ -20,7 +20,8 @@
 #     屏幕仿真归渲染层）
 #
 # 复跑确定性（验收：两次运行产物字节一致）：
-#   - GIT_AUTHOR_DATE / GIT_COMMITTER_DATE 钉死 → 全部 commit/tag hash 恒定
+#   - GIT_AUTHOR_DATE / GIT_COMMITTER_DATE 钉死（epoch+时区内部格式，免宿主时区
+#     解析差）→ 全部 commit/tag hash 恒定
 #   - GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM=/dev/null 隔离宿主 git 配置（gpgsign 等）
 #   - VBUMPP_HOME 指向 fixture 内目录，隔离全局 vbumpp 配置
 #   - token 环境变量与 VBUMPP_TOKEN_STORE 一律 unset——release 段必须命中预置
@@ -42,8 +43,10 @@ CAST_TS="$SCRIPT_DIR/raw-to-cast.ts"
 KEYRING_TS="$SCRIPT_DIR/make-demo-keyring.ts"
 OUT_TS="$WEBSITE/app/(home)/demo-casts.ts"
 
-PIN_DATE='2026-08-05T10:00:00'
-export GIT_AUTHOR_DATE="$PIN_DATE" GIT_COMMITTER_DATE="$PIN_DATE"
+# 钉死到 epoch+时区内部格式：裸 ISO 串会被 git 按宿主本地时区解析，commit
+# 对象嵌入的 offset 随地变（本地 +0800 vs CI UTC → hash 漂移，v6.2.0 tag CI
+# 首挂实证）。该瞬时是提交产物的出生值，改动须连产物一起重采集。
+export GIT_AUTHOR_DATE='@1785895200 +0800' GIT_COMMITTER_DATE='@1785895200 +0800'
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 export TERM=xterm-256color
 # 宿主 token 环境隔离（见头注释）

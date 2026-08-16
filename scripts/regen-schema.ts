@@ -10,8 +10,9 @@
  *                                        内容随发版更新、地址不变）
  *
  * 二进制解析顺序：VBUMPP_BIN 环境覆盖 > target/release/vbumpp >
- * target/debug/vbumpp（ci.yml test 腿只有 cargo test 的 debug 构建）；
- * 均不存在即报错提示构建。
+ * target/debug/vbumpp。均不存在即报错提示构建——脚本不代为构建；ci.yml
+ * test 腿在调用前显式 `cargo build -p vbumpp`（cargo test 对无集成测试的
+ * bin crate 不产出独立 bin，只有 deps/ 测试体）。
  *
  * 用法：node scripts/regen-schema.ts
  *

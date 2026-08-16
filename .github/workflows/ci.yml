@@ -58,8 +58,12 @@ jobs:
 
       # ADR-0037 防腐腿（COL-104）：重跑两处 schema 产物再生并 diff 提交物——
       # 配置形状变更后忘再生、或手改产物，显式暴露而非静默发生。挂在 test 腿：
-      # npm 包副本随包上架直接到用户手里，漂移必须拦在 publish 之前；cargo
-      # test 已产出 target/debug/vbumpp，再生直接复用，不另起 release 构建
+      # npm 包副本随包上架直接到用户手里，漂移必须拦在 publish 之前。
+      # 二进制须显式构建：cargo test 对无集成测试的 bin crate 只编 deps/ 测试体，
+      # 不产出 target/debug/vbumpp（v6.2.0 tag CI 首挂实证），debug 构建即够用
+      - name: Build CLI for schema regen
+        run: cargo build -p vbumpp
+
       - name: schema artifact drift check
         run: pnpm check:schema
 
