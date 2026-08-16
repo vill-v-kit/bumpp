@@ -12,7 +12,16 @@ description: 第一条 vbumpp 命令
 - **cargo binstall**（免编译，推荐）：`cargo binstall vbumpp` 直接下载预编译原生 CLI，不需要 Node.js 环境，也无需本地编译
 - **cargo install**：`cargo install vbumpp` 从 crates.io 拉取源码本地编译
 
-预编译产物覆盖 macOS（Apple Silicon）、Linux（x64 / arm64，含 Alpine）、Windows（x64 / arm64）共 7 个平台，Intel Mac 等未覆盖平台会自动回退源码编译。详见[安装 · crates.io](/docs/install/crates-io)；想跟进最新未发布改动，还可以[从源码编译安装](/docs/install/cargo)。
+预编译产物覆盖以下平台（npm 包与原生 CLI 一致）：
+
+| 平台 | 预编译产物 |
+| --- | --- |
+| macOS（Apple Silicon） | ✔ |
+| macOS（Intel） | ✘ |
+| Linux（x64 / arm64，含 Alpine） | ✔ |
+| Windows（x64 / arm64） | ✔ |
+
+未覆盖的平台（如 Intel Mac）：npm 包不支持，请改走 crates.io 安装；`cargo binstall` 会自动回退源码编译。完整覆盖矩阵见[安装 · crates.io](/docs/install/crates-io)；想跟进最新未发布改动，还可以[从源码编译安装](/docs/install/cargo)。
 
 ## 第一条命令
 

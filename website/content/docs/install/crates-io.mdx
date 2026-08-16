@@ -14,7 +14,21 @@ description: 从 crates.io 安装原生 CLI
 cargo binstall vbumpp
 ```
 
-预编译产物覆盖 7 个 target：macOS（Apple Silicon）、Linux（x64 / arm64，glibc 与 musl 静态产物，musl 版可在 Alpine 等环境直接运行）和 Windows（x64 / arm64）。不在覆盖列表里的平台（如 Intel Mac）会自动回退为源码编译，与下方的 `cargo install` 等价。
+预编译产物与各安装方式的覆盖矩阵：
+
+| 平台 | npm 包 | 原生 CLI 预编译（binstall） | 源码编译（cargo install） |
+| --- | --- | --- | --- |
+| macOS（Apple Silicon） | ✔ | ✔ | ✔ |
+| macOS（Intel） | ✘ | ✘ | ✔ |
+| Linux x64（glibc） | ✔ | ✔ | ✔ |
+| Linux arm64（glibc） | ✔ | ✔ | ✔ |
+| Linux x64（musl，Alpine 等环境可直接运行） | ✔ | ✔ | ✔ |
+| Linux arm64（musl，Alpine 等环境可直接运行） | ✔ | ✔ | ✔ |
+| Windows x64 | ✔ | ✔ | ✔ |
+| Windows arm64 | ✔ | ✔ | ✔ |
+| 其他平台 | ✘ | 自动回退源码编译 | ✔ |
+
+不在覆盖列表里的平台（如 Intel Mac）走 binstall 会自动回退为源码编译，与下方的 `cargo install` 等价。
 
 ## 源码编译安装
 
