@@ -2,7 +2,8 @@
 //! `.vbumpprc.json` 文档，解析结果不向 JS 导出（全项目单一配置解析路径）。
 //!
 //! 合并语义：overrides > 文件 > 内建默认；`types` 按键深合并（值为 `false`
-//! 即禁用该组），其余键整体替换。严格 schema：未知键、changelogen 遗产键、
+//! 即禁用该组；条目对象内 `title` / `excludeScopes` 按键合并，数组整体
+//! 替换），其余键整体替换。严格 schema：未知键、changelogen 遗产键、
 //! 运行时入参键（`from` / `to` / `newVersion` / `cwd`）一律报错并报键名。
 
 use std::collections::HashMap;
@@ -13,10 +14,14 @@ use serde_json::{Map, Value};
 
 use crate::git::{get_repo_config, RepoConfig};
 
-/// 单个 type 分组的配置（changelogen 的 `ChangelogConfigType` 收窄：仅 `title`）
+/// 单个 type 分组的配置（changelogen 的 `ChangelogConfigType` 收窄：
+/// `title` + `excludeScopes`——后者为 COL-106 新增的 scope 级排除）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangelogTypeEntry {
   pub title: String,
+  /// 排除的提交 scope（按原始 scope 精确匹配、大小写敏感）；命中的非
+  /// breaking 提交不进 changelog，breaking 提交一律豁免照常显示
+  pub exclude_scopes: Vec<String>,
 }
 
 /// 解析后的 changelog 配置（运行时 `from` / `to` / `newVersion` 不在此——
@@ -54,7 +59,8 @@ impl Error for ChangelogConfigError {}
 
 /// 内建默认（ADR-0013）：types 键集/声明序自原 JS `getDefaultsChangeLogConfig` 迁入，
 /// title 为 changelogen 英文措辞（ADR-0017：中文标题定制移出为项目级配置）；
-/// `hideAuthorEmail` 默认翻转 changelogen（ADR-0012）
+/// `hideAuthorEmail` 默认翻转 changelogen（ADR-0012）；chore 组内建
+/// `excludeScopes = ["deps"]`（原硬编码 chore(deps) 过滤的迁居形态，COL-106）
 fn defaults() -> ChangelogConfig {
   let types = [
     ("feat", "🚀 Enhancements"),
@@ -75,6 +81,11 @@ fn defaults() -> ChangelogConfig {
       name.to_owned(),
       ChangelogTypeEntry {
         title: title.to_owned(),
+        exclude_scopes: if name == "chore" {
+          vec!["deps".to_owned()]
+        } else {
+          vec![]
+        },
       },
     )
   })
@@ -206,8 +217,10 @@ fn apply_templates(
   Ok(())
 }
 
-/// types 按键深合并：对象值替换/新增（既有键保原位，新键追加声明序）；
-/// `false` 禁用该组（删除既有键）；其余值形态报错
+/// types 按键深合并：对象值内 `title` / `excludeScopes` 逐键合并（数组
+/// 整体替换——用户数组顶替内建，`[]` 为显式关闭内建 deps 过滤的出口）；
+/// `false` 禁用该组（删除既有键）；其余值形态报错。新键需带 `title`
+/// 才成组（markdown 分组需标题）；空对象/仅 excludeScopes 的新键为 no-op
 fn apply_types(config: &mut ChangelogConfig, value: &Value) -> Result<(), ChangelogConfigError> {
   let Value::Object(map) = value else {
     return Err(schema("\"types\" must be an object"));
@@ -222,31 +235,52 @@ fn apply_types(config: &mut ChangelogConfig, value: &Value) -> Result<(), Change
       }
       Value::Object(entry) => {
         let mut title: Option<&str> = None;
+        let mut exclude_scopes: Option<Vec<String>> = None;
         for (key, value) in entry {
           match key.as_str() {
             "title" => title = Some(expect_string(&format!("types.{name}.title"), value)?),
+            "excludeScopes" => {
+              exclude_scopes = Some(expect_nonempty_string_array(
+                &format!("types.{name}.excludeScopes"),
+                value,
+              )?);
+            }
             _ => {
               return Err(schema(&format!(
-                "types.{name} contains unsupported key \"{key}\": only title is supported"
+                "types.{name} contains unsupported key \"{key}\": only title / excludeScopes \
+                 are supported"
               )));
             }
           }
         }
-        // 深合并语义：空对象是 no-op（对齐「按键深合并」，不作存在性强制）
-        let Some(title) = title else {
-          continue;
-        };
-        let entry = ChangelogTypeEntry {
-          title: title.to_owned(),
-        };
         match config.types.iter_mut().find(|(n, _)| n == name) {
-          Some((_, slot)) => *slot = entry,
-          None => config.types.push((name.clone(), entry)),
+          Some((_, slot)) => {
+            // 深合并语义：空对象是 no-op，出现的键逐个生效
+            if let Some(title) = title {
+              slot.title = title.to_owned();
+            }
+            if let Some(scopes) = exclude_scopes {
+              slot.exclude_scopes = scopes;
+            }
+          }
+          None => {
+            let Some(title) = title else {
+              continue;
+            };
+            config.types.push((
+              name.clone(),
+              ChangelogTypeEntry {
+                title: title.to_owned(),
+                exclude_scopes: exclude_scopes.unwrap_or_default(),
+              },
+            ));
+          }
         }
       }
       _ => {
         return Err(schema(&format!(
-          "types.{name} must be {{ \"title\": string }} or false"
+          "types.{name} must be false or an object {{ \"title\": string, \"excludeScopes\": \
+           string[] }}"
         )));
       }
     }
@@ -313,6 +347,21 @@ fn expect_string_array(key: &str, value: &Value) -> Result<Vec<String>, Changelo
         .ok_or_else(|| schema(&format!("\"{key}\" array items must be strings")))
     })
     .collect()
+}
+
+/// 非空字符串数组（excludeScopes 专用）：元素空串报错并指键路径——
+/// 无 scope 提交不可被寻址，确需排除走 `types.X = false` 整组关
+fn expect_nonempty_string_array(
+  key: &str,
+  value: &Value,
+) -> Result<Vec<String>, ChangelogConfigError> {
+  let items = expect_string_array(key, value)?;
+  if items.iter().any(String::is_empty) {
+    return Err(schema(&format!(
+      "\"{key}\" array items must be non-empty strings"
+    )));
+  }
+  Ok(items)
 }
 
 fn expect_string_map(

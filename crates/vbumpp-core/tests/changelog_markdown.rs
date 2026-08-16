@@ -1,5 +1,6 @@
-//! changelog 展示层（ADR-0012）：DisplayCommit 解析、chore(deps) 过滤、
-//! markdown 结构、gitmoji、golden fixtures。
+//! changelog 展示层（ADR-0012）：DisplayCommit 解析、excludeScopes 过滤
+//! （内建 chore(deps) + 用户配置 + breaking 豁免）、markdown 结构、gitmoji、
+//! golden fixtures。
 
 use std::collections::HashMap;
 
@@ -82,6 +83,10 @@ fn parse_applies_scope_map() {
     commit.scope, "界面",
     "scopeMap 解析时应用（changelogen 同位）"
   );
+  assert_eq!(
+    commit.original_scope, "ui",
+    "原始 scope 保留（excludeScopes 匹配基准不受改名牵连）"
+  );
 }
 
 #[test]
@@ -138,6 +143,12 @@ fn test_config() -> ChangelogConfig {
         n.to_owned(),
         ChangelogTypeEntry {
           title: t.to_owned(),
+          // 对齐内建默认：chore 组排除 deps（原硬编码过滤的迁居形态）
+          exclude_scopes: if n == "chore" {
+            vec!["deps".to_owned()]
+          } else {
+            vec![]
+          },
         },
       )
     })
@@ -170,6 +181,7 @@ fn display(
     },
     commit_type: commit_type.to_owned(),
     scope: scope.to_owned(),
+    original_scope: scope.to_owned(),
     description: description.to_owned(),
     is_breaking: false,
     references: vec![CommitReference {
@@ -366,6 +378,97 @@ fn render_filters_unknown_type_and_chore_deps() {
   assert!(md.contains("Tidy"), "chore 非 deps 保留");
   assert!(!md.contains("readme"), "未知类型（docs 不在 types 表）滤除");
   assert!(!md.contains("not conventional"), "非 conventional 滤除");
+}
+
+#[test]
+fn render_exclude_scopes_user_config_with_breaking_exemption() {
+  // 用户配置的 scope 级排除：docs(agent) 不进 changelog，同组其余照常；
+  // 命中排除 scope 的 breaking 提交一律豁免照常显示
+  let mut config = test_config();
+  config.types.push((
+    "docs".to_owned(),
+    ChangelogTypeEntry {
+      title: "📖 文档".to_owned(),
+      exclude_scopes: vec!["agent".to_owned()],
+    },
+  ));
+  let raws = vec![
+    raw("docs(agent): update AGENTS.md", ""),
+    raw("docs(agent)!: rewrite agents contract", ""),
+    raw("docs: write guide", ""),
+    raw("chore(agent): tweak config", ""),
+  ];
+  let md = render_changelog(&raws, &config, &range());
+  assert!(md.contains("Write guide"), "同组未命中提交照常显示：{md}");
+  assert!(
+    !md.contains("Update AGENTS.md"),
+    "docs(agent) 非 breaking 滤除：{md}"
+  );
+  assert!(
+    md.contains("⚠️  Rewrite agents contract"),
+    "docs(agent)! breaking 豁免照常显示：{md}"
+  );
+  assert!(
+    md.contains("Tweak config"),
+    "chore 组未配 agent 排除、不受 docs 规则牵连：{md}"
+  );
+}
+
+#[test]
+fn render_exclude_scopes_match_original_scope_not_scope_map() {
+  // 匹配基准为提交原始 scope：scopeMap 把 agent 改名 ai 后，排除规则
+  // 仍按 "agent" 命中；显示名照旧用 scopeMap 后的值
+  let mut config = test_config();
+  config.scope_map = HashMap::from([("agent".to_owned(), "ai".to_owned())]);
+  config.types.push((
+    "docs".to_owned(),
+    ChangelogTypeEntry {
+      title: "📖 文档".to_owned(),
+      exclude_scopes: vec!["agent".to_owned()],
+    },
+  ));
+  let raws = vec![
+    raw("docs(agent): hidden note", ""),
+    raw("docs(agent)!: visible note", ""),
+  ];
+  let md = render_changelog(&raws, &config, &range());
+  assert!(!md.contains("Hidden note"), "原始 scope 命中排除：{md}");
+  assert!(
+    md.contains("**ai:** ⚠️  Visible note"),
+    "豁免提交显示名仍用 scopeMap 后值：{md}"
+  );
+}
+
+#[test]
+fn render_exclude_scopes_case_sensitive() {
+  let mut config = test_config();
+  config.types.push((
+    "docs".to_owned(),
+    ChangelogTypeEntry {
+      title: "📖 文档".to_owned(),
+      exclude_scopes: vec!["Agent".to_owned()],
+    },
+  ));
+  let raws = vec![raw("docs(agent): keep me", "")];
+  let md = render_changelog(&raws, &config, &range());
+  assert!(
+    md.contains("Keep me"),
+    "大小写敏感：Agent 不命中 agent：{md}"
+  );
+}
+
+#[test]
+fn render_exclude_scopes_empty_array_disables_builtin_deps_filter() {
+  // `[]` 为显式关闭内建 deps 过滤的出口：chore(deps) 恢复显示
+  let mut config = test_config();
+  for (name, entry) in &mut config.types {
+    if name == "chore" {
+      entry.exclude_scopes = vec![];
+    }
+  }
+  let raws = vec![raw("chore(deps): bump serde", "")];
+  let md = render_changelog(&raws, &config, &range());
+  assert!(md.contains("Bump serde"), "空数组关闭内建过滤：{md}");
 }
 
 #[test]

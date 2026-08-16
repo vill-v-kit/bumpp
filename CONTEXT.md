@@ -31,6 +31,10 @@ _Avoid_: bump.config.json（旧名）、vbumpp.config（esconf 旧制，已移�
 配置文件形状的机器可读描述（JSON Schema），自 vbumpp-core 内的配置形状单一事实源（Rust 结构体）机械生成，经 `vbumpp schema` 子命令输出（stdout 或 `--write` 落盘项目 `vbumpprc.schema.json` / 全局 `~/.vbumpp/schema.json`）。分发两路：npm 包内副本、文档站 Pages 规范 URL——编辑器提示靠配置内显式 `$schema` 键 / Taplo `#:schema` 指令（含离线相对路径引用本地副本），不走 SchemaStore 收录；产物提交进仓库并以 CI 漂移腿防腐（ADR-0037）。
 _Avoid_: 配置校验器（schema 是形状描述物，校验是其消费方）、TS 类型门面（指 overrides 的编程式类型，另一条通路）
 
+**Scope 排除 (Scope exclusion)**:
+changelog 类型分组内按 scope 精确排除提交的能力——`changelog.types.<type>.excludeScopes`（字符串数组）。元素与提交的原始 scope 精确匹配（大小写敏感、不受 scopeMap 显示名改名牵连）；命中的非 breaking 提交不进 changelog / release notes，breaking 提交一律豁免照常显示。合并为整体替换：内建默认 `chore` 组排除 `deps`（原硬编码 chore(deps) 过滤的迁居形态），用户数组顶替内建、空数组即显式关闭该内建行为。组级 `types.X = false` 优先于 scope 规则；无 scope 提交不可被寻址。只影响展示层，semver 判定不受影响。
+_Avoid_: 独立 exclude 列表（曾拟 `changelog.exclude` 独立键，因与 types 控制面重叠否决）、scope 重命名（归 scopeMap）
+
 **全局配置目录 (`~/.vbumpp/`)**:
 用户级数据的家——全局配置文件与 Token 存储同放此目录。`VBUMPP_HOME` 覆盖整个目录；`VBUMPP_TOKEN_STORE` 仅覆盖 token 存储文件路径（兼容保留，优先级高于 `VBUMPP_HOME`）。
 _Avoid_: XDG 目录（不引入）

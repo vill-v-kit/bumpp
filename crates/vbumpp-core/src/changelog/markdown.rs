@@ -1,5 +1,6 @@
 //! markdown 生成（ADR-0012）：结构逐节对齐 changelogen 0.6.2 `generateMarkDown`。
-//! 申报偏差两处：无 ungh.cc 网络解析、`chore(deps)` 过滤内置（changelog.rs 管线）；
+//! 申报偏差两处：无 ungh.cc 网络解析、scope 级排除内建默认（chore 组
+//! `deps`，经 `types.X.excludeScopes` 可配置——changelog.rs 管线）；
 //! 原申报偏差①（中文节标题直生）随 ADR-0017 英文默认移除。
 
 use crate::changelog::config::ChangelogConfig;

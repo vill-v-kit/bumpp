@@ -708,6 +708,18 @@ fn changelog_section_type_errors_at_file_layer() {
       "changelog.types.feat",
     ),
     (
+      r#"{ "changelog": { "types": { "feat": { "excludeScopes": "x" } } } }"#,
+      "changelog.types.feat",
+    ),
+    (
+      r#"{ "changelog": { "types": { "feat": { "excludeScopes": [1] } } } }"#,
+      "changelog.types.feat",
+    ),
+    (
+      r#"{ "changelog": { "types": { "feat": { "excludeScopes": [""] } } } }"#,
+      "changelog.types.feat",
+    ),
+    (
       r#"{ "changelog": { "repo": { "provider": 1 } } }"#,
       "changelog.repo",
     ),
@@ -721,18 +733,29 @@ fn changelog_section_type_errors_at_file_layer() {
 #[test]
 fn changelog_valid_shapes_still_load() {
   // 防回退：null 键值、types 空对象、types 值 false、types 值 true（消费侧
-  // 报原有文案，文件层不拦）均不改变加载行为
+  // 报原有文案，文件层不拦）、条目内 excludeScopes 均不改变加载行为
   let dir = TempDir::new().unwrap();
   write(
     &dir,
     ".vbumpprc.json",
     r#"{ "changelog": {
       "output": null,
-      "types": { "feat": false, "fix": {}, "docs": true, "perf": null }
+      "types": {
+        "feat": false,
+        "fix": {},
+        "docs": true,
+        "perf": null,
+        "chore": { "title": "🏡 框架", "excludeScopes": ["deps", "agent"] }
+      }
     } }"#,
   );
   let merged = load(&dir, None);
   assert_eq!(merged["changelog"]["types"]["feat"], false);
+  assert_eq!(
+    merged["changelog"]["types"]["chore"]["excludeScopes"],
+    serde_json::json!(["deps", "agent"]),
+    "excludeScopes 合法形状透传进合并层"
+  );
 }
 
 #[test]

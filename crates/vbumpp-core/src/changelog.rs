@@ -32,9 +32,10 @@ use crate::changelog::config::{resolve_changelog_config, ChangelogConfig, Change
 use crate::changelog::markdown::ReleaseRange;
 
 /// 引擎管线：RawCommit → 展示层解析 → 类型过滤（config.types 键）→
-/// `chore(deps)` 过滤（chore + scope deps + 非 breaking；scope 为 scopeMap
-/// 应用后的值——与原 JS 同一位点的 quirk 保持一致）→ markdown 生成。
-/// 全程纯函数、无 IO、无网络。
+/// excludeScopes 过滤（按提交原始 scope 精确匹配、大小写敏感，不受
+/// scopeMap 改名牵连；命中的非 breaking 提交滤除，breaking 提交一律
+/// 豁免照常显示——避免「semver 升 major 而 changelog 无迹可寻」）→
+/// markdown 生成。全程纯函数、无 IO、无网络。
 pub fn render_changelog(
   raw_commits: &[RawCommit],
   config: &ChangelogConfig,
@@ -43,8 +44,12 @@ pub fn render_changelog(
   let commits: Vec<DisplayCommit> = raw_commits
     .iter()
     .filter_map(|raw| parse_display_commit(raw, &config.scope_map))
-    .filter(|c| config.types.iter().any(|(n, _)| n == &c.commit_type))
-    .filter(|c| !(c.commit_type == "chore" && c.scope == "deps" && !c.is_breaking))
+    .filter(|c| {
+      let Some((_, entry)) = config.types.iter().find(|(n, _)| n == &c.commit_type) else {
+        return false;
+      };
+      c.is_breaking || !entry.exclude_scopes.contains(&c.original_scope)
+    })
     .collect();
   markdown::generate_markdown(&commits, config, range)
 }

@@ -263,7 +263,7 @@
       }
     },
     "ChangelogTypeValue": {
-      "description": "Either false (hide this group from the changelog) or an object with an optional title overriding the group heading.",
+      "description": "Either false (hide this group from the changelog) or an object with an optional title overriding the group heading and an optional excludeScopes list of commit scopes to leave out of the changelog.",
       "oneOf": [
         {
           "const": false
@@ -274,6 +274,14 @@
             "title": {
               "description": "Group heading shown in the changelog.",
               "type": "string"
+            },
+            "excludeScopes": {
+              "description": "Commit scopes excluded from this group, matched exactly against the scope written in the commit (case-sensitive, before scopeMap). Matched non-breaking commits are left out of the changelog; breaking commits are always shown. The array replaces the built-in default wholesale (built-in: chore excludes \"deps\"); an empty array disables that built-in filtering.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }

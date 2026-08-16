@@ -18,7 +18,7 @@ fn full_fixture() -> Value {
         "zeta": { "title": "Zeta Group" },
         "alpha": false,
         "mid": {},
-        "beta": { "title": "Beta Group" }
+        "beta": { "title": "Beta Group", "excludeScopes": ["agent", "deps"] }
       },
       "repo": { "provider": "github", "repo": "vill-v-kit/bumpp" },
       "scopeMap": { "core": "engine", "cli": "command line" },
@@ -134,6 +134,30 @@ fn type_mismatch_is_an_error_not_a_silent_default() {
   .expect_err("types 分组值给数字必须报错");
   assert!(
     err.to_string().contains("types.feat"),
+    "报错文本带键路径，实际：{err}"
+  );
+  let err = from_value::<BumpConfig>(json!({
+    "changelog": { "types": { "feat": { "excludeScopes": "agent" } } }
+  }))
+  .expect_err("excludeScopes 给字符串必须报错");
+  assert!(
+    err.to_string().contains("types.feat.excludeScopes"),
+    "报错文本带键路径，实际：{err}"
+  );
+  let err = from_value::<BumpConfig>(json!({
+    "changelog": { "types": { "feat": { "excludeScopes": [1] } } }
+  }))
+  .expect_err("excludeScopes 元素给数字必须报错");
+  assert!(
+    err.to_string().contains("types.feat.excludeScopes"),
+    "报错文本带键路径，实际：{err}"
+  );
+  let err = from_value::<BumpConfig>(json!({
+    "changelog": { "types": { "feat": { "excludeScopes": [""] } } }
+  }))
+  .expect_err("excludeScopes 元素给空串必须报错（与文件层 shape 一致）");
+  assert!(
+    err.to_string().contains("types.feat.excludeScopes"),
     "报错文本带键路径，实际：{err}"
   );
 }

@@ -39,14 +39,10 @@ preversion = "npm test"
 postversion = "npm run build"
 
 # changelog 分组标题改成中文
-[changelog.types.feat]
-title = "🚀 特性"
-
-[changelog.types.fix]
-title = "🩹 修复"
-
-[changelog.types.chore]
-title = "🏡 框架"
+[changelog.types]
+feat = { title = "🚀 特性" }
+fix = { title = "🩹 修复" }
+chore = { title = "🏡 框架" }
 ```
 
 </Tab>
@@ -144,6 +140,7 @@ postversion = "npm run build"   # commit/tag 完成后、push 前
 | --- | --- | --- |
 | `output` | `"CHANGELOG.md"` | changelog 文件的写入路径（bump）与读取路径（`release` 补发）；CLI 的 `-o` 给出时优先于本配置 |
 | `types` | 英文分组标题（`🚀 Enhancements` 等） | commit 类型 → changelog 分组；声明顺序即分组顺序；某组填 `false` 则不出现在 changelog |
+| `types.X.excludeScopes` | `chore` 组内建 `["deps"]`，其余为 `[]` | 组内按 scope 精确排除提交（如 `chore(agent)` 不进 changelog）：与提交里写的 scope 原文精确匹配（大小写敏感、不受 `scopeMap` 改名影响）；命中的 breaking 提交照常显示；数组整体顶替内建（想保留 deps 过滤需重新列出），空数组关闭内建过滤 |
 | `repo` | 自动从 git remote 推断 | compare 链接用的仓库，`"owner/repo"` 形式 |
 | `scopeMap` | `{}` | commit scope 显示名替换 |
 | `noAuthors` | `false` | 不生成贡献者名单 |
@@ -151,6 +148,14 @@ postversion = "npm run build"   # commit/tag 完成后、push 前
 | `excludeAuthors` | `[]` | 按子串排除特定作者（如机器人账号） |
 | `templates.tagBody` | `"v{{newVersion}}"` | changelog 里版本标题的格式 |
 | `commitMessage` | `"chore: update {{output}}"` | changelog 文件的提交信息 |
+
+按 scope 排除的典型用法——内务类提交（如 AI 辅助变更常用的 `agent` scope）不进 changelog：
+
+```toml
+[changelog.types]
+chore = { title = "🏡 框架", excludeScopes = ["deps", "agent"] }
+docs = { excludeScopes = ["agent"] }
+```
 
 ## 全局目录 `~/.vbumpp/`
 

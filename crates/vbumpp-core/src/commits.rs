@@ -188,6 +188,8 @@ pub struct DisplayCommit {
   pub commit_type: String,
   /// scopeMap 已在解析时应用（changelogen 同位）
   pub scope: String,
+  /// 提交里写的 scope 原文（scopeMap 应用前）——excludeScopes 的匹配基准
+  pub original_scope: String,
   /// PR 引用已剥离并 trim；issue 引用保留
   pub description: String,
   pub is_breaking: bool,
@@ -202,8 +204,11 @@ pub fn parse_display_commit(
 ) -> Option<DisplayCommit> {
   let m = CONVENTIONAL_RE.captures(&raw.message)?;
   let group = |n: usize| m.get(n).map(|g| g.as_str());
-  let scope = group(3).unwrap_or("");
-  let scope = scope_map.get(scope).map(String::as_str).unwrap_or(scope);
+  let original_scope = group(3).unwrap_or("");
+  let scope = scope_map
+    .get(original_scope)
+    .map(String::as_str)
+    .unwrap_or(original_scope);
   let is_breaking = m.get(4).is_some() || DISPLAY_BREAKING_RE.is_match(&raw.body);
   let description = group(5).unwrap_or("");
   let mut references: Vec<CommitReference> = PULL_REQUEST_RE
@@ -235,6 +240,7 @@ pub fn parse_display_commit(
     author: raw.author.clone(),
     commit_type: group(1).unwrap_or("").to_owned(),
     scope: scope.to_owned(),
+    original_scope: original_scope.to_owned(),
     description,
     is_breaking,
     references,

@@ -113,8 +113,8 @@ pub struct GitlabSection {
 }
 
 /// `changelog.types` 单值形态：null 跳过、boolean 启用/禁用该组、
-/// `{ title?: string }` 覆盖组标题（别名进 d.ts，schema 名对齐文件层
-/// `TypesValue` 的 JSON Schema 名）
+/// `{ title?: string, excludeScopes?: string[] }` 覆盖组标题与 scope 级
+/// 排除（别名进 d.ts，schema 名对齐文件层 `TypesValue` 的 JSON Schema 名）
 #[napi]
 pub type ChangelogTypeValue = Option<Either<bool, ChangelogTypeEntry>>;
 
@@ -159,12 +159,15 @@ pub struct TemplatesSection {
   pub tag_body: Option<String>,
 }
 
-/// `changelog.types` 单组条目：title 缺省即 no-op（深合并语义在消费侧）
+/// `changelog.types` 单组条目：title / excludeScopes 均缺省即 no-op
+/// （按键深合并语义在消费侧）
 #[napi(object)]
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ChangelogTypeEntry {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub title: Option<String>,
+  #[serde(rename = "excludeScopes", skip_serializing_if = "Option::is_none")]
+  pub exclude_scopes: Option<Vec<String>>,
 }
 
 /// `changelog.repo` 的对象形态（provider / domain / repo 三可选键）
@@ -267,11 +270,37 @@ mod types_map {
                   )))
                 }
               };
-              Some(Either::B(ChangelogTypeEntry { title }))
+              let exclude_scopes = match entry.get("excludeScopes") {
+                None | Some(Value::Null) => None,
+                Some(Value::Array(items)) => {
+                  let mut scopes = Vec::with_capacity(items.len());
+                  for item in items {
+                    match item {
+                      Value::String(s) if !s.is_empty() => scopes.push(s.clone()),
+                      _ => {
+                        return Err(D::Error::custom(format!(
+                          "types.{name}.excludeScopes array items must be non-empty strings"
+                        )))
+                      }
+                    }
+                  }
+                  Some(scopes)
+                }
+                Some(_) => {
+                  return Err(D::Error::custom(format!(
+                    "types.{name}.excludeScopes must be an array of non-empty strings"
+                  )))
+                }
+              };
+              Some(Either::B(ChangelogTypeEntry {
+                title,
+                exclude_scopes,
+              }))
             }
             _ => {
               return Err(D::Error::custom(format!(
-                "types.{name} must be false or an object {{ \"title\": string }}"
+                "types.{name} must be false or an object {{ \"title\": string, \
+                 \"excludeScopes\": string[] }}"
               )))
             }
           };

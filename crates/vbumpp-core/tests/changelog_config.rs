@@ -44,6 +44,20 @@ fn defaults_when_no_document_no_overrides() {
       ("style", "🎨 Styles"),
     ]
   );
+  // 内建 scope 级排除（COL-106）：chore 组排除 deps（原硬编码 chore(deps)
+  // 过滤的迁居形态），其余组为空
+  let excludes: Vec<(&str, &[String])> = config
+    .types
+    .iter()
+    .map(|(name, entry)| (name.as_str(), entry.exclude_scopes.as_slice()))
+    .collect();
+  for (name, scopes) in &excludes {
+    if *name == "chore" {
+      assert_eq!(*scopes, ["deps"], "chore 内建排除 deps");
+    } else {
+      assert!(scopes.is_empty(), "{name} 无内建排除");
+    }
+  }
 }
 
 #[test]
@@ -72,6 +86,66 @@ fn types_empty_object_is_deep_merge_noop() {
   let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
   assert_eq!(config.types.len(), 11);
   assert_eq!(config.types[0].1.title, "🚀 Enhancements");
+}
+
+#[test]
+fn types_title_only_merge_keeps_builtin_exclude_scopes() {
+  // 条目内按键合并：只写 title 不牵连内建 excludeScopes
+  let overrides = map(json!({ "types": { "chore": { "title": "🏡 框架" } } }));
+  let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
+  let chore = config.types.iter().find(|(n, _)| n == "chore").unwrap();
+  assert_eq!(chore.1.title, "🏡 框架");
+  assert_eq!(chore.1.exclude_scopes, ["deps"], "title 覆盖不丢内建排除");
+}
+
+#[test]
+fn types_exclude_scopes_wholesale_replaces_builtin() {
+  // 整体替换语义：用户数组顶替内建 deps——想保住 deps 须重列
+  let overrides = map(json!({ "types": { "chore": { "excludeScopes": ["agent"] } } }));
+  let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
+  let chore = config.types.iter().find(|(n, _)| n == "chore").unwrap();
+  assert_eq!(chore.1.exclude_scopes, ["agent"], "数组整体替换不拼接");
+  assert_eq!(chore.1.title, "🏡 Chore", "excludeScopes 覆盖不丢内建标题");
+
+  // 空数组为显式关闭内建 deps 过滤的出口
+  let overrides = map(json!({ "types": { "chore": { "excludeScopes": [] } } }));
+  let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
+  let chore = config.types.iter().find(|(n, _)| n == "chore").unwrap();
+  assert!(chore.1.exclude_scopes.is_empty(), "[] 关闭内建 quirk");
+}
+
+#[test]
+fn types_exclude_scopes_validation_errors_carry_key_path() {
+  for bad in [
+    json!({ "types": { "chore": { "excludeScopes": "agent" } } }),
+    json!({ "types": { "chore": { "excludeScopes": [1] } } }),
+    json!({ "types": { "chore": { "excludeScopes": [""] } } }),
+    json!({ "types": { "chore": { "excludeScopes": ["agent", ""] } } }),
+  ] {
+    let overrides = map(bad);
+    let err = resolve_changelog_config(None, Some(&overrides)).unwrap_err();
+    assert!(
+      err.to_string().contains("types.chore.excludeScopes"),
+      "报错应含键路径：{err}（输入 {overrides:?}）"
+    );
+  }
+}
+
+#[test]
+fn types_new_key_with_only_exclude_scopes_is_noop() {
+  // 新键需带 title 才成组（markdown 分组需标题）：仅 excludeScopes 的新键
+  // 与空对象同为 no-op
+  let overrides = map(json!({ "types": { "ci": { "excludeScopes": ["bot"] } } }));
+  let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
+  assert_eq!(config.types.len(), 11);
+  assert!(!config.types.iter().any(|(n, _)| n == "ci"));
+
+  // 带 title 的新键成组，excludeScopes 随之落位
+  let overrides = map(json!({ "types": { "ci": { "title": "🤖 CI", "excludeScopes": ["bot"] } } }));
+  let config = resolve_changelog_config(None, Some(&overrides)).unwrap();
+  let ci = config.types.iter().find(|(n, _)| n == "ci").unwrap();
+  assert_eq!(ci.1.title, "🤖 CI");
+  assert_eq!(ci.1.exclude_scopes, ["bot"]);
 }
 
 #[test]

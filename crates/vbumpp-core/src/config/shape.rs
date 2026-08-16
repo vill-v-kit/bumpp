@@ -169,8 +169,8 @@ pub struct ChangelogSection {
   #[schemars(description = "Output path of the changelog file (default CHANGELOG.md).")]
   pub output: Option<String>,
   /// type 分组表：值形态见 `TypesValue`（null 跳过、`false` 删组、对象
-  /// 仅 `title`——空对象 no-op）；按键深合并与声明序语义在消费侧，
-  /// 本结构体仅验形（故用 BTreeMap，不保序）
+  /// 内 `title` / `excludeScopes`——空对象 no-op）；按键深合并与声明序
+  /// 语义在消费侧，本结构体仅验形（故用 BTreeMap，不保序）
   #[schemars(
     description = "Commit-type grouping table; value shape see ChangelogTypeValue. Key-wise deep merge and declaration order are consumer semantics; this shape only validates."
   )]
@@ -207,9 +207,10 @@ pub struct TemplatesSection {
   pub tag_body: Option<String>,
 }
 
-/// `changelog.types` 单值形态：`false`（禁用该组）或 `{ title?: string }`。
-/// 布尔值原样透传——`true` 形状层放行、由消费侧报原有文案（`must be
-/// { "title": string } or false`）；空对象经 `title` 缺省表达 no-op
+/// `changelog.types` 单值形态：`false`（禁用该组）或
+/// `{ title?: string, excludeScopes?: string[] }`。布尔值原样透传——
+/// `true` 形状层放行、由消费侧报原有文案；空对象经键缺省表达 no-op；
+/// `excludeScopes` 元素非空串在形状层即拦（报错带键路径），消费侧同拦
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypesValue {
   Bool(bool),
@@ -226,10 +227,27 @@ impl<'de> Deserialize<'de> for TypesValue {
             return Err(D::Error::custom("title must be a string"));
           }
         }
+        if let Some(scopes) = entry.get("excludeScopes") {
+          let Some(items) = scopes.as_array() else {
+            return Err(D::Error::custom(
+              "excludeScopes must be an array of non-empty strings",
+            ));
+          };
+          for item in items {
+            match item {
+              Value::String(s) if !s.is_empty() => {}
+              _ => {
+                return Err(D::Error::custom(
+                  "excludeScopes must be an array of non-empty strings",
+                ));
+              }
+            }
+          }
+        }
         Ok(Self::Entry)
       }
       _ => Err(D::Error::custom(
-        "must be false or an object { \"title\": string }",
+        "must be false or an object { \"title\": string, \"excludeScopes\": string[] }",
       )),
     }
   }
@@ -242,7 +260,7 @@ impl JsonSchema for TypesValue {
 
   fn json_schema(_gen: &mut SchemaGenerator) -> Schema {
     json_schema!({
-      "description": "Either false (hide this group from the changelog) or an object with an optional title overriding the group heading.",
+      "description": "Either false (hide this group from the changelog) or an object with an optional title overriding the group heading and an optional excludeScopes list of commit scopes to leave out of the changelog.",
       "oneOf": [
         { "const": false },
         {
@@ -251,6 +269,11 @@ impl JsonSchema for TypesValue {
             "title": {
               "type": "string",
               "description": "Group heading shown in the changelog."
+            },
+            "excludeScopes": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Commit scopes excluded from this group, matched exactly against the scope written in the commit (case-sensitive, before scopeMap). Matched non-breaking commits are left out of the changelog; breaking commits are always shown. The array replaces the built-in default wholesale (built-in: chore excludes \"deps\"); an empty array disables that built-in filtering."
             }
           }
         }

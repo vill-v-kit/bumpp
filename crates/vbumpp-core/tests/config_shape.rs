@@ -207,6 +207,16 @@ fn exported_schema_union_shapes() {
   assert_eq!(types[0]["const"], json!(false), "false 禁用分支：{types:?}");
   assert_eq!(types[1]["type"], "object", "对象分支：{types:?}");
   assert_eq!(types[1]["properties"]["title"]["type"], "string");
+  let exclude_scopes = &types[1]["properties"]["excludeScopes"];
+  assert_eq!(
+    exclude_scopes["type"], "array",
+    "excludeScopes 数组分支：{types:?}"
+  );
+  assert_eq!(exclude_scopes["items"]["type"], "string");
+  assert_eq!(
+    exclude_scopes["items"]["minLength"], 1,
+    "元素非空约束进 schema"
+  );
 
   let repo = defs["ChangelogRepo"]["oneOf"].as_array().unwrap();
   let kinds: Vec<&str> = repo.iter().map(|v| v["type"].as_str().unwrap()).collect();
