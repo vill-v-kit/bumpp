@@ -5,7 +5,7 @@ description: 在 GitHub / GitLab / Gitee / GitCode 上创建 Release
 
 发版完成后自动（或单独）在代码平台上创建 Release，Release 描述就是对应版本的 changelog 内容。两种使用方式：
 
-1. **随发版自动创建**：安装平台变体包（`@vill-v/bumpp-gitee` 等），或发版时加 `--provider`，bump 完成后自动创建
+1. **随发版自动创建**：安装平台包（`@vill-v/bumpp-gitee` 等，见[安装 · npm](/docs/install/npm)），或发版时加 `--provider`，bump 完成后自动创建
 2. **单独补发**：`vbumpp release <version>`（见[失败重试](#失败重试)）
 
 ## 支持的平台
@@ -69,7 +69,7 @@ host = "https://gitlab.example.com"
 </Tab>
 </Tabs>
 
-`host` 保留端口与路径（兼容 relative-url-root 部署）；显式 `http://` 原样保留，覆盖内网纯 HTTP 实例。
+`host` 保留端口与路径（兼容 relative-url-root 部署）；显式 `http://` 原样保留，覆盖内网纯 HTTP 实例。host 写法宽松：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一地址（无 scheme 自动补 `https://`，显式 `http://` 原样保留，端口与路径保留）。
 
 ## 多个私有 GitLab 实例
 
@@ -126,7 +126,7 @@ host = "https://gitlab-b.com"
 </Tab>
 </Tabs>
 
-录入的 `--host` 与配置的 `host` 都不要求写法精确一致：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目。查看与删除同样按实例进行：
+录入的 `--host` 与配置的 `host` 都不要求写法精确一致，按上节的归一规则匹配（`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目）。查看与删除同样按实例进行：
 
 ```sh
 vbumpp token list --host https://gitlab-a.com    # 只看某个实例
@@ -139,7 +139,7 @@ gitlab 的 token 解析链（逐级回落，全部缺失才报错并提示对应
 | 优先级 | 来源 |
 | --- | --- |
 | 1 | 当前配置 `gitlab.host`（缺省 `https://gitlab.com`）的精确条目（`vbumpp token set gitlab --host <url>` 录入） |
-| 2 | provider 级 `gitlab` 条目（`vbumpp token set gitlab` 录入——存量配置零感知回落） |
+| 2 | provider 级 `gitlab` 条目（`vbumpp token set gitlab` 录入） |
 | 3 | `GITLAB_TOKEN` 环境变量 |
 
 ## 失败重试

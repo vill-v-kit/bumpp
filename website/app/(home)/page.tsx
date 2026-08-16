@@ -7,12 +7,12 @@ const upstream = [
   {
     href: 'https://github.com/antfu/bumpp',
     repo: 'antfu/bumpp',
-    desc: '版本号更新与 git 发版流程——bump 语义的改写来源',
+    desc: '版本号更新与 git 发版流程的语义参考',
   },
   {
     href: 'https://github.com/unjs/changelogen',
     repo: 'unjs/changelogen',
-    desc: 'changelog 生成——变更记录语义的改写来源',
+    desc: 'changelog 生成的语义参考',
   },
 ];
 
@@ -57,7 +57,7 @@ export default function HomePage() {
       <ScrollyDemo />
 
       <div className="mx-auto w-full max-w-4xl px-6 py-16">
-        <h2 className="text-xl font-semibold mb-4">改写自</h2>
+        <h2 className="text-xl font-semibold mb-4">语义参考</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {upstream.map((u) => (
             <a

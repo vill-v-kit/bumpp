@@ -46,7 +46,7 @@ const STEPS: readonly DemoStep[] = [
   {
     icon: <Layers className="size-4" />,
     title: 'monorepo 整树递归',
-    desc: '一个 -r 同步更新所有包的版本号（private 包也随整树锁步）；package.json、Cargo.toml 等清单结构化更新，lockfile 也可自动刷新',
+    desc: '一个 -r 同步更新所有包的版本号（private 包也一并更新）；package.json、Cargo.toml 等清单结构化更新，lockfile 也可自动刷新',
   },
   {
     icon: <Globe className="size-4" />,

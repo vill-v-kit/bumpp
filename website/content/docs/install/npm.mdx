@@ -53,10 +53,10 @@ nub add -D @vill-v/bumpp
 </Tabs>
 
 <Callout type="warn">
-npm 渠道通过预编译平台包分发，支持 macOS（Apple Silicon）、Linux（x64 / arm64，glibc 与 musl——Alpine 容器可直接安装使用）和 Windows（x64 / arm64）。**不支持 Intel Mac**（darwin-x64）——Intel Mac 用户请改用 [crates.io 渠道](/docs/install/crates-io)（`cargo install vbumpp`，或 `cargo binstall vbumpp` 自动回退源码编译），功能完全一致。
+npm 包内自带当前平台的预编译原生模块，支持 macOS（Apple Silicon）、Linux（x64 / arm64，含 Alpine）和 Windows（x64 / arm64）。**不支持 Intel Mac**（darwin-x64）——Intel Mac 用户请改用 [crates.io 安装](/docs/install/crates-io)（`cargo install vbumpp`，或 `cargo binstall vbumpp` 自动回退源码编译），功能完全一致。
 </Callout>
 
-如果你的项目托管在某个代码平台上，并希望发版后**自动在该平台创建 Release**，改装对应的平台变体包（用法完全相同）：
+如果你的项目托管在某个代码平台上，并希望发版后**自动在该平台创建 Release**，改装对应的平台包（即内置了默认平台的 `@vill-v/bumpp`，用法完全相同）：
 
 | 平台 | 包名 |
 | --- | --- |

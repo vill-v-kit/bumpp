@@ -82,7 +82,7 @@ feat = { title = "🚀 特性" }
 - **配置对象拍平**：`{ bumpp: {...}, changelog: {...} }` → `{ ...bumpp键, changelog: {...} }`，与配置文件同形
 - **`defineConfig` 删除**：配置就是普通对象，直接写字面量
 - **`@vill-v/bumpp/changelogen` 子路径删除**：`resolveRepoConfig`、`generateChangelog` 等函数不再对外提供
-- **平台变体包的 `createXRelease` 删除**：需要单独创建 Release 时改用命令行 `vbumpp release <version> --provider <平台>`（详见[平台 Release 指南](/docs/release)）
+- **平台包的 `createXRelease` 删除**：需要单独创建 Release 时改用命令行 `vbumpp release <version> --provider <平台>`（详见[平台 Release 指南](/docs/release)）
 - **token 相关编程式函数删除**：token 管理统一走命令行 `vbumpp token set / list / remove`（已录入的 token 存储格式兼容，无需重新录入）
 
 ## 3. changelog 产出的行为变化
@@ -97,14 +97,14 @@ feat = { title = "🚀 特性" }
 
 ## 4. 依赖大幅瘦身
 
-`@vill-v/bumpp` 不再传递安装 `changelogen`、`cac`、`consola`、`defu`、`tinyexec` 等一揽子依赖。实测安装体积（darwin-arm64，其他平台略有浮动）：
+`@vill-v/bumpp` 不再传递安装 `changelogen`、`cac`、`consola`、`defu`、`tinyexec` 等一揽子依赖，依赖包数从 59 个减到 3 个。实测安装体积（darwin-arm64，其他平台略有浮动）：
 
 | | 安装内容 | 体积 | npm 包数 |
 | --- | --- | --- | --- |
 | v5 | 本体 + 全部传递依赖 | ≈8.6 MB | 59 |
-| v6（npm 通路） | wrapper + napi 加载层 + 本平台预编译 `.node` | ≈5 MB | 3 |
-| v6（原生 CLI 通路） | 单个 `vbumpp` 二进制，不需要 Node.js | ≈4.6 MB | 0 |
+| v6（npm 安装） | npm 包装层 + 本平台预编译 `.node` 原生模块 | ≈5 MB | 3 |
+| v6（原生二进制） | 单个 `vbumpp` 二进制，不需要 Node.js | ≈4.6 MB | 0 |
 
-npm 通路体积缩小约 40%，供应链面从 59 个包收窄到 3 个。如果连 Node.js 环境都不想引入，还可以彻底抛开 npm——原生 CLI 是纯 Rust 单二进制，功能与 npm 版完全一致，[`cargo install vbumpp`](/docs/install/crates-io) 之后没有任何 node_modules 和依赖包，相比 v5 缩小近一半。
+原生 CLI 是纯 Rust 单二进制，功能与 npm 版完全一致，见[安装 · crates.io](/docs/install/crates-io)。
 
 你不需要做任何事，但如果项目里间接依赖过这些包，升级后请检查。

@@ -5,7 +5,7 @@ description: 子命令、flag 与退出码的完整参考
 
 ## `vbumpp [...files]`（默认命令）
 
-发版主命令：更新版本号、生成 changelog、git commit / tag / push、执行发版脚本；使用平台变体包或给出 `--provider` 时，完成后自动创建平台 Release。
+发版主命令：更新版本号、生成 changelog、git commit / tag / push、执行发版脚本；装了平台包（如 `@vill-v/bumpp-gitee`，见[安装 · npm](/docs/install/npm)）或给出 `--provider` 时，完成后自动创建平台 Release。
 
 ```sh
 $ vbumpp --help
@@ -27,9 +27,9 @@ options:
 
 | flag | 说明 |
 | --- | --- |
-| `-r`, `--recursive` | 递归更新 monorepo 整树包的版本（含 `"private": true` 的包——private 仅表示不发布，版本号随整树一并锁步） |
+| `-r`, `--recursive` | 递归更新 monorepo 整树包的版本（含 `"private": true` 的包——private 仅表示不发布，版本号随整树一并更新） |
 | `-o`, `--output <path>` | changelog 写入 / 读取路径；给出时优先于配置的 `changelog.output`，未给时回落配置值，两者都没有才用默认 `CHANGELOG.md` |
-| `--provider <name>` | 本次发版要创建 Release 的平台：`github` / `gitlab` / `gitee` / `gitcode`（优先级高于平台变体包的默认平台） |
+| `--provider <name>` | 本次发版要创建 Release 的平台：`github` / `gitlab` / `gitee` / `gitcode`（优先级高于平台包的默认平台） |
 | `--dry-run` | 预览模式：只打印执行计划，不产生任何副作用（见下文「预览模式」） |
 | `-h`, `--help` | 显示帮助 |
 | `-v`, `--version` | 显示版本号 |
@@ -38,7 +38,7 @@ options:
 
 ### 预览模式（`--dry-run`）
 
-`--dry-run` 走完真实发版的全部只读计算与前置校验，然后**只打印执行计划、不产生任何副作用**——零文件写盘、零 git 写操作、零网络请求。预览与真实执行骑同一条流水线，你看到的就是它要做的。
+`--dry-run` 走完真实发版的全部只读计算与前置校验，然后**只打印执行计划、不产生任何副作用**——零文件写盘、零 git 写操作、零网络请求。预览打印的就是真实执行会做的事。
 
 ```sh
 $ vbumpp --dry-run
@@ -61,21 +61,20 @@ $ vbumpp --dry-run
 
 计划按真实执行序逐行给出：
 
-- **逐文件预演判定**：`update → {新版本}` / `up-to-date` / `missing`（与真实执行的逐文件判定同一份逻辑）
+- **逐文件预演判定**：`update → {新版本}` / `up-to-date` / `missing`
 - **版本**：当前版本及其来源（来源文件名，或配置显式 `currentVersion`）、将更新的新版本
-- **将写盘的文件清单**：含 CHANGELOG.md 与 Cargo.lock 的定向同步
-- **将执行的脚本与命令**：`scripts` 三槽位（preversion / version / postversion）、install（包管理器检测后的实际命令，如 `pnpm install`）、`execute`——逐条列出命令文本，均不执行
+- **将写盘的文件清单**：含 CHANGELOG.md 与 Cargo.lock
+- **将执行的脚本与命令**：`scripts`（preversion / version / postversion）、install（包管理器检测后的实际命令，如 `pnpm install`）、`execute`——逐条列出命令文本，均不执行
 - **git 动作完整文本**：`%s` 替换后的 commit message、tag 名、push 序列
 - **changelog 全文预览**：生成但不落盘、不提交；没有历史 git tag 时改为打印跳过原因
 
-**语义要点：**
+**要点：**
 
 - 前置校验失败照常报错、退出码 `1`（与真实执行一致）——dry-run 可直接当 CI 预检门禁
 - 版本选择交互保留（不定版本则无计划可预览）；零写盘无需二次确认，`Bump?` 这一步跳过
 - 传 `--provider` 时，bump 计划之后追加平台 Release 预览与 token 来源报告（同 `vbumpp release --dry-run` 的输出，见下节）
-- 全程不打印任何 success 行（✔），与真实执行的成功收尾明确区分
 
-**CI 预检用法：** 整个 bump 流程也能先干跑一遍做发布前检查——版本号非法、当前版本无法确定等前置校验失败即 `exit 1`，可阻塞流水线。
+**CI 预检用法：** 发版前先干跑一遍，版本号非法、当前版本无法确定等前置校验失败即 `exit 1`，可阻塞流水线。
 
 ```sh
 # 发版前干跑：预览完整计划，校验失败即 exit 1
@@ -151,7 +150,7 @@ vbumpp token list --host https://gitlab-a.com         # 只看某个实例
 vbumpp token remove gitee                             # 删除（先列清单再确认）
 ```
 
-`--host` 只支持 gitlab：set / remove 对其他 provider 带 `--host` 报错拒绝（目前只有 gitlab 有 host 配置通路）；list 的 `--host` 是实例过滤条件。host 写法宽松：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目（无 scheme 自动补 `https://`，显式 `http://` 原样保留；端口与路径保留）；`token list` 里 host 条目显示为 `gitlab (https://gitlab-a.com)`。
+`--host` 只支持 gitlab：set / remove 对其他 provider 带 `--host` 报错拒绝；list 的 `--host` 是实例过滤条件。host 写法宽松：`gitlab-a.com`、`https://gitlab-a.com/`、`HTTPS://GitLab-A.com` 归一为同一条目（归一规则见[平台 Release 指南](/docs/release#自建-gitlab-实例)）；`token list` 里 host 条目显示为 `gitlab (https://gitlab-a.com)`。
 
 ### remove 的交互矩阵
 

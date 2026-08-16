@@ -91,7 +91,7 @@ chore = { title = "🏡 框架" }
 | `all` | `false` | commit 时 `git add -A`（默认只提交实际更新的文件） |
 | `noVerify` | `false` | commit/tag 时跳过 git hooks |
 | `recursive` | `false` | monorepo 整树递归（等同 `-r`） |
-| `install` | `false` | 版本更新后按生态执行安装：JavaScript 执行 `<包管理器> install`、Cargo 执行 `cargo check --workspace`（详见[生态集成](/docs/ecosystem)） |
+| `install` | `false` | 版本更新后按生态执行后续安装命令：JavaScript 执行 `<包管理器> install`、Cargo 执行 `cargo check --workspace` 校验（详见[生态集成](/docs/ecosystem)） |
 | `ignoreScripts` | `false` | 跳过 `scripts` 里的全部命令 |
 | `execute` | — | 版本更新后额外执行的一条命令 |
 | `release` | — | 跳过交互直接指定版本算法（如 `"patch"`）或具体版本号 |
@@ -103,7 +103,7 @@ chore = { title = "🏡 框架" }
 | `gitlab` | — | 自建 GitLab，见[平台 Release 指南](/docs/release) |
 
 <Callout type="info">
-`files` 为空时的自动识别、以及 `recursive` 整树收集，都遵循 `.gitignore`：在 Git 仓库内，被 Git 忽略的文件不会进入扫描结果；非 Git 目录不读取 `.gitignore`。整树收集不按 `"private": true` 过滤——private 仅表示不发布，private 包的版本号随整树一并锁步（既定行为）。
+`files` 为空时的自动识别、以及 `recursive` 整树收集，都遵循 `.gitignore`：在 Git 仓库内，被 Git 忽略的文件不会进入扫描结果；非 Git 目录不读取 `.gitignore`。整树收集不按 `"private": true` 过滤——private 仅表示不发布，private 包的版本号随整树一并更新。
 </Callout>
 
 ## `scripts`：发版脚本
@@ -140,7 +140,7 @@ postversion = "npm run build"   # commit/tag 完成后、push 前
 | --- | --- | --- |
 | `output` | `"CHANGELOG.md"` | changelog 文件的写入路径（bump）与读取路径（`release` 补发）；CLI 的 `-o` 给出时优先于本配置 |
 | `types` | 英文分组标题（`🚀 Enhancements` 等） | commit 类型 → changelog 分组；声明顺序即分组顺序；某组填 `false` 则不出现在 changelog |
-| `types.X.excludeScopes` | `chore` 组内建 `["deps"]`，其余为 `[]` | 组内按 scope 精确排除提交（如 `chore(agent)` 不进 changelog）：与提交里写的 scope 原文精确匹配（大小写敏感、不受 `scopeMap` 改名影响）；命中的 breaking 提交照常显示；数组整体顶替内建（想保留 deps 过滤需重新列出），空数组关闭内建过滤 |
+| `types.X.excludeScopes` | `chore` 组内建 `["deps"]`，其余为 `[]` | 组内按 scope 精确排除提交（如 `chore(deps)` 不进 changelog）：与提交里写的 scope 原文精确匹配（大小写敏感、不受 `scopeMap` 改名影响）；命中的 breaking 提交照常显示；数组整体顶替内建（想保留 deps 过滤需重新列出），空数组关闭内建过滤 |
 | `repo` | 自动从 git remote 推断 | compare 链接用的仓库，`"owner/repo"` 形式 |
 | `scopeMap` | `{}` | commit scope 显示名替换 |
 | `noAuthors` | `false` | 不生成贡献者名单 |
@@ -149,7 +149,7 @@ postversion = "npm run build"   # commit/tag 完成后、push 前
 | `templates.tagBody` | `"v{{newVersion}}"` | changelog 里版本标题的格式 |
 | `commitMessage` | `"chore: update {{output}}"` | changelog 文件的提交信息 |
 
-按 scope 排除的典型用法——内务类提交（如 AI 辅助变更常用的 `agent` scope）不进 changelog：
+按 scope 排除的典型用法——内务类提交不进 changelog（这里以 `agent` scope 为例）：
 
 <Tabs items={['TOML', 'JSONC']}>
 <Tab value="TOML">
