@@ -17,6 +17,8 @@ napi/bumpp-core/index.d.ts
 .artifacts
 
 .zcode/plans
+.qoder
+.qoder-cn
 
 # napi 平台包目录：由 napi create-npm-dirs 从 napi.targets 生成（ADR-0029），不提交
 napi/darwin-arm64
