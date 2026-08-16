@@ -28,6 +28,8 @@ Rust 代码按三个顶层目录分层：
 
 Git 提交的标题和正文均不写 ADR 编号或 ADR 文件路径，也不以“新增/更新 ADR”作为变更主题；应直接描述本次确定或改变的实际行为、约束或架构。
 
+提交标题即 changelog 条目：本仓库 CHANGELOG 由提交标题自动生成、面向用户阅读，标题必须是用户看得懂的文案——按用户可感知的口径写「什么变了、带来什么效果」（如「文件层键名与类型双重校验——类型不符报错指出键路径与期望类型」），不写只有翻代码才能懂的实现口径（模块/函数改名、内部机制代号、重构手法）。类型前缀决定 changelog 分组（映射见 `.vbumpprc.toml` 的 `changelog.types`），按用户意义选型：用户可感知的行为变化选 feat/fix。例外：AI 相关配置与文案的变更（AGENTS.md、`docs/agents/` 等只面向 agent 的内容）用户在 changelog 里看到无意义——提交信息只用 `chore(agent):`（配置类）或 `docs(agent):`（文案类）两个 scope（如 `chore(agent): update AGENTS.md`）；COL-106 落地后这两个 scope 在 changelog 配置里统一忽略、不进 CHANGELOG，落地前这类提交仍会显示，非必要不发。
+
 ## Agent skills
 
 ### Issue tracker
