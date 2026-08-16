@@ -28,7 +28,7 @@ _Avoid_: npm scripts（上游旧义——从 package.json scripts 读取经 `npm
 _Avoid_: bump.config.json（旧名）、vbumpp.config（esconf 旧制，已移除）、YAML 配置（不支持，ADR-0013）
 
 **配置 Schema (Config schema)**:
-配置文件形状的机器可读描述（JSON Schema），自 vbumpp-core 内的配置形状单一事实源（Rust 结构体）机械生成，经 `vbumpp schema` 子命令输出（stdout 或 `--write` 落盘项目 `vbumpprc.schema.json` / 全局 `~/.vbumpp/schema.json`）。分发三路：SchemaStore 收录（编辑器对 `.vbumpprc.{json,jsonc,toml}` 零配置提示，TOML 侧由 Taplo 消费）、npm 包内副本、文档站 Pages 规范 URL；产物提交进仓库并以 CI 漂移腿防腐（ADR-0037）。
+配置文件形状的机器可读描述（JSON Schema），自 vbumpp-core 内的配置形状单一事实源（Rust 结构体）机械生成，经 `vbumpp schema` 子命令输出（stdout 或 `--write` 落盘项目 `vbumpprc.schema.json` / 全局 `~/.vbumpp/schema.json`）。分发两路：npm 包内副本、文档站 Pages 规范 URL——编辑器提示靠配置内显式 `$schema` 键 / Taplo `#:schema` 指令（含离线相对路径引用本地副本），不走 SchemaStore 收录；产物提交进仓库并以 CI 漂移腿防腐（ADR-0037）。
 _Avoid_: 配置校验器（schema 是形状描述物，校验是其消费方）、TS 类型门面（指 overrides 的编程式类型，另一条通路）
 
 **全局配置目录 (`~/.vbumpp/`)**:

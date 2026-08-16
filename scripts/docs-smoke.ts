@@ -22,7 +22,7 @@
  *     部署后轮询线上关键资源直到全部 200（Pages 有传播延迟，需重试）：
  *       <siteBaseUrl>/、<siteBaseUrl>/api/search、<siteBaseUrl>/llms.txt、
  *       <siteBaseUrl>/vbumpprc.schema.json（schema 的 Pages 规范 URL，
- *       SchemaStore 收录指向它——地址长期稳定是对外承诺）
+ *       用户 `$schema` / `#:schema` 引用与文档指向它——地址长期稳定是对外承诺）
  *     轮询预算可用环境变量覆盖（测试 stub 用）：
  *       DOCS_SMOKE_ROUNDS（默认 18）、DOCS_SMOKE_INTERVAL_MS（默认 10000）
  *

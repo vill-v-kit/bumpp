@@ -105,7 +105,7 @@ fn schema_descriptions_are_english_only() {
 
 #[test]
 fn every_field_carries_a_description() {
-  // schema 面向用户（编辑器提示 / SchemaStore），一个说明都不能缺：
+  // schema 面向用户（编辑器提示 / 文档站分发），一个说明都不能缺：
   // 递归展开 anyOf / oneOf / $ref，凡带 properties 的层，每个属性都
   // 必须携非空 description；$defs 各定义同理
   let schema = config_schema();
