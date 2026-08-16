@@ -151,11 +151,31 @@ postversion = "npm run build"   # commit/tag 完成后、push 前
 
 按 scope 排除的典型用法——内务类提交（如 AI 辅助变更常用的 `agent` scope）不进 changelog：
 
+<Tabs items={['TOML', 'JSONC']}>
+<Tab value="TOML">
+
 ```toml
 [changelog.types]
 chore = { title = "🏡 框架", excludeScopes = ["deps", "agent"] }
 docs = { excludeScopes = ["agent"] }
 ```
+
+</Tab>
+<Tab value="JSONC">
+
+```jsonc
+{
+  "changelog": {
+    "types": {
+      "chore": { "title": "🏡 框架", "excludeScopes": ["deps", "agent"] },
+      "docs": { "excludeScopes": ["agent"] }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
 
 ## 全局目录 `~/.vbumpp/`
 
