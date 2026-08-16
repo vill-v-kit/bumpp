@@ -1,5 +1,28 @@
 # Changelog
 
+## v6.3.0
+
+[compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.2.0...v6.3.0)
+
+### 🚀 特性
+
+- Changelog 类型分组新增 excludeScopes——按 scope 排除提交、breaking 提交一律显示 ([7eae653](https://github.com/vill-v-kit/bumpp/commit/7eae653))
+
+### 📖 文档
+
+- **website:** 配置示例提供 TOML / JSONC 双格式切换，补充编辑器补全与校验提示用法 (COL-105) ([9f6c027](https://github.com/vill-v-kit/bumpp/commit/9f6c027))
+- 配置文档 excludeScopes 示例补齐 JSONC 格式 ([3e961d9](https://github.com/vill-v-kit/bumpp/commit/3e961d9))
+- **website:** 文档站文案口径统一——「变体包 / 通路 / 锁步」等内部用词换成读者可懂的表述 ([58598eb](https://github.com/vill-v-kit/bumpp/commit/58598eb))
+- **website:** 平台覆盖描述改表格展示——快速上手精简决策表、npm 页覆盖表与 Intel Mac 警告、crates.io 页平台 × 安装方式完整矩阵 ([1b0613f](https://github.com/vill-v-kit/bumpp/commit/1b0613f))
+
+### 🏡 框架
+
+- Gitignore 补充忽略 .qoder / .qoder-cn IDE 本地目录 ([eefeb76](https://github.com/vill-v-kit/bumpp/commit/eefeb76))
+
+### ❤️ Contributors
+
+- Whitekite
+
 ## v6.2.0
 
 [compare changes](https://github.com/vill-v-kit/bumpp/compare/v6.1.2...v6.2.0)
