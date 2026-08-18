@@ -1,4 +1,4 @@
-// napi 链路冒烟（ADR-0016 三收缩后的导出面）：编排与 CLI 单入口可调用，
+// napi 链路冒烟（三收缩后的导出面）：编排与 CLI 单入口可调用，
 // 平台 Release 四导出、旧 parity 面与 token 三件套不再导出
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -27,7 +27,7 @@ try {
   ])
 }
 
-// ADR-0037 类型化边界：类型不符在 napi 边界即运行期错误（静默回落通路消除）。
+// 类型化边界：类型不符在 napi 边界即运行期错误（静默回落通路消除）。
 // 类型层经 @ts-expect-error 之外的显式 cast 绕过，模拟运行期传入错值
 const badOverrides = { commit: 123 } as unknown as Parameters<typeof bumpVersion>[0]
 try {
@@ -41,7 +41,7 @@ try {
   ])
 }
 
-// CLI 通路（ADR-0016：argv 全权归 Rust，返回退出码）
+// CLI 通路（argv 全权归 Rust，返回退出码）
 checks.push(['cliRun --version exits 0', (await cliRun(['--version'])) === 0])
 checks.push(['cliRun --help exits 0', (await cliRun(['--help'])) === 0])
 checks.push(['cliRun token list on empty store exits 0', (await cliRun(['token', 'list'])) === 0])

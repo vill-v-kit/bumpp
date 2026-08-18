@@ -6,7 +6,7 @@ const withMDX = createMDX();
 const config: NextConfig = {
   output: 'export',
   reactStrictMode: true,
-  // GitHub Pages 项目页子路径（ADR-0020）：vill-v-kit.github.io/bumpp
+  // GitHub Pages 项目页子路径：vill-v-kit.github.io/bumpp
   basePath: '/bumpp',
   images: {
     // 静态导出无服务端图片优化管线

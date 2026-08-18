@@ -1,5 +1,5 @@
 //! bump 默认命令：argv → overrides 构造与 provider 解析、真实执行，以及
-//! dry-run 计划渲染（COL-85）——平台 Release 计划行的渲染（print_release_plan）
+//! dry-run 计划渲染——平台 Release 计划行的渲染（print_release_plan）
 //! 在此，release 子命令的 dry-run 复用。
 
 use std::env;
@@ -17,11 +17,11 @@ use crate::orchestrate::{bump_version, BumpVersionOptions};
 use crate::plugins::FileVerdict;
 use crate::release::{missing_token_message, Provider, ReleasePlan};
 
-/// argv → overrides（旧 cli.ts 的 JS 对象构造收编后 COL-101 收窄）：
+/// argv → overrides（旧 cli.ts 的 JS 对象构造收编后收窄）：
 /// `recursive` 始终传；`changelog.output` 仅在显式 `-o` 时注入——cac 默认值
 /// 恒传的 parity 退场（CLI 默认不再覆盖配置文件的 `changelog.output`，
 /// 未给时配置优先、内建默认兜底）；`files` 仅在非空时注入——
-/// ADR-0013 浅合并语义，空 files 整体替换掉配置文件的 files 是旧 defu 行为。
+/// 浅合并语义，空 files 整体替换掉配置文件的 files 是旧 defu 行为。
 /// dry-run 注入 confirm=false——`Bump?` 确认在预览语义下跳过（零写盘无需
 /// 二次确认），经配置浅合并在流水线内生效，流水线零预览分支
 pub fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
@@ -39,7 +39,7 @@ pub fn bump_overrides(args: &BumpArgs) -> Map<String, Value> {
   overrides
 }
 
-/// provider 解析（ADR-0016）：argv `--provider` flag 优先于平台变体注入身份；
+/// provider 解析：argv `--provider` flag 优先于平台变体注入身份；
 /// 两者皆无为 None（bump 后不接 release；release 子命令在执行层判必填）
 pub fn resolve_provider(
   flag: Option<&str>,
@@ -96,10 +96,10 @@ pub(super) fn bump_command(
   }
 }
 
-/// bump dry-run（COL-85）：计划装配骑完整编排（预演与执行同路），此处只负责
+/// bump dry-run：计划装配骑完整编排（预演与执行同路），此处只负责
 /// 渲染——开头标识 dry run（全程无 success 行）、逐文件预演判定、版本与来源、
 /// 将写盘清单、脚本与命令文本、git 动作完整文本、changelog 全文预览、
-/// --provider 时的平台 Release 预览（COL-84 渲染同形）
+/// --provider 时的平台 Release 预览（渲染同形）
 fn bump_dry_run(
   options: &BumpVersionOptions,
   cwd: &Path,
@@ -165,7 +165,7 @@ fn bump_dry_run(
         }
         None => info_line(out, "changelog: skipped (no previous git tag)"),
       }
-      // --provider 组合：平台 Release 预览（COL-84 渲染同形）
+      // --provider 组合：平台 Release 预览（渲染同形）
       if let Some(release) = &plan.release {
         print_release_plan(release, out);
       }

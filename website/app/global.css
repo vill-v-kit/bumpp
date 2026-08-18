@@ -24,7 +24,7 @@ html > body[data-scroll-locked] {
   --removed-body-scroll-bar-size: 0px !important;
 }
 
-/* 首页演示终端（ADR-0036）：wterm CSS 变量对齐站点双主题——亮色用
+/* 首页演示终端：wterm CSS 变量对齐站点双主题——亮色用
    One Light 系浅色面板，暗色保持深色终端面板。类名双写只为抬升优先级
    （压过打包顺序在后的 .wterm 默认变量），骨架态与终端本体同用此类 */
 .demo-terminal.demo-terminal {

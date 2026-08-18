@@ -1,4 +1,4 @@
-//! Cargo 生态插件（ADR-0007）：trait 实现逐方法一行委托到能力子目录。
+//! Cargo 生态插件：trait 实现逐方法一行委托到能力子目录。
 //! 能力本体：`version/cargo`（清单识别 + 保格式更新判定 + Cargo.lock 定向同步
 //! 预检）、`install/cargo`（`cargo check --workspace`）、`recursive/cargo`
 //! （清单 basename 常量）。

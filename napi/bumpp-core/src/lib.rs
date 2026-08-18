@@ -1,10 +1,10 @@
 #![deny(clippy::all)]
 
-//! napi 导出面（ADR-0014 收缩、ADR-0016 再收缩、ADR-0016 三收缩后）：编排
+//! napi 导出面（收缩、 再收缩、 三收缩后）：编排
 //! `bumpVersion`、CLI 单入口 `cliRun`。平台 Release 四导出已删——独立
-//! release 由 CLI `vbumpp release` 子命令承接（ADR-0016）；上游 parity 面
+//! release 由 CLI `vbumpp release` 子命令承接；上游 parity 面
 //! （versionBump 系、loadBumpConfig）与 changelog 系函数收归 Rust 内部。
-//! `bumpVersion` 入参为类型化边界结构体（ADR-0037，见 `config` 模块）。
+//! `bumpVersion` 入参为类型化边界结构体（见 `config` 模块）。
 
 pub mod config;
 
@@ -32,7 +32,7 @@ fn to_napi_err(e: impl Display) -> Error {
 }
 
 // ---------------------------------------------------------------------------
-// CLI 单入口（ADR-0016：argv 语法唯一归属 Rust，Node 仅 argv 透传）
+// CLI 单入口（argv 语法唯一归属 Rust，Node 仅 argv 透传）
 // ---------------------------------------------------------------------------
 
 pub struct CliRunTask {
@@ -62,7 +62,7 @@ pub fn cli_run(argv: Vec<String>, provider: Option<String>) -> AsyncTask<CliRunT
 }
 
 // ---------------------------------------------------------------------------
-// bumpVersion 编排（ADR-0014：JS bump.ts 的 Rust 收编）
+// bumpVersion 编排（JS bump.ts 的 Rust 收编）
 // ---------------------------------------------------------------------------
 
 /// 上游 `operation.state` 的形状
@@ -108,7 +108,7 @@ pub struct GenerateChangelogResult {
   pub changelog_md: String,
 }
 
-/// `bumpVersion` 返回（ADR-0014 收缩后的 `BumpVersion` 形状）
+/// `bumpVersion` 返回（收缩后的 `BumpVersion` 形状）
 #[napi(object)]
 pub struct BumpVersionResult {
   pub bumpp: BumpState,
@@ -138,7 +138,7 @@ impl Task for BumpVersionTask {
         })
       })
       .transpose()?;
-    // 类型化边界产物转合并层载体（ADR-0037：结构体是校验载体，Map 是合并载体）
+    // 类型化边界产物转合并层载体（结构体是校验载体，Map 是合并载体）
     let overrides = self.overrides.take().map(BumpConfig::into_map);
     let outcome = orchestrate::bump_version(
       &orchestrate::BumpVersionOptions {
@@ -164,7 +164,7 @@ impl Task for BumpVersionTask {
 
 /// 完整 bump 编排：统一配置解析 → 交互选版本 → changelog → 文件/脚本/git →
 /// 可选平台 Release（`provider` 传 'github' | 'gitlab' | 'gitee' | 'gitcode' 时）。
-/// `overrides` 为类型化配置覆盖（ADR-0037：类型不符在边界即运行期报错）
+/// `overrides` 为类型化配置覆盖（类型不符在边界即运行期报错）
 #[napi]
 pub fn bump_version(
   overrides: Option<BumpConfig>,

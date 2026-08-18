@@ -1,4 +1,4 @@
-//! gitmoji 数据表（ADR-0012）：convert-gitmoji@0.1.5 的 74 条官方映射原样内建。
+//! gitmoji 数据表：convert-gitmoji@0.1.5 的 74 条官方映射原样内建。
 //!
 //! 原实现 `convert(content, true)`：全文本大小写不敏感替换 `:code:` 为
 //! emoji + 尾随空格。原实现以未转义键名拼正则（`+` 等字符沦为量词），

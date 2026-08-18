@@ -1,9 +1,9 @@
 /**
- * 发版包 LICENSE 一致性校验（COL-24）：各发包目录的 LICENSE 必须与根 LICENSE
+ * 发版包 LICENSE 一致性校验：各发包目录的 LICENSE 必须与根 LICENSE
  * 逐字节一致——MIT 要求软件副本携带版权与许可文本，发版包即"副本"的载体。
  * 新增发版包时忘记放置副本，或根 LICENSE 更新后未同步，都会在此报错。
  *
- * 扫描 `npm/`（面向用户的包）与 `napi/`（内部机制包，ADR-0005）两个发版目录。
+ * 扫描 `npm/`（面向用户的包）与 `napi/`（内部机制包）两个发版目录。
  * 用法：pnpm check:licenses（CI 的 test job 同步执行）
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs'

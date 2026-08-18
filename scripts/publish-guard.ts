@@ -1,5 +1,5 @@
 /**
- * 上架幂等守卫（COL-51，ADR-0021 决策⑤）：查询目标 registry 上「包名 + 版本」
+ * 上架幂等守卫（决策⑤）：查询目标 registry 上「包名 + 版本」
  * 是否已存在，供 publish-npm / publish-crates 两个 CI job 以同一语义消费——
  * 部分上架失败后「Re-run failed jobs」时，已上架的包自动跳过、未上架的补发。
  *

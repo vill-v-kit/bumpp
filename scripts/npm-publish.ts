@@ -1,8 +1,8 @@
 /**
- * npm 上架（COL-53，ADR-0021 决策⑤的消费侧）：枚举 workspace 全部非 private 包
+ * npm 上架：枚举 workspace 全部非 private 包
  * （当前恰好 13 个——website 与根 monorepo 为 private 自动排除；7 个平台包目录
- * 由 create-npm-dirs 生成、不提交进 git，ADR-0029），逐一过
- * publish-guard（COL-51）查询 registry，只对未上架的包执行 `pnpm publish`。
+ * 由 create-npm-dirs 生成、不提交进 git），逐一过
+ * publish-guard 查询 registry，只对未上架的包执行 `pnpm publish`。
  * 已上架包跳过、查询失败整体不放行——「Re-run failed jobs」重跑即收敛。
  *
  * 用法（ci.yml publish-npm job）：
@@ -20,7 +20,7 @@
  *   - 全部已上架 → 打印 nothing to do、exit 0（不调用 pnpm publish）
  *   - 全新包名：GO 包逐个查包级文档，404 = 包名从未上架 → CI（OIDC 上下文）
  *     非 dry-run 整体拦停 exit 2 + 打印首发仪式指引；本地手动首发是仪式
- *     本身，仅警告不拦（ADR-0031 首发仪式触发绑定的闭环）
+ * 本身，仅警告不拦（首发仪式触发绑定的闭环）
  *   - 有未上架 → pnpm [--filter <包名>]×N publish -r --no-git-checks [--dry-run]
  *     （--filter 置于全局位：publish 子命令位上多个 --filter 会被 pnpm 参数解析
  *     当成非法；pnpm 原生拓扑序——平台包 → core → 用户包——不受影响），

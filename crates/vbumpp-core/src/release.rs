@@ -1,5 +1,5 @@
-//! 平台 Release（ADR-0014）：github / gitlab / gitee / gitcode 的 release 创建。
-//! 布局（ADR-0014）：每 provider 单文件——github / gitee / gitcode 为薄文件
+//! 平台 Release：github / gitlab / gitee / gitcode 的 release 创建。
+//! 布局：每 provider 单文件——github / gitee / gitcode 为薄文件
 //! （各持 base_url 与 token 注入形态：Bearer 头 / 请求体字段 / query 参数），
 //! 请求体语义的单一事实源在 github_like.rs；gitlab.rs 全特化（`PRIVATE-TOKEN`
 //! 头 + 项目 id 直查 + `gitlab.host` 解析随文件，自建实例严格 schema 仅 host 一键）。
@@ -10,7 +10,7 @@
 //!
 //! token 解析链统一为：Token 存储 → 各家环境变量 →（仅 github）`gh auth token`
 //! 兜底；gitlab 在存储级内先 host 作用域精确键（`gitlab@<有效 host>`）、再
-//! provider 级键回落。明文 token 不出本模块（ADR-0014：不跨 napi 边界）——
+//! provider 级键回落。明文 token 不出本模块（不跨 napi 边界）——
 //! 错误消息经 `ReleaseError::redact` 脱敏（原始与 form 编码形态都替换为掩码）。
 
 use std::collections::BTreeMap;
@@ -79,7 +79,7 @@ impl Provider {
     }
   }
 
-  /// 环境变量回退链（ADR-0014：github 为 GH_TOKEN → GITHUB_TOKEN——拼错的
+  /// 环境变量回退链（：github 为 GH_TOKEN → GITHUB_TOKEN——拼错的
   /// GITHOB_TOKEN 已随重写移除；其余三家补 CI 场景缺失的环境变量通道）
   fn env_vars(self) -> &'static [&'static str] {
     match self {
@@ -112,7 +112,7 @@ impl fmt::Display for ReleaseError {
 
 impl Error for ReleaseError {}
 
-/// 脱敏原语（ADR-0014）：token 的**原始形态与 form 编码形态**都替换为掩码——
+/// 脱敏原语：token 的**原始形态与 form 编码形态**都替换为掩码——
 /// `ReleaseError::redact`（报错）与 dry-run 计划预览（拦截请求行）共用的
 /// 单一事实源；空 token 原样返回（replace 空串会处处插入掩码）
 pub(crate) fn scrub_token(text: &str, token: &str) -> String {
@@ -125,7 +125,7 @@ pub(crate) fn scrub_token(text: &str, token: &str) -> String {
 }
 
 impl ReleaseError {
-  /// 报错脱敏（ADR-0014："明文 token 不出本模块"对错误消息同样成立）：
+  /// 报错脱敏（"明文 token 不出本模块"对错误消息同样成立）：
   /// gitcode 经 query 注入 token，ureq 传输报错可能含完整 URL；服务端错误
   /// 回显（check_status 提取的 message / 原始响应体）亦属不可控输入，
   /// 两家形态都可能出现
@@ -213,7 +213,7 @@ pub fn create_release_with(
 
 /// gitlab 有效 host（token 键化与缺失文案消费）：四层合并配置的 `gitlab.host`，
 /// 缺省 `https://gitlab.com`（合成归 gitlab.rs 单一事实源）；非 gitlab 返回
-/// None。键化经 COL-79 同一规范化函数（调用方负责），本函数只产出配置的原始串
+/// None。键化经同一规范化函数（调用方负责），本函数只产出配置的原始串
 pub(crate) fn effective_host(
   provider: Provider,
   cwd: &Path,
@@ -286,7 +286,7 @@ pub enum TokenSource {
 }
 
 impl TokenSource {
-  /// 用户可见的来源描述（ADR-0017 用户可见字符串英文唯一）
+  /// 用户可见的来源描述（用户可见字符串英文唯一）
   pub fn describe(&self) -> String {
     match self {
       Self::Store => "token store".to_owned(),
@@ -303,7 +303,7 @@ pub struct ResolvedToken {
   pub source: TokenSource,
 }
 
-/// 解析链纯核（ADR-0014）：store → 各家环境变量 →（仅 github）gh CLI；
+/// 解析链纯核：store → 各家环境变量 →（仅 github）gh CLI；
 /// gitlab 在 store 级内先 host 作用域精确键（`gitlab@<有效 host>`，与
 /// `token set --host` 同一规范化函数键化）、再 provider 级键回落——回落是
 /// 向后兼容硬要求（存量自建实例用户的 token 都在 provider 级键下）。

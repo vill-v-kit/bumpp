@@ -1,5 +1,5 @@
 /**
- * regen-schema.ts 的 CLI 契约测试（COL-104）。
+ * regen-schema.ts 的 CLI 契约测试。
  * Seam：二进制解析与落盘契约——临时 git 仓库搭 fixture，VBUMPP_BIN 指向 stub
  * 可执行（shebang node 脚本吐固定内容），不依赖真实 cargo 构建。
  */

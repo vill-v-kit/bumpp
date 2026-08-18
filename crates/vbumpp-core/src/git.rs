@@ -1,6 +1,6 @@
 //! git 操作：shell out 到 `git` 二进制（继承用户 git config / SSH / GPG / credential helper）。
 //! 写操作（commit / tag / push）对齐上游 bumpp v11；只读历史操作（tag / diff / branch /
-//! remote 解析）对齐 changelogen 0.6.2 同名函数（ADR-0012）。
+//! remote 解析）对齐 changelogen 0.6.2 同名函数。
 
 use std::collections::HashSet;
 use std::fs;
@@ -13,7 +13,7 @@ use crate::effects::{Effects, RealEffects};
 use crate::exec::{capture, capture_with_stdin, ExecError};
 use crate::progress::ProgressEvent;
 
-/// gitignore 批量裁决（COL-61 收集层）：返回 `paths` 中被 gitignore 命中的
+/// gitignore 批量裁决（收集层）：返回 `paths` 中被 gitignore 命中的
 /// 子集（cwd 相对路径，一次进程；语义含 .gitignore 层级 + .git/info/exclude +
 /// core.excludesFile，git 本体裁决）。非 git 仓库 / 子进程失败返回 None——
 /// 调用方 fail-open 回落不过滤（本过滤是发版卫生而非正确性）
@@ -44,7 +44,7 @@ pub fn check_ignored(cwd: &Path, paths: &[String]) -> Option<Vec<String>> {
   }
 }
 
-/// git 已跟踪文件批量过滤（COL-61 commit 兜底层）：返回 `paths` 中已纳入
+/// git 已跟踪文件批量过滤（commit 兜底层）：返回 `paths` 中已纳入
 /// git 跟踪的子集，**保持输入形态**（`git ls-files` 一次进程，字面
 /// pathspec——updated_files 是精确文件路径，禁 glob 魔术；ls-files 输出
 /// 为 cwd 相对路径，按 strip_prefix 回映射）。**输入契约**：cwd 下的绝对
@@ -197,7 +197,7 @@ pub struct RawCommit {
   pub short_hash: String,
   pub author: GitAuthor,
   /// 提交正文（`%b`）与 `--name-status` 行——对齐 changelogen 原解析，
-  /// 展示层（ADR-0012）自行取舍
+  /// 展示层自行取舍
   pub body: String,
 }
 

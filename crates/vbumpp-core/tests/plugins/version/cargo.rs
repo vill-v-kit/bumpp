@@ -1,4 +1,4 @@
-//! Cargo.toml 插件矩阵（ADR-0003）：toml_edit 保格式更新 `[package].version`，
+//! Cargo.toml 插件矩阵：toml_edit 保格式更新 `[package].version`，
 //! workspace 继承探测，按 crate name 定向同步 `Cargo.lock` 的 `[[package]]` 条目。
 
 use std::fs;
@@ -119,7 +119,7 @@ fn missing_version_is_skipped() {
 #[test]
 fn workspace_inherited_member_is_skipped_untouched() {
   let dir = TempDir::new().unwrap();
-  // 成员继承根版本：强写字面量会破坏继承，按 ADR-0003 跳过（根清单作为显式文件项自行处理）
+  // 成员继承根版本：强写字面量会破坏继承，跳过（根清单作为显式文件项自行处理）
   let original = "[package]\nname = \"demo\"\nversion.workspace = true\n";
   write(&dir, "Cargo.toml", original);
   let outcome = bump(&dir).unwrap();
@@ -278,7 +278,7 @@ fn lock_is_discovered_by_walking_up_ancestors() {
 #[test]
 fn invalid_toml_is_an_error_and_file_stays_untouched() {
   let dir = TempDir::new().unwrap();
-  // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错，
+  // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（失败即报错，
   // 与 JsManifest 通道的上游容错 parity 是有意的不对称）
   let original = "{ not toml";
   write(&dir, "Cargo.toml", original);
@@ -302,7 +302,7 @@ fn unparseable_lock_is_an_error() {
   assert_eq!(read(&dir, "Cargo.toml"), original);
 }
 
-// ---- read_version（ADR-0007：版本解析生态化，经链分发公开面） ----
+// ---- read_version（版本解析生态化，经链分发公开面） ----
 
 use vbumpp_core::plugins::dispatch_read_version;
 

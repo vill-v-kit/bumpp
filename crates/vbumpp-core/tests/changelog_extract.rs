@@ -1,4 +1,4 @@
-//! changelog 版本节提取（ADR-0016 release 重试通路）单元测试：节边界、
+//! changelog 版本节提取（release 重试通路）单元测试：节边界、
 //! 头形态、前缀不匹配矩阵。
 
 use vbumpp_core::changelog::extract_version_section;

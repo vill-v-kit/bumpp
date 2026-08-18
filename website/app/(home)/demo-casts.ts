@@ -1,5 +1,5 @@
 // 本文件由 website/scripts/capture-home-demo-cast.sh 生成，勿手改。
-// 内容：首页滚动演示（ADR-0036）四段——`vbumpp --dry-run` 单包计划预览、
+// 内容：首页滚动演示四段——`vbumpp --dry-run` 单包计划预览、
 // `vbumpp -r --dry-run` monorepo 整树计划（含 private 包锁步）、
 // `vbumpp release 1.1.0 --dry-run --provider github` 平台 Release 补发预览
 //（token 来源为预置加密 keyring，假 token）、`vbumpp token list` 加密

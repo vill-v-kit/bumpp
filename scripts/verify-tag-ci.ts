@@ -1,5 +1,5 @@
 /**
- * 发版 tag CI 触发核验（COL-62）：v6.0.0 实例——tag push 的 ref 更新到达 GitHub，
+ * 发版 tag CI 触发核验：v6.0.0 实例——tag push 的 ref 更新到达 GitHub，
  * 但其下游事件被丢失，两个 workflow 零 run、零 check-suite，上架静默不发生；
  * 删 tag 重推即恢复。本脚本在 tag 推送后轮询 Actions runs，把「事件丢失」
  * 从事后人工察觉（本实例滞后 8 分钟）变成发版当场告警。
@@ -109,7 +109,7 @@ if (!everOk) {
 }
 
 console.error(
-  `LOST ${tag} — no workflow run within ${Math.round(timeoutMs / 1000)}s; the tag push event was likely dropped by GitHub (COL-62)`,
+  `LOST ${tag} — no workflow run within ${Math.round(timeoutMs / 1000)}s; the tag push event was likely dropped by GitHub`,
 )
 console.error('')
 console.error('recover by deleting and re-pushing the tag (same object, forces a fresh push event):')

@@ -1,4 +1,4 @@
-//! Gitee release（ADR-0014 薄文件）：base_url + token 注入形态
+//! Gitee release（薄文件）：base_url + token 注入形态
 //! （请求体 `access_token` 字段）；请求体语义共享自 github_like。
 
 use std::path::Path;

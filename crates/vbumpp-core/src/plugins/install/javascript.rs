@@ -1,6 +1,6 @@
-//! JavaScript 生态 install 适配（ADR-0007）：检测包管理器后执行 `<pm> install`。
+//! JavaScript 生态 install 适配：检测包管理器后执行 `<pm> install`。
 //!
-//! 检测对齐上游 package-manager-detector 的默认行为（ADR-0006）：逐级向上爬
+//! 检测对齐上游 package-manager-detector 的默认行为：逐级向上爬
 //! 目录（目录为外层循环）；每级目录内依次检测 lockfile → 顶层 packageManager
 //! 字段 → devEngines.packageManager 声明，值不识别时 fall through。agent /
 //! lockfile 名单对齐上游 `AGENTS` / `LOCKS` 常量；devEngines 声明只消费
@@ -84,7 +84,7 @@ pub fn detect_package_manager(cwd: &Path) -> Result<&'static str, PmError> {
 
 /// 每级目录的 package.json 声明检测：JSONC 容错解析；两种声明均不识别返回
 /// None（fall through 到其他目录，而非误判为 npm）。同级顺序：顶层
-/// packageManager → devEngines.packageManager（ADR-0006）
+/// packageManager → devEngines.packageManager
 fn detect_from_package_json(dir: &Path) -> Option<&'static str> {
   let text = fs::read_to_string(dir.join("package.json")).ok()?;
   let jsonc_parser::ast::Value::Object(root) = jsonc::parse(&text)? else {
@@ -106,7 +106,7 @@ fn detect_from_package_manager_field(root: &jsonc_parser::ast::Object) -> Option
   known_agent(field.value.split('@').next()?)
 }
 
-/// devEngines.packageManager 声明（ADR-0006）：只接受单个对象且只消费
+/// devEngines.packageManager 声明：只接受单个对象且只消费
 /// `name`（version / onFail / 未知属性不参与调度）；字符串、数组、缺失或
 /// 非字符串 name、未知名称一律宽容回退 None
 fn detect_from_dev_engines_field(root: &jsonc_parser::ast::Object) -> Option<&'static str> {

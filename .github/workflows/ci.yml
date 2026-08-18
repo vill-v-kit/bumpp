@@ -4,7 +4,7 @@ env:
   DEBUG: napi:*
 
 on:
-  # 仅在版本 tag（v*）推送时触发：发版构建与全平台测试；全绿后 publish-npm / publish-crates 并行自动上架（ADR-0021）
+  # 仅在版本 tag（v*）推送时触发：发版构建与全平台测试；全绿后 publish-npm / publish-crates 并行自动上架
   push:
     tags:
       - 'v*'
@@ -37,7 +37,7 @@ jobs:
           workspaces: ". -> target"
 
       - name: Generate platform packages (create-npm-dirs + LICENSE)
-        # 平台包目录不提交进 git（ADR-0029）：先生成，check-licenses 与
+        # 平台包目录不提交进 git：先生成，check-licenses 与
         # npm-publish 契约测试才覆盖到 7 个平台包的真实发版态
         run: pnpm create:npm-dirs
 
@@ -56,7 +56,7 @@ jobs:
       - name: vitest
         run: pnpm test run
 
-      # ADR-0037 防腐腿（COL-104）：重跑两处 schema 产物再生并 diff 提交物——
+      # 防腐腿：重跑两处 schema 产物再生并 diff 提交物——
       # 配置形状变更后忘再生、或手改产物，显式暴露而非静默发生。挂在 test 腿：
       # npm 包副本随包上架直接到用户手里，漂移必须拦在 publish 之前。
       # 二进制须显式构建：cargo test 对无集成测试的 bin crate 只编 deps/ 测试体，
@@ -67,7 +67,7 @@ jobs:
       - name: schema artifact drift check
         run: pnpm check:schema
 
-  # ADR-0036 防腐腿（COL-93）：重跑首页演示采集并 diff 提交产物——CLI 输出
+  # 防腐腿：重跑首页演示采集并 diff 提交产物——CLI 输出
   # 变更后演示腐烂显式暴露，而非静默发生。macOS 宿主：采集脚本依赖 BSD
   # script(1) 的 -q /dev/null 语法。不进 publish 的 needs——演示漂移是网站
   # 内容问题，不拦 npm/crates 上架。
@@ -113,7 +113,7 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             triple: linux-x64-gnu
-          # ADR-0025：zig 链取代 --use-napi-cross（上古 gcc 4.8.5）。napi CLI 的
+          # zig 链取代 --use-napi-cross（上古 gcc 4.8.5）。napi CLI 的
           # target 校验不收 glibc 后缀，故这条腿直呼 cargo zigbuild pin glibc，
           # 产物按 napi 命名规范落名；index.js/index.d.ts 由其余 napi CLI 腿供给
           - host: ubuntu-latest
@@ -123,7 +123,7 @@ jobs:
             glibc: '2.17'
           # musl 两腿：napi CLI 原生 --cross-compile（内部路由 cargo-zigbuild，
           # 自动 -C target-feature=-crt-static），无需像 arm64-gnu 那样绕过 CLI——
-          # musl 是合法 rust triple 无 glibc 后缀，target 校验直接收（ADR-0025）
+          # musl 是合法 rust triple 无 glibc 后缀，target 校验直接收
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             triple: linux-x64-musl
@@ -180,7 +180,7 @@ jobs:
              "napi/bumpp-core/bumpp-core.${{ matrix.settings.triple }}.node"
 
       - name: Assert glibc floor <= ${{ matrix.settings.glibc }}
-        # COL-63 验收：公开分发平台包，抬 glibc 下限等于静默砍老发行版用户。
+        # 验收：公开分发平台包，抬 glibc 下限等于静默砍老发行版用户。
         # 判据是「最高被引用版本 ≤ pin 值」——不是全等：产物引用低于 pin 的版本
         # 合法（sort -V 取末位即最高），GLIBC_PRIVATE 无版本号故不参与比较
         if: ${{ matrix.settings.glibc }}
@@ -213,7 +213,7 @@ jobs:
       - name: Upload artifact (zigbuild leg：.node only)
         # 不经 napi CLI 故无 js/dts 产出，由其余 napi CLI 腿供给（publish-npm 经
         # merge-multiple 合并同名文件，内容一致；前提是至少一条 napi CLI 腿存活
-        # ——若将来更多腿转 zigbuild，需另立 js/dts 供给步骤，见 ADR-0025）
+        # ——若将来更多腿转 zigbuild，需另立 js/dts 供给步骤）
         if: ${{ matrix.settings.glibc }}
         uses: actions/upload-artifact@v7
         with:
@@ -253,13 +253,13 @@ jobs:
           name: bindings-${{ matrix.settings.triple }}
           path: napi/bumpp-core
 
-      # 平台包目录不再提交（ADR-0029）：loader 直接走本包根目录的本地 .node
+      # 平台包目录不再提交：loader 直接走本包根目录的本地 .node
       # fallback，无需把产物拷进平台包目录。smoke 端到端跑生成物 loader：
       # 加载 → 导出面 → cliRun 通路 → 平台变体 bin 注入
       - name: Test bindings
         run: node napi/bumpp-core/smoke.ts
 
-  # COL-63 加分项：交叉产物过 qemu-arm64 容器实跑（加载 + 导出面）。
+  # 加分项：交叉产物过 qemu-arm64 容器实跑（加载 + 导出面）。
   # 不进 publish 的 needs——交叉腿实测是额外信心，非上架前置（napi-rs 生态含 oxc 均不测交叉腿）
   test-bindings-arm64-smoke:
     name: smoke - linux-arm64-gnu (qemu)
@@ -293,16 +293,16 @@ jobs:
               }
             '
 
-  # ADR-0021 决策①②：tag 推送即授权，无人工批准门；与 publish-crates 并行。
+  # tag 推送即授权，无人工批准门；与 publish-crates 并行。
   # 部分失败后「Re-run failed jobs」是唯一恢复手段——skip-if-published 守卫
-  # （COL-51/53）让已上架包自动跳过、未上架包补发，job 可任意次重跑。
+  # 让已上架包自动跳过、未上架包补发，job 可任意次重跑。
   publish-npm:
     name: publish npm
     needs: [test, build, test-bindings]
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # OIDC trusted publishing（ADR-0021 决策④终态）：id-token 换短期 token 发布，无长效凭证
+      # OIDC trusted publishing：id-token 换短期 token 发布，无长效凭证
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -324,7 +324,7 @@ jobs:
           merge-multiple: true
 
       - name: Generate platform packages (create-npm-dirs + LICENSE)
-        # 平台包目录由 napi.targets 单一真相源生成，不提交进 git（ADR-0029）：
+        # 平台包目录由 napi.targets 单一真相源生成，不提交进 git：
         # create-npm-dirs 生成 napi/<triple>/（package.json + README），脚本补 LICENSE
         run: pnpm create:npm-dirs
 
@@ -368,18 +368,18 @@ jobs:
       - name: Publish (skip-if-published 守卫过滤后上架)
         # npm-publish.ts：守卫过滤未上架包 → pnpm [--filter]×N publish -r --no-git-checks
         # （查询失败 exit 2 拦停；13 包全已上架则空计划收工；pnpm 拓扑序原生处理）
-        # 认证：OIDC trusted publishing（ADR-0021 决策④终态）——pnpm 自动用
+        # 认证：OIDC trusted publishing——pnpm 自动用
         # id-token 换短期 token（无需 ~/.npmrc 与长效 NPM_TOKEN；provenance 随 OIDC 自动附加）
         run: node scripts/npm-publish.ts
 
-  # ADR-0021 决策①③：与 publish-npm 并行、无人工批准门；可任意次重跑收敛
+  # 与 publish-npm 并行、无人工批准门；可任意次重跑收敛
   publish-crates:
     name: publish crates
     needs: [test, build, test-bindings]
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # OIDC trusted publishing（ADR-0021 决策④终态）：crates-io-auth-action 换短期 token
+      # OIDC trusted publishing：crates-io-auth-action 换短期 token
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -399,7 +399,7 @@ jobs:
           fi
 
       - name: Authenticate with crates.io (OIDC trusted publishing)
-        # ADR-0021 决策④终态：GitHub OIDC token 换 crates.io 短期 token，无需长效 CARGO_REGISTRY_TOKEN
+        # GitHub OIDC token 换 crates.io 短期 token，无需长效 CARGO_REGISTRY_TOKEN
         uses: rust-lang/crates-io-auth-action@v1
         id: auth
 

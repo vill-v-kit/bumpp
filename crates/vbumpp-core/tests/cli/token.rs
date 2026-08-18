@@ -1,5 +1,5 @@
 //! token 子命令行为矩阵（镜像 src/cli/token.rs）：set / list / remove 三动作、
-//! remove 交互矩阵（ADR-0035）与 flag 扫描 helper 的单元测试。
+//! remove 交互矩阵与 flag 扫描 helper 的单元测试。
 
 use std::path::PathBuf;
 

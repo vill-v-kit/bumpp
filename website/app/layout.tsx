@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import './global.css';
 
 export const metadata: Metadata = {
-  // GitHub Pages 项目页（ADR-0020）：OG/Twitter 图片绝对 URL 的解析基准
+  // GitHub Pages 项目页：OG/Twitter 图片绝对 URL 的解析基准
   metadataBase: new URL('https://vill-v-kit.github.io/bumpp'),
   title: {
     default: 'vbumpp 文档',

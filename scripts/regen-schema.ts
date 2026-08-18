@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * schema 产物再生（COL-104）：调 `vbumpp schema` stdout 通路（ADR-0037），
+ * schema 产物再生：调 `vbumpp schema` stdout 通路，
  * 再生提交进仓库的两处 schema JSON 产物：
  *
  *   npm/bump/vbumpprc.schema.json        npm 包内副本（用户本地引用、cargo

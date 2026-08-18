@@ -56,7 +56,7 @@ fn bump_defaults() {
   let args = parse_bump_args(&[]);
   assert!(args.files.is_empty());
   assert!(!args.recursive);
-  // COL-101：`-o` 未给出即 None——不再物化 cac 默认值，消费侧回落配置
+  // `-o` 未给出即 None——不再物化 cac 默认值，消费侧回落配置
   assert!(args.output.is_none());
 }
 
@@ -116,7 +116,7 @@ fn bump_missing_output_value_errors() {
 
 #[test]
 fn overrides_omit_empty_files() {
-  // ADR-0013 浅合并语义锚定：空 files 不注入键
+  // 浅合并语义锚定：空 files 不注入键
   let overrides = bump_overrides(&BumpArgs {
     files: vec![],
     recursive: false,
@@ -126,14 +126,14 @@ fn overrides_omit_empty_files() {
   });
   assert!(!overrides.contains_key("files"));
   assert_eq!(overrides["recursive"], json!(false));
-  // COL-101：`-o` 未给出时 changelog 段不注入——配置文件的
+  // `-o` 未给出时 changelog 段不注入——配置文件的
   // `changelog.output` 不再被 CLI 默认值覆盖
   assert!(!overrides.contains_key("changelog"));
 }
 
 #[test]
 fn overrides_inject_output_only_when_explicit() {
-  // COL-101：显式 `-o` 照常注入（flag 优先于配置）
+  // 显式 `-o` 照常注入（flag 优先于配置）
   let overrides = bump_overrides(&BumpArgs {
     files: vec![],
     recursive: false,
@@ -179,7 +179,7 @@ fn bump_provider_flag_forms() {
 
 #[test]
 fn provider_flag_beats_injection() {
-  // ADR-0016 优先级锚定：argv flag > 平台变体注入
+  // 优先级锚定：argv flag > 平台变体注入
   let resolved = resolve_provider(Some("gitee"), Some("github")).unwrap();
   assert_eq!(resolved, Some(Provider::Gitee));
   let resolved = resolve_provider(None, Some("github")).unwrap();
@@ -209,7 +209,7 @@ fn release_parses_version_and_flags() {
     Ok(Command::Release(args)) => {
       assert_eq!(args.version, "v5.1.0");
       assert_eq!(args.provider.as_deref(), Some("gitlab"));
-      // COL-101：未给 `-o` 即 None——执行层回落配置 changelog.output
+      // 未给 `-o` 即 None——执行层回落配置 changelog.output
       assert!(args.output.is_none());
     }
     other => panic!("应为 Release，实际 {other:?}"),
@@ -296,7 +296,7 @@ fn release_parses_dry_run_flag() {
 }
 
 // ---------------------------------------------------------------------------
-// schema 子命令（ADR-0037）：仅三个布尔 flag，无位置参数与短形态
+// schema 子命令：仅三个布尔 flag，无位置参数与短形态
 // ---------------------------------------------------------------------------
 
 #[test]

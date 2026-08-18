@@ -1,5 +1,5 @@
 /**
- * 平台包目录生成（ADR-0029）：以 `napi/bumpp-core/package.json` 的 `napi.targets`
+ * 平台包目录生成：以 `napi/bumpp-core/package.json` 的 `napi.targets`
  * 为单一真相源，调 `napi create-npm-dirs` 在 `napi/<triple>/` 生成全部平台包
  * （package.json + README.md），再把根 LICENSE 同步进每个平台包目录——
  * create-npm-dirs 本身不写 LICENSE，而 MIT 要求发版副本携带许可文本
@@ -8,7 +8,7 @@
  * 用法：pnpm create:npm-dirs（发版 CI 的 publish-npm job 与本地复现共用）
  *
  * 平台包目录 gitignore 不跟踪：fresh clone 无此目录，optionalDependencies 的
- * workspace:* 被 pnpm 静默跳过，loader 走本地 .node fallback（ADR-0029）。
+ * workspace:* 被 pnpm 静默跳过，loader 走本地 .node fallback。
  */
 import { spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, readdirSync, readFileSync } from 'node:fs'

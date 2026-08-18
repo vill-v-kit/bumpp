@@ -1,5 +1,5 @@
 /**
- * 平台包 .node 注入（ADR-0029）：调 `napi artifacts` 把汇聚的各平台 `.node`
+ * 平台包 .node 注入：调 `napi artifacts` 把汇聚的各平台 `.node`
  * 按文件名分发进 `napi/<triple>/` 平台包目录，并把 `index.js`/`index.d.ts` 归位 core。
  *
  * `napi artifacts` 要求 `napi.targets` 全部 target 的产物齐备（缺一即硬失败），
@@ -20,7 +20,7 @@ const napiBin = fileURLToPath(
 )
 const outputDir = process.argv[2] ?? '.artifacts'
 
-// index.js/index.d.ts 由 napi CLI 腿同车捎带（zigbuild 腿不产出，ADR-0025），先归位 core
+// index.js/index.d.ts 由 napi CLI 腿同车捎带（zigbuild 腿不产出），先归位 core
 copyFileSync(join(outputDir, 'index.js'), join(root, 'napi/bumpp-core/index.js'))
 copyFileSync(join(outputDir, 'index.d.ts'), join(root, 'napi/bumpp-core/index.d.ts'))
 

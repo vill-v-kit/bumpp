@@ -20,24 +20,24 @@ pub struct BumpArgs {
   pub files: Vec<String>,
   pub recursive: bool,
   /// `-o` / `--output` 的显式值；None = 未给出——消费侧回落配置
-  /// `changelog.output` 与内建默认（COL-101：不再物化 cac 默认值）
+  /// `changelog.output` 与内建默认（不再物化 cac 默认值）
   pub output: Option<String>,
   pub provider: Option<String>,
   pub dry_run: bool,
 }
 
-/// release 子命令（`vbumpp release <version>`，ADR-0016）的解析产物
+/// release 子命令（`vbumpp release <version>`）的解析产物
 #[derive(Debug)]
 pub struct ReleaseArgs {
   pub version: String,
   /// `-o` / `--output` 的显式值；None = 未给出——执行层回落配置
-  /// `changelog.output` 与内建默认（COL-101）
+  /// `changelog.output` 与内建默认
   pub output: Option<String>,
   pub provider: Option<String>,
   pub dry_run: bool,
 }
 
-/// schema 子命令（`vbumpp schema`，ADR-0037）的解析产物：无 flag 时 stdout
+/// schema 子命令（`vbumpp schema`）的解析产物：无 flag 时 stdout
 /// 纯 JSON；`--write` 落盘，落点由 `--project`（默认）/ `--global` 二选一
 #[derive(Debug)]
 pub struct SchemaArgs {
@@ -147,7 +147,7 @@ fn parse_bump(argv: &[String]) -> Result<Command, String> {
   Ok(Command::Bump(args))
 }
 
-/// release 子命令解析（ADR-0016）：`vbumpp release <version> [-o file]
+/// release 子命令解析：`vbumpp release <version> [-o file]
 /// [--provider name]`。version 为唯一位置参数（多余位置参数即用法错误——
 /// 与 bump 的 files 列表语义不同）；`--provider` 的必填判定在命令执行层
 /// （平台变体注入可兜底，解析层不知注入身份）。
@@ -228,7 +228,7 @@ fn parse_release(argv: &[String]) -> Result<Command, String> {
   }))
 }
 
-/// schema 子命令解析（ADR-0037）：`vbumpp schema [--write] [--project|--global]`。
+/// schema 子命令解析：`vbumpp schema [--write] [--project|--global]`。
 /// 仅三个布尔 flag，无位置参数、无短形态；`--project` 与 `--global` 互斥
 /// （同给即用法错误）；带值形态按 mri 惯例视为 truthy
 fn parse_schema(argv: &[String]) -> Result<Command, String> {

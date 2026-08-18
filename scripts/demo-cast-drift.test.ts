@@ -1,5 +1,5 @@
 /**
- * demo-cast-drift.ts 的 CLI 契约测试（COL-93）。
+ * demo-cast-drift.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——用临时 git 仓库搭 fixture（提交一份 cast 产物），
  * DEMO_CAST_CAPTURE_CMD stub 掉真实采集（真实采集要 release 二进制，太重），
  * 分别演「不改文件（一致）/ 改写文件（漂移）/ 直接失败」三种形态。

@@ -65,7 +65,7 @@ fn collect_events() -> (EventLog, impl FnMut(&Progress)) {
 fn full_pipeline_files_commit_tag_and_events() {
   let dir = TempDir::new().unwrap();
   let path = init_repo(&dir);
-  // 两个配置声明的脚本槽位（ADR-0011）+ 一个文本文件
+  // 两个配置声明的脚本槽位+ 一个文本文件
   fs::write(path.join("VERSION.txt"), "version 1.0.0\n").unwrap();
   common::git(&path, &["add", "."]); // 提交内文件须已跟踪（上游 pathspec 行为一致）
   common::git(&path, &["commit", "-m", "add files"]);
@@ -121,7 +121,7 @@ fn full_pipeline_files_commit_tag_and_events() {
       ProgressEvent::Script, // postversion
     ]
   );
-  // 脚本事件负载为命令本体（ADR-0011）
+  // 脚本事件负载为命令本体
   assert_eq!(events[0].1.as_deref(), Some(pre_cmd));
   assert_eq!(events[5].1.as_deref(), Some(post_cmd));
 }
@@ -243,7 +243,7 @@ fn ignore_scripts_skips_all_script_steps() {
 
 #[test]
 fn failing_script_aborts_bump() {
-  // ADR-0011：配置声明的脚本非零退出即报错传播，发版中止
+  // 配置声明的脚本非零退出即报错传播，发版中止
   let dir = TempDir::new().unwrap();
   let path = init_repo(&dir);
   let (_events, mut cb) = collect_events();
@@ -373,7 +373,7 @@ fn recursive_default_files_expand_packages_manifests() {
   let (_events, mut cb) = collect_events();
   let results = version_bump(&options, &path, &mut cb).unwrap();
 
-  // ADR-0007：recursive 默认清单 = 链上 basename 表的 `**/` 整树收集模式，
+  // recursive 默认清单 = 链上 basename 表的 `**/` 整树收集模式，
   // 整树命中 packages 下的 manifest（替代上游 packages/**/package.json 硬编码）
   assert_eq!(results.new_version, "2.0.0");
   assert_eq!(results.updated_files.len(), 2);
@@ -389,12 +389,12 @@ fn recursive_default_files_expand_packages_manifests() {
 }
 
 // ---------------------------------------------------------------------------
-// COL-61：gitignore 感知收集 + commit 未跟踪 pathspec 兜底
+// gitignore 感知收集 + commit 未跟踪 pathspec 兜底
 // ---------------------------------------------------------------------------
 
 #[test]
 fn recursive_skips_gitignored_residue() {
-  // COL-61 事故场景（v6.0.0 发版中断实例）：-r 整树收集须跳过 gitignored
+  // 事故场景（v6.0.0 发版中断实例）：-r 整树收集须跳过 gitignored
   // 构建残留（target/package 打包暂存、.next 缓存），残留不被撞版本号、
   // 不进更新清单，commit 不再撞未跟踪 pathspec
   let dir = TempDir::new().unwrap();
@@ -450,7 +450,7 @@ fn recursive_skips_gitignored_residue() {
 
 #[test]
 fn commit_filters_untracked_files_with_warning() {
-  // COL-61 兜底层：显式 files 引入的未跟踪文件不再炸 commit——滤出提交、
+  // 兜底层：显式 files 引入的未跟踪文件不再炸 commit——滤出提交、
   // 磁盘修改保留（不静默丢弃的另一半是 ⚠ 警告，走 stdout 不在本 seam 断言）
   let dir = TempDir::new().unwrap();
   let path = dir.path().to_path_buf();
@@ -494,7 +494,7 @@ fn commit_filters_untracked_files_with_warning() {
 
 #[test]
 fn explicit_files_bypass_gitignore_filter() {
-  // COL-61 spec 边界：gitignore 过滤只作用于 glob 收集——字面点名的文件
+  // spec 边界：gitignore 过滤只作用于 glob 收集——字面点名的文件
   // 即使 gitignored 也照更（用户意图优先）；提交侧由兜底层过滤 + 警告
   let dir = TempDir::new().unwrap();
   let path = dir.path().to_path_buf();
@@ -537,7 +537,7 @@ fn explicit_files_bypass_gitignore_filter() {
 
 #[test]
 fn commit_tolerates_gitignored_cargo_lock() {
-  // COL-61 兜底层同类第二实例：gitignored Cargo.lock 经 ADR-0003 定向同步
+  // 兜底层同类第二实例：gitignored Cargo.lock 经定向同步
   // 入 updated_files——库 crate 常见布局，pre-fix 同样炸 pathspec 提交
   let dir = TempDir::new().unwrap();
   let path = dir.path().to_path_buf();
@@ -582,7 +582,7 @@ fn commit_tolerates_gitignored_cargo_lock() {
 
 #[test]
 fn non_git_dir_recursive_fails_open() {
-  // COL-61 fail-open：非 git 目录下 gitignore 探测失败回落裸 walk（上游
+  // fail-open：非 git 目录下 gitignore 探测失败回落裸 walk（上游
   // parity 现状）——收集不过滤、不新增报错
   let dir = TempDir::new().unwrap();
   let path = dir.path().to_path_buf();
@@ -614,7 +614,7 @@ fn non_git_dir_recursive_fails_open() {
 }
 
 // ---------------------------------------------------------------------------
-// BumpOptions::from_merged（ADR-0014）：合并配置 → versionBump 输入的转换
+// BumpOptions::from_merged：合并配置 → versionBump 输入的转换
 // ---------------------------------------------------------------------------
 
 #[test]

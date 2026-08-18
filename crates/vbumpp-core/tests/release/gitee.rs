@@ -24,7 +24,7 @@ fn gitee_injects_token_into_body() {
 #[test]
 fn gitee_error_never_leaks_token() {
   // 服务端错误回显请求体——gitee 的 token 在 body access_token 字段
-  // （原始形态），报错必须脱敏（ADR-0014）
+  // （原始形态），报错必须脱敏
   let mock = spawn_mock(|req| {
     (
       400,

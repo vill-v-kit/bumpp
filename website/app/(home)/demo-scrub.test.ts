@@ -1,5 +1,5 @@
 /**
- * demo-scrub.ts 的行为测试（COL-92）。
+ * demo-scrub.ts 的行为测试。
  * Seam：进度控制器的纯逻辑边界——滚动进度 → 段落/事件定位（locateAt）、
  * 当前状态 × 目标 → 重放计划（planScrub）、事件区间 → 字节拼接（segmentText）。
  * 数据用真实采集产物 demo-casts.ts（四段演示同一份数据，测试与线上同源）。

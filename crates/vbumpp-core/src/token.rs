@@ -1,4 +1,4 @@
-//! Token 存储（ADR-0014）：AES-256-GCM 加密凭证存储，与 JS 时代
+//! Token 存储：AES-256-GCM 加密凭证存储，与 JS 时代
 //! （npm/bump accesstoken.ts）逐字节兼容——存量 `tokens.bin` 零迁移。
 //!
 //! 二进制布局: magic "VBTK"(4B) | version(1B) | iv(12B) | authTag(16B) | ciphertext
@@ -53,7 +53,7 @@ impl fmt::Display for TokenError {
 impl Error for TokenError {}
 
 /// token 存储文件路径：`VBUMPP_TOKEN_STORE` 覆盖（优先级高于 `VBUMPP_HOME`，
-/// ADR-0013），默认 `<全局配置目录>/tokens.bin`
+/// ），默认 `<全局配置目录>/tokens.bin`
 pub fn store_path() -> Result<PathBuf, TokenError> {
   if let Some(custom) = env::var_os("VBUMPP_TOKEN_STORE") {
     if !custom.is_empty() {

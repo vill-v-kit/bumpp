@@ -1,4 +1,4 @@
-//! CLI 应用层（ADR-0016）：全局 flag 与 bump 默认命令通路的行为矩阵
+//! CLI 应用层：全局 flag 与 bump 默认命令通路的行为矩阵
 //! （解析层与 token 子命令用例在子模块，镜像 src/cli/ 切面）。store 路径
 //! 注入走临时目录，不触碰真实 Token 存储；消息文案逐条对齐 JS 时代 cli.ts
 //! 的 consola 输出（parity 基准）。
@@ -88,7 +88,7 @@ fn version_flag_prints_crate_version() {
   assert_eq!(
     out.trim(),
     format!("vbumpp {}", env!("CARGO_PKG_VERSION")),
-    "--version 取 crate 版本号（ADR-0003 同步）"
+    "--version 取 crate 版本号（同步）"
   );
   assert!(err.is_empty(), "{err}");
 }
@@ -185,7 +185,7 @@ fn bump_accepts_valid_provider_and_reaches_orchestration() {
 
 #[test]
 fn bump_with_config_release_runs_non_interactive_end_to_end() {
-  // COL-60 票据原场景：.vbumpprc.toml 配 release + confirm=false，
+  // 票据原场景：.vbumpprc.toml 配 release + confirm=false，
   // CLI bump 全程零交互完成发版（非 TTY 测试环境有任何 prompt 都会失败）
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
@@ -203,14 +203,14 @@ fn bump_with_config_release_runs_non_interactive_end_to_end() {
   );
 }
 
-/// changelog.output 配置回落用例的共用 fixture（COL-101）：minor 预演 +
+/// changelog.output 配置回落用例的共用 fixture：minor 预演 +
 /// 非交互 + 不 push + changelog 输出路径声明 HISTORY.md
 const CHANGELOG_OUTPUT_CONFIG: &str = "release = \"minor\"\nconfirm = false\npush = false\n\n\
                                        [changelog]\noutput = \"HISTORY.md\"\n";
 
 #[test]
 fn bump_writes_changelog_to_config_output_without_flag() {
-  // COL-101：未给 `-o` 时配置的 changelog.output 生效——CLI 默认值不再
+  // 未给 `-o` 时配置的 changelog.output 生效——CLI 默认值不再
   // 恒覆盖（cac 默认值 parity 已退场）
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
@@ -231,7 +231,7 @@ fn bump_writes_changelog_to_config_output_without_flag() {
 
 #[test]
 fn bump_output_flag_beats_config_output() {
-  // COL-101：显式 `-o` 优先于配置（flag > 配置 > 内建默认）
+  // 显式 `-o` 优先于配置（flag > 配置 > 内建默认）
   common::isolate_global_home();
   let dir = TempDir::new().unwrap();
   let cwd = TempDir::new().unwrap();

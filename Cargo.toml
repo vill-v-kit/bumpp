@@ -2,7 +2,7 @@
 resolver = "2"
 members = ["crates/*", "napi/*", "npm/*"]
 # 纯 JS / 平台二进制的包没有 Cargo.toml，会被 npm/* 与 napi/* glob 匹配到而报错，必须显式排除。
-# napi/<triple> 平台包目录由 napi create-npm-dirs 生成（ADR-0029），gitignore 不跟踪，
+# napi/<triple> 平台包目录由 napi create-npm-dirs 生成，gitignore 不跟踪，
 # 只在生成后存在于磁盘，同样命中 napi/* glob，必须排除。
 exclude = [
   "napi/darwin-arm64",
@@ -21,13 +21,13 @@ exclude = [
 
 [workspace.package]
 # 版本字面量全仓唯一维护点；成员一律 version.workspace = true 继承
-# （vbumpp 发版即更新此字段，见 ADR-0003 与 .vbumpprc.json 的 files）
+# （vbumpp 发版即更新此字段，见 .vbumpprc.json 的 files）
 version = "6.3.0"
 
 [workspace.dependencies]
 # 成员间引用一律走 workspace 继承，成员清单内不再写 path
 # 宽松 version 供 cargo publish 改写成 registry 依赖：下界兼容现版 5.1（^6 在 5.x 时代不可解析），
-# 上界卡 major；crates.io 上 vbumpp-core 只会有锁步发版的 ≥6.0.0，解析必落同代（ADR-0021）
+# 上界卡 major；crates.io 上 vbumpp-core 只会有锁步发版的 ≥6.0.0，解析必落同代
 vbumpp-core = { path = "crates/vbumpp-core", version = ">=5.1, <7" }
 
 [profile.release]

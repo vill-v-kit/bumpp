@@ -1,5 +1,5 @@
 /**
- * npm-publish.ts 的 CLI 契约测试（COL-53）。
+ * npm-publish.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——spawn 真实脚本进程（--dry-run 不上传），经
  * PUBLISH_GUARD_NPM_URL 把 publish-guard 查询与 pnpm publish 的 registry
  * 检查都导向本地 stub，验证「守卫过滤 → 放行上架」全链路的构成。
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 const script = fileURLToPath(new URL('./npm-publish.ts', import.meta.url))
 
 // 当前仓库的 13 个可上架包（website 与根 monorepo 均 private，永不出现在放行集）；
-// 新增发版包时此清单需同步——恰好全覆盖是 COL-53 的验收项
+// 新增发版包时此清单需同步——恰好全覆盖是验收项
 const PUBLISHABLE = [
   '@vill-v/bumpp-core',
   '@vill-v/bumpp-core-darwin-arm64',
@@ -54,7 +54,7 @@ const exec = (cmd: string, args: string[]): Promise<string> =>
   })
 
 beforeAll(async () => {
-  // 平台包目录不提交进 git（ADR-0029）：枚举前先生成并链接，否则 pnpm ls -r
+  // 平台包目录不提交进 git：枚举前先生成并链接，否则 pnpm ls -r
   // 看不到 7 个平台包、publish --dry-run 也无法完成 workspace:* 版本改写；
   // frozen 保证测试永不把 lockfile 改写当副作用（提交的 lockfile 已含平台包记录）
   await exec('node', ['scripts/create-npm-dirs.ts'])

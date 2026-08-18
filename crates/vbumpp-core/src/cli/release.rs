@@ -1,7 +1,6 @@
-//! release 子命令（ADR-0016）：bump 末段 release 失败（网络 / 密钥过期）后的
+//! release 子命令：bump 末段 release 失败（网络 / 密钥过期）后的
 //! 独立重试通路——body 从 changelog 文件提取指定版本节，纯创建语义；
-//! changelog 路径 `-o` 优先、未给时回落配置 `changelog.output`（COL-101，
-//! 与 bump 同路解析）；dry-run（COL-84）计划装配骑真实创建链，渲染复用
+//! changelog 路径 `-o` 优先、未给时回落配置 `changelog.output`//! 与 bump 同路解析）；dry-run计划装配骑真实创建链，渲染复用
 //! bump 模块的 `print_release_plan`。
 
 use std::env;
@@ -19,7 +18,7 @@ use crate::config::read_document;
 use crate::exec::capture;
 use crate::release::{create_release, plan_release, Provider};
 
-/// changelog 文件路径解析（COL-101）：`-o` 未给出时经与 bump 同路的配置
+/// changelog 文件路径解析：`-o` 未给出时经与 bump 同路的配置
 /// 解析取 `changelog.output`（全局 ← 项目文档合并 + changelog 段解析），
 /// 内建默认 CHANGELOG.md 兜底；配置不可解析即时报错（与 bump 通路一致，
 /// 不得静默回落默认）
@@ -90,7 +89,7 @@ pub(super) fn release_command(
   }
 
   // 前置校验②：changelog 中必须存在该版本节——防静默发空 body 的错误 release
-  // changelog 路径：flag 优先，未给时回落配置 changelog.output（COL-101）
+  // changelog 路径：flag 优先，未给时回落配置 changelog.output
   let changelog_file = match &args.output {
     Some(path) => path.clone(),
     None => match resolve_changelog_path(&cwd) {
@@ -138,7 +137,7 @@ pub(super) fn release_command(
   }
 }
 
-/// release dry-run（COL-84）：计划装配骑真实创建链（预演与执行同路），
+/// release dry-run：计划装配骑真实创建链（预演与执行同路），
 /// 渲染与 bump dry-run 的 release 块共用 `print_release_plan`
 fn release_dry_run(
   provider: Provider,

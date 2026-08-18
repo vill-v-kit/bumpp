@@ -1,4 +1,4 @@
-//! changelog 展示层（ADR-0012）：DisplayCommit 解析、excludeScopes 过滤
+//! changelog 展示层：DisplayCommit 解析、excludeScopes 过滤
 //! （内建 chore(deps) + 用户配置 + breaking 豁免）、markdown 结构、gitmoji、
 //! golden fixtures。
 
@@ -481,7 +481,7 @@ fn render_applies_gitmoji_and_uppercase() {
 
 // ---------------------------------------------------------------------------
 // golden fixtures：真 changelogen 0.6.2 产出经申报偏差变换（见 NOTES.md 与
-// tests/fixtures/changelog-gen.ts 头注释；节标题中文化偏差已随 ADR-0017 移除），
+// tests/fixtures/changelog-gen.ts 头注释；节标题中文化偏差已随英文默认移除），
 // 逐字节比对
 // ---------------------------------------------------------------------------
 

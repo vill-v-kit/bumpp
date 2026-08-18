@@ -52,7 +52,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 滚动演示区（ADR-0036）：sticky 终端四步 scrollytelling；
+      {/* 滚动演示区：sticky 终端四步 scrollytelling；
           lg 断点以下与 prefers-reduced-motion 降级为静态终态卡片 */}
       <ScrollyDemo />
 

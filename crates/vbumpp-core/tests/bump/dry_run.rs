@@ -1,4 +1,4 @@
-//! bump --dry-run（COL-85）：骑 COL-83 收口的同一流水线（预演与执行同路）——
+//! bump --dry-run：骑同一条流水线（预演与执行同路）——
 //! 配置四层合并、glob 展开与 gitignore 过滤、版本读取与计算、changelog 生成
 //! 全部照走；逐行打印执行计划（逐文件预演判定 / 版本与来源 / 将写盘清单 /
 //! 脚本与命令文本 / git 动作完整文本 / changelog 全文预览 / --provider 时的
@@ -192,7 +192,7 @@ fn provider_combo_appends_release_preview_and_token_source() {
   std::env::remove_var("GITEE_TOKEN");
 
   assert_eq!(code, 0, "{err}");
-  // bump 计划在前、平台 Release 预览（COL-84 渲染）在后；token 报告来源
+  // bump 计划在前、平台 Release 预览（渲染）在后；token 报告来源
   assert!(out.contains("bump plan (dry run"), "{out}");
   assert!(out.contains("release plan (dry run"), "{out}");
   assert!(
@@ -217,7 +217,7 @@ fn provider_combo_missing_token_warns_exit_0() {
   let path = common::init_bump_repo(&dir, "release = \"minor\"\n");
 
   let (out, err, code) = run_bump(&["--dry-run", "--provider", "gitee"], &path);
-  // COL-84 AC 在 bump 组合下同样成立：token 缺失降级为警告、预览照常 exit 0
+  // AC 在 bump 组合下同样成立：token 缺失降级为警告、预览照常 exit 0
   assert_eq!(code, 0, "token 缺失降级为警告，exit 0：{err}");
   assert!(err.is_empty(), "{err}");
   assert!(out.contains("bump plan (dry run"), "{out}");

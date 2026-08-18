@@ -1,10 +1,10 @@
 #:schema ./npm/bump/vbumpprc.schema.json
 # 本仓库（vill-v/bump）的项目级配置。changelog types 的中文分组标题是
-# 本仓库的定制——内建默认为英文（ADR-0017），中文经此处项目级配置注入，
+# 本仓库的定制——内建默认为英文，中文经此处项目级配置注入，
 # 保证本仓库 CHANGELOG 产出与历史归档一致。
 # 注：不配置 files——根 Cargo.toml（[workspace.package].version）已在默认
-# 清单（链上 manifest basenames 根级并集，ADR-0007），显式 files 会在浅替换
-# 语义下顶替默认清单、反把根 package.json 挤出发版面（ADR-0013）；嵌套
+# 清单（链上 manifest basenames 根级并集），显式 files 会在浅替换
+# 语义下顶替默认清单、反把根 package.json 挤出发版面；嵌套
 # npm/napi 发版包由 -r 整树收集覆盖。
 # 注：首行 #:schema 指令供 Taplo 关联 npm 包内提交的 schema 产物（再生：
 # pnpm regen:schema），编辑器据此对键名 / 类型补全与报红；TOML 注释对

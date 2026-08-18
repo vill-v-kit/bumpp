@@ -1,4 +1,4 @@
-//! bumpVersion 编排（COL-60）：配置文件 `release` 键接通非交互路径——
+//! bumpVersion 编排：配置文件 `release` 键接通非交互路径——
 //! 跳过版本菜单直接按配置发版（CI / 脚本化场景）；`confirm` 在非交互路径
 //! 生效（缺省 true，执行前二次确认），交互选定版本后不再问（文档语义）。
 
@@ -19,7 +19,7 @@ fn bump(path: &Path) -> Result<BumpVersionOutcome, OrchestrateError> {
 
 #[test]
 fn config_release_skips_prompt_and_completes_bump() {
-  // COL-60 主场景：release + confirm=false 全程非交互——测试环境非 TTY，
+  // 主场景：release + confirm=false 全程非交互——测试环境非 TTY，
   // 任何交互 prompt 都会报错，跑通即证明零交互
   let dir = TempDir::new().unwrap();
   let path = common::init_bump_repo(&dir, "release = \"minor\"\nconfirm = false\npush = false\n");
@@ -168,7 +168,7 @@ fn config_release_prompt_value_forces_interactive_menu() {
   }
 }
 
-/// 上游 parity 钉定（COL-85 透传缝口）：versionBumpInfo 的候选文件清单 =
+/// 上游 parity 钉定（透传缝口）：versionBumpInfo 的候选文件清单 =
 /// options.files（收集前）——默认探测表（链上 manifest basenames 并集）
 /// 在显式清单为空时照常兜底，来源为探测到的清单文件名
 #[test]
@@ -199,7 +199,7 @@ fn default_probe_table_supplies_current_version_source() {
 }
 
 // ---------------------------------------------------------------------------
-// 版本确定三键语义防回退（ADR-0037 形状改造后）：release / preid /
+// 版本确定三键语义防回退（形状改造后）：release / preid /
 // currentVersion 非 string 或空串报错，不静默当缺省
 // ---------------------------------------------------------------------------
 
@@ -221,7 +221,7 @@ fn version_keys_empty_string_errors() {
 
 #[test]
 fn version_keys_non_string_errors_at_shape_layer() {
-  // ADR-0037 后非 string 类型在形状层即报（键名 + 期望类型）；
+  // 后非 string 类型在形状层即报（键名 + 期望类型）；
   // overrides 层同拦（编排消费同一形状产物）
   for key in ["release", "preid", "currentVersion"] {
     common::isolate_global_home();

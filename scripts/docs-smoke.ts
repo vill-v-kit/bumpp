@@ -1,5 +1,5 @@
 /**
- * 文档站冒烟验证（COL-77）：ADR-0020 子路径部署约束的防回归手段。
+ * 文档站冒烟验证：子路径部署约束的防回归手段。
  * 站点以 basePath 子路径部署到 GitHub Pages，运行时拼接的 URL 必须显式
  * 带 basePath——这条已两次漏掉（llms 生成物链接、静态搜索客户端 fetch），
  * 本脚本把它变成 CI 可执行的断言。
@@ -16,7 +16,7 @@
  *       3. llms.txt / llms-full.txt 中所有同源绝对链接都以 siteBaseUrl
  *          为前缀（llms 生成物链接必须带 basePath）
  *       4. vbumpprc.schema.json 存在、非空且是合法 JSON（schema 产物随静态
- *          导出上架，ADR-0037 / COL-104；Pages 规范 URL 由此成立）
+ * 导出上架，/ ；Pages 规范 URL 由此成立）
  *
  *   node scripts/docs-smoke.ts check-live <siteBaseUrl>
  *     部署后轮询线上关键资源直到全部 200（Pages 有传播延迟，需重试）：
@@ -110,7 +110,7 @@ async function assertArtifacts(outDir: string, siteBaseUrl: string): Promise<str
     }
   }
 
-  // 4. schema 产物随静态导出（ADR-0037 / COL-104）：website/public/ → out/，
+  // 4. schema 产物随静态导出：website/public/ → out/，
   //    Pages 规范 URL（<siteBaseUrl>/vbumpprc.schema.json）依赖它
   const schemaPath = join(outDir, 'vbumpprc.schema.json')
   try {

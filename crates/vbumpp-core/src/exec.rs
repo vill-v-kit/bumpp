@@ -52,7 +52,7 @@ pub fn capture(program: &str, args: &[String], cwd: &Path) -> Result<Output, Exe
   }
 }
 
-/// 带 stdin 供给的捕获（`git check-ignore --stdin` 等批量查询，COL-61）：
+/// 带 stdin 供给的捕获（`git check-ignore --stdin` 等批量查询）：
 /// 仅 spawn / IO 失败报错——退出码语义归调用方（check-ignore 的
 /// 0=有命中 / 1=无命中、ls-files 的 0=成功 之类各不相同）
 pub fn capture_with_stdin(

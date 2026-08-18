@@ -27,7 +27,7 @@ fn gitcode_injects_token_into_query() {
 #[test]
 fn gitcode_error_never_leaks_token() {
   // 服务端错误回显请求目标——gitcode 的 token 在 URL query 里（form 编码形态），
-  // 报错必须脱敏（ADR-0014：明文 token 不出模块，对错误消息同样成立）
+  // 报错必须脱敏（明文 token 不出模块，对错误消息同样成立）
   let mock = spawn_mock(|req| {
     (
       422,

@@ -1,4 +1,4 @@
-//! 包管理器检测 parity 矩阵——对齐上游 package-manager-detector 默认行为（ADR-0006）：
+//! 包管理器检测 parity 矩阵——对齐上游 package-manager-detector 默认行为：
 //! 同级目录内 lockfile → 顶层 packageManager → devEngines.packageManager，逐级向上
 //! 爬目录；agent / lockfile 全表；devEngines 只消费对象形态的 name，无效形态静默回退。
 

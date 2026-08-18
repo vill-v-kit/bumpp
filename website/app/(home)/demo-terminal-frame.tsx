@@ -1,6 +1,6 @@
 'use client';
 
-// 首页演示终端的共用件（ADR-0036）：macOS 风格窗口chrome、ReplayCore
+// 首页演示终端的共用件：macOS 风格窗口chrome、ReplayCore
 // 加载 hook、静态终态卡片与 wasm 失败的纯文本降级。scrollytelling 区与
 // 移动端/reduced-motion 降级共用同一份 cast 数据与同一个 wterm 渲染路径
 // （静态卡片只是「write 整段」），不养第二套渲染。

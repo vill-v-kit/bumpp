@@ -1,4 +1,4 @@
-//! 四家 provider 的共用原语（ADR-0014）：仓库信息解析与 HTTP 收发收尾。
+//! 四家 provider 的共用原语：仓库信息解析与 HTTP 收发收尾。
 //! 请求构造的语义归 github_like.rs / 各 provider 文件；传输本体在效应边界
 //! （`effects.rs` 的 RealEffects），本文件只管「往哪发」的仓库推断、
 //! 「怎么发」的传输归口与「非 2xx 怎么报错」。

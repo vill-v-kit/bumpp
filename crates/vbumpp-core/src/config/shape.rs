@@ -1,4 +1,4 @@
-//! 配置形状（ADR-0037 单一事实源）：`.vbumpprc.*` 顶层键集与 changelog /
+//! 配置形状（单一事实源）：`.vbumpprc.*` 顶层键集与 changelog /
 //! gitlab / scripts 段的形状以 serde `Deserialize` + schemars `JsonSchema`
 //! 结构体表达。两个载体身份——文件层类型校验（`read_config` 键名 pre-pass
 //! 之后）与 JSON Schema 机械导出；合并载体维持 `serde_json::Map` 不变
@@ -131,7 +131,7 @@ impl JsonSchema for BoolOrString {
   }
 }
 
-/// `scripts` 段（ADR-0011）：三个时序槽位各自的 shell 命令串
+/// `scripts` 段：三个时序槽位各自的 shell 命令串
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, JsonSchema)]
 #[schemars(
   description = "Lifecycle script slots: shell commands run at each phase of the version bump."
@@ -147,7 +147,7 @@ pub struct ScriptsSection {
   pub postversion: Option<String>,
 }
 
-/// `gitlab` 段（ADR-0014）：键名校验（仅 `host`、未知键专属文案）由
+/// `gitlab` 段：键名校验（仅 `host`、未知键专属文案）由
 /// pre-pass `gitlab_host_of` 承载，结构体只管类型
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, JsonSchema)]
 #[schemars(

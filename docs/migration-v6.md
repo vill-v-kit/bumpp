@@ -1,7 +1,7 @@
 # 迁移指南：v5 → v6
 
-v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配置源统一为单一
-`.vbumpprc.json`（ADR-0013）。本指南覆盖全部破坏性改动与行为变化。
+v6 将 changelogen 使用面整体重写为 Rust，并把三个配置源统一为单一
+`.vbumpprc.json`。本指南覆盖全部破坏性改动与行为变化。
 
 ## 配置文件：单一 `.vbumpprc.json`
 
@@ -59,7 +59,7 @@ v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
 | `output` | `"CHANGELOG.md"` | 写出路径 |
-| `types` | 内建英文标题（ADR-0017；中文标题经项目级 `types` 定制） | 声明序即分组序；`false` 禁用 |
+| `types` | 内建英文标题（中文标题经项目级 `types` 定制） | 声明序即分组序；`false` 禁用 |
 | `repo` | 无（自 git remote / package.json `repository` 解析） | string 或 `{provider, domain, repo}` |
 | `scopeMap` | `{}` | scope 显示重命名 |
 | `noAuthors` | `false` | 整节关闭贡献者列表 |
@@ -81,7 +81,7 @@ v6 将 changelogen 使用面整体重写为 Rust（ADR-0012），并把三个配
 - **`ResolveConfig.changelog` 为用户透传段**：解析统一发生在 Rust 内部
   （单一解析路径），JS 不再有 changelog 配置解析态
 
-## 平台 Release 独立创建迁移至 CLI（ADR-0016）
+## 平台 Release 独立创建迁移至 CLI
 
 四个平台变体包的 `createGithubRelease` / `createGitlabRelease` /
 `createGiteeRelease` / `createGitcodeRelease`（及 `CreateReleaseOptions`

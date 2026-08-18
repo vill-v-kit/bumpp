@@ -1,4 +1,4 @@
-//! JavaScript 生态插件（ADR-0007）：trait 实现逐方法一行委托到能力子目录。
+//! JavaScript 生态插件：trait 实现逐方法一行委托到能力子目录。
 //! 能力本体：`version/javascript`（清单识别 + 保格式更新判定）、`install/javascript`
 //! （PM 检测 + `<pm> install`）、`recursive/javascript`（清单 basename 常量）。
 
@@ -28,7 +28,7 @@ impl VersionFilePlugin for JavaScriptPlugin {
     version::javascript::read_version(path)
   }
 
-  /// 本通道错误消息只用 rel_path（显示路径的相对形态，ADR-0002），无需 cwd 锚点
+  /// 本通道错误消息只用 rel_path（显示路径的相对形态），无需 cwd 锚点
   fn plan(
     &self,
     path: &Path,

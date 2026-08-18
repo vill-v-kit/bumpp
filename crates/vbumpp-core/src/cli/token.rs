@@ -1,5 +1,5 @@
 //! token 子命令（消息文案与 cli.ts switch 逐条 parity）：set / list / remove
-//! 三动作 + flag 扫描小 helper（ADR-0035 remove 交互矩阵所在地）。
+//! 三动作 + flag 扫描小 helper（remove 交互矩阵所在地）。
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -46,7 +46,7 @@ pub(super) fn token_command(
       // 友好显示形态：provider 级键 `gitlab`，host 作用域键
       // `gitlab (https://gitlab-a.com)`——prompt 文案指明目标 host
       let display = display_key(&key);
-      // 密码交互在 Rust 侧（dialoguer，ADR-0014）
+      // 密码交互在 Rust 侧（dialoguer）
       let prompt = env.prompt.unwrap_or(&token::prompt_token);
       match prompt(&display) {
         Ok(Some(plaintext)) => {
@@ -245,7 +245,7 @@ pub struct TokenArgs {
 
 /// token 子命令的 flag 扫描小 helper：认 `--flag` / `--flag=value` / `--`
 /// 位置参数分隔；声明名单外的 `--x` 与短 flag 一律未知报错（exit 1 由调用方
-/// 回写）。手写解析维持，不引 clap（ADR-0016）
+/// 回写）。手写解析维持，不引 clap
 pub fn scan_token_args(
   args: &[String],
   bool_flags: &[&str],

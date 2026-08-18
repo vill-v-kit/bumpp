@@ -1,4 +1,4 @@
-/// git hook 质量门（v6.1.0 事故复盘）：CI 只在 v* tag 触发（ADR-0021），
+/// git hook 质量门（v6.1.0 事故复盘）：CI 只在 v* tag 触发，
 /// fmt/clippy 的首次运行时机曾是发版当场。本文件把秒级/分钟级检查前移到
 /// 提交与推送时刻。装配：pnpm install 后 prepare 脚本自动 `hk install`。
 ///

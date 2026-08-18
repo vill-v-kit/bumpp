@@ -1,4 +1,4 @@
-//! changelog 版本节提取（ADR-0016）：`vbumpp release` 重试通路的 body 来源——
+//! changelog 版本节提取：`vbumpp release` 重试通路的 body 来源——
 //! 从 changelog 文件全文定位指定版本的 `## ` 节。匹配形状锚定生成侧
 //! （`markdown.rs`：`## ` 头 → compare 链接 → 类型分组），`###`/`####`
 //! 子节不终止节范围。
@@ -8,7 +8,7 @@
 /// `join("\n").trim()` 形状）。找不到该版本返回 None。
 ///
 /// `version` 为裸版本号（不含 `v` 前缀——调用侧归一化）；两种头形态都匹配
-/// 是因为 tagBody 模板可定制去前缀（`changelog.templates.tagBody`，ADR-0013）。
+/// 是因为 tagBody 模板可定制去前缀（`changelog.templates.tagBody`）。
 pub fn extract_version_section(content: &str, version: &str) -> Option<String> {
   let heading_v = format!("## v{version}");
   let heading_plain = format!("## {version}");

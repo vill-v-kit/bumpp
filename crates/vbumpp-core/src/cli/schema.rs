@@ -1,8 +1,8 @@
-//! schema 子命令（ADR-0037）：配置形状 JSON Schema 的导出通路。无 `--write`
+//! schema 子命令：配置形状 JSON Schema 的导出通路。无 `--write`
 //! 时 stdout 打印纯 JSON（管道重定向友好——CI 再生与管道共用，不混入任何其他
 //! 打印）；`--write` 落盘，`--project`（默认）写 `./vbumpprc.schema.json`、
 //! `--global` 写 `~/.vbumpp/schema.json`（`VBUMPP_HOME` 生效），落点按显示
-//! 路径规范打印（ADR-0002）。
+//! 路径规范打印。
 
 use std::env;
 use std::fs;

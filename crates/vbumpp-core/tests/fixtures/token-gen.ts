@@ -1,4 +1,4 @@
-// token 存储 golden fixture 生成器（ADR-0014）——npm/bump accesstoken.ts
+// token 存储 golden fixture 生成器——npm/bump accesstoken.ts
 // 二进制格式的 verbatim 复刻（格式冻结证据：magic "VBTK" | version | iv | authTag | ct）。
 // 密钥与 iv 取固定值使产物可复现；真实运行时为随机生成。
 // 用法: node tests/fixtures/token-gen.ts

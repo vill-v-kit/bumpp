@@ -1,7 +1,7 @@
 //! 候选版本计算矩阵——期望值由真实 node-semver@7.8.5 逐格生成（上游 bumpp v11
 //! `getNextVersions` 的忠实复刻脚本输出），作为 parity spec。
 //!
-//! 顺序对齐上游 releaseTypes（去掉 conventional，由 COL-13 引入）：
+//! 顺序对齐上游 releaseTypes（去掉 conventional）：
 //! [premajor, preminor, prepatch, prerelease, major, minor, patch, next]
 
 use vbumpp_core::version::{next_version, next_versions, ReleaseType, VersionError};

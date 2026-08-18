@@ -1,5 +1,5 @@
 /**
- * verify-tag-ci.ts 的 CLI 契约测试（COL-62）。
+ * verify-tag-ci.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——spawn 真实脚本进程，打本地 stub GitHub API 验证 exit code。
  * 发版路径唯一要防的事故形态：tag push 事件被 GitHub 丢失 → 零 workflow run →
  * 上架静默不发生；脚本必须在此时 exit 1 并给出删 tag 重推的恢复指引。

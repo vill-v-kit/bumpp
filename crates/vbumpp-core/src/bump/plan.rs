@@ -1,4 +1,4 @@
-//! bump 计划预览（COL-85 dry-run 的核心）：记录型效应（Recorder）骑完整编排
+//! bump 计划预览（dry-run 的核心）：记录型效应（Recorder）骑完整编排
 //! （`bump_version_at`，预演与执行同路）——配置合并、glob 收集、版本读取与
 //! 计算、changelog 生成、逐文件判定、git 动作格式化、平台 Release 请求构造
 //! 全部与真实执行一致，全部副作用（写盘 / spawn / HTTP）在边界拦截为记录
@@ -58,7 +58,7 @@ pub struct BumpPlan {
   pub pushes: Vec<String>,
   /// 编排产出的 changelog 版本节（无历史 tag 为 None——渲染层标注跳过原因）
   pub changelog: Option<String>,
-  /// 平台 Release 计划（--provider 传入时）：COL-84 同一装配产物与渲染
+  /// 平台 Release 计划（--provider 传入时）：同一装配产物与渲染
   pub release: Option<ReleasePlan>,
 }
 
@@ -137,7 +137,7 @@ impl Effects for Recorder {
 /// bump dry-run 的计划装配：记录型效应骑完整编排。bump 主体与真实编排
 /// 逐段一致（`bump_version_at` provider 置 None 跳过其严格 release 段——
 /// 严格 token 解析缺失即 exit 1 会违反 dry-run 缺失警告 exit 0 语义，
-/// COL-84 AC）；release 计划由宽容段补走（同一 dispatch 链 + 记录型效应）。
+/// AC）；release 计划由宽容段补走（同一 dispatch 链 + 记录型效应）。
 /// 从拦截记录淘汰式分类装配计划行
 pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, OrchestrateError> {
   let recorder = Recorder::default();
@@ -155,8 +155,8 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
   )?;
 
   // release 宽容段（--provider 时）：token 宽容解析与 dispatch 收在 release
-  // 模块内（plan_release_dispatch——明文 token 不出模块，ADR-0014）→ 装配
-  // COL-84 同形计划
+  // 模块内（plan_release_dispatch——明文 token 不出模块）→ 装配
+  // 同形计划
   let release = match options.provider {
     Some(provider) => {
       let markdown = outcome
@@ -186,7 +186,7 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
   };
 
   // ---- 拦截命令分类依据（配置原文）：复用编排链的形状解析产物
-  //（BumpVersionOutcome.config，ADR-0037）——无二次加载、无 Value 导航 ----
+  //（BumpVersionOutcome.config）——无二次加载、无 Value 导航 ----
   let execute_text = outcome
     .config
     .execute
@@ -235,7 +235,7 @@ pub fn plan_bump(options: &BumpVersionOptions, cwd: &Path) -> Result<BumpPlan, O
       execute = Some(execute_text.clone().unwrap_or_default());
       continue;
     }
-    // install 两形态（ADR-0007 适配命令全集）：`<pm> install` / `cargo check --workspace`
+    // install 两形态（适配命令全集）：`<pm> install` / `cargo check --workspace`
     if args == ["install"] || args == ["check", "--workspace"] {
       installs.push(format!("{} {}", run.program, args.join(" ")));
       continue;

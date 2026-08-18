@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 采集首页滚动演示（ADR-0036）四段 cast 时间线 → 生成 website/app/(home)/demo-casts.ts
+# 采集首页滚动演示四段 cast 时间线 → 生成 website/app/(home)/demo-casts.ts
 #
 # 四段（全部 dry-run / 只读形态、离线确定性、零远端 API mock）：
 #   1. dry-run           —— `vbumpp --dry-run`：单包发版计划预览

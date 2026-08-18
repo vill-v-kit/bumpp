@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 vbumpp-core.workspace = true
-# object_indexmap：changelog.types 经 IndexMap 保住 JS 对象声明序（ADR-0037）
+# object_indexmap：changelog.types 经 IndexMap 保住 JS 对象声明序
 napi = { version = "3.12.0", features = ["serde-json", "async", "object_indexmap"] }
 napi-derive = "3.6.1"
 indexmap = { version = "2", features = ["serde"] }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 生成演示用预置加密 keyring（key.bin + tokens.bin）——token list 与 release
-// dry-run 两段 fixture 的 token 来源（ADR-0036「预置加密 keyring」）。
+// dry-run 两段 fixture 的 token 来源（「预置加密 keyring」）。
 //
 // 与 crates/vbumpp-core/src/token.rs 落盘格式逐字节兼容：
 //   key.bin   —— 32 字节 AES-256 密钥

@@ -1,18 +1,18 @@
 //! `loadBumpConfig`：语义对齐上游 antfu/bumpp v11；配置文件为两级多格式
-//! （ADR-0013）：项目级 `.vbumpprc.{json,jsonc,toml}` + 全局级
+//!：项目级 `.vbumpprc.{json,jsonc,toml}` + 全局级
 //! `~/.vbumpp/config.{json,jsonc,toml}`（`.json`/`.jsonc` 同走 JSONC 解析）。
 //!
-//! 文件层校验（ADR-0037）键名 + 类型双重：键名 pre-pass（`customVersion` 迁移文案、
+//! 文件层校验键名 + 类型双重：键名 pre-pass（`customVersion` 迁移文案、
 //! 未知键全列、gitlab 严格键集）在前，形状结构体反序列化在后——类型不符报错指出键路径与期望类型，不再静默回落。
 //!
 //! 合并顺序（浅展开，整体替换）：`bumpConfigDefaults` ← 全局文件 ← 项目文件
-//! ← overrides；changelog 段例外——`types` 按键深合并逐层生效（ADR-0013）。
+//! ← overrides；changelog 段例外——`types` 按键深合并逐层生效。
 //! 上游经 napi 传入的 JS `undefined` 会序列化为 `null`，剥离时对齐上游的
 //! `v !== void 0` 过滤。
 //!
 //! 探测：同级认名集合内命中 2 个及以上即报错（多配置并存几乎一定是迁移事故）；`configFilePath`
 //! override 按扩展名 `.json` / `.jsonc` / `.toml` 分派，指定时替代项目层探测，全局层照常叠加；
-//! 旧名（`bump.config.*` / `vbumpp.config.*` / `changelog.config.*`）不探测、不读取，静默失效（ADR-0013）。
+//! 旧名（`bump.config.*` / `vbumpp.config.*` / `changelog.config.*`）不探测、不读取，静默失效。
 
 use std::collections::HashSet;
 use std::error::Error;
@@ -32,13 +32,13 @@ pub mod shape;
 pub use schema::config_schema;
 pub use shape::{shape_of, BoolOrString, BumpConfig};
 
-/// 项目级探测文件名集合（ADR-0013）
+/// 项目级探测文件名集合
 const PROJECT_CONFIG_FILES: [&str; 3] = [".vbumpprc.json", ".vbumpprc.jsonc", ".vbumpprc.toml"];
 /// 全局级探测文件名集合（全局配置目录 `~/.vbumpp/` 内）
 const GLOBAL_CONFIG_FILES: [&str; 3] = ["config.json", "config.jsonc", "config.toml"];
 
-/// 顶层键名白名单（COL-60）：configuration.mdx 顶层配置项表 + 机制键
-/// （`noGitCheck`）+ 编辑器 schema 关联键（`$schema`，ADR-0037）。文件层严格
+/// 顶层键名白名单：configuration.mdx 顶层配置项表 + 机制键
+/// （`noGitCheck`）+ 编辑器 schema 关联键（`$schema`）。文件层严格
 /// schema 防配置静默失效；overrides 层不校验（编程式 API 上游 parity）。
 /// `configFilePath` 不在列：overrides 专用机制键，配置文件内自指无意义。
 /// 与 `BumpConfig` 结构体键集的一致性由测试钉死（tests/config_shape.rs）
@@ -134,7 +134,7 @@ pub(crate) fn custom_config_path(overrides: Option<&Map<String, Value>>) -> Opti
     .map(str::to_owned)
 }
 
-/// 合并语义（单一实现，ADR-0013）：`bumpConfigDefaults` ← 文档 ← overrides，
+/// 合并语义（单一实现）：`bumpConfigDefaults` ← 文档 ← overrides，
 /// 随后 recursive 展开与 files 去重。与 `read_document` 组合即 `load_bump_config`；
 /// changelog 编排持同一份文档另行解析 changelog 段，零二次读取
 pub(crate) fn merge_bump_config(
@@ -151,8 +151,8 @@ pub(crate) fn merge_bump_config(
     merge(&mut merged, strip_nulls(overrides));
   }
 
-  // recursive 展开收归加载器（ADR-0013，原 JS 后处理）：merged recursive 为真时
-  // 追加插件底座链 recursive 模式表并置 false（ADR-0003 opt-in 语义不变）；
+  // recursive 展开收归加载器（原 JS 后处理）：merged recursive 为真时
+  // 追加插件底座链 recursive 模式表并置 false（opt-in 语义不变）；
   // files 非数组属病理用法，不动其值，仅消费 recursive 标志
   if merged.get("recursive").and_then(Value::as_bool) == Some(true) {
     if let Some(files) = merged.get_mut("files").and_then(Value::as_array_mut) {
@@ -176,7 +176,7 @@ fn merge(base: &mut Map<String, Value>, overrides: Map<String, Value>) {
   }
 }
 
-/// 配置文件读取原语（单一解析路径，ADR-0013）：bumpp 键与 changelog 段共享
+/// 配置文件读取原语（单一解析路径）：bumpp 键与 changelog 段共享
 /// 同一份文档。项目层与全局层（`~/.vbumpp/`）分层读取后合并（全局 ← 项目）。
 /// `config_file_path` 指定时按给定文件精确加载（替代项目层探测；文件缺失报 Io，
 /// 非支持扩展名报错——上游行为扩展）；全局层照常叠加。
@@ -211,8 +211,8 @@ pub fn read_document_with_home(
   })
 }
 
-/// 单级探测：认名集合内命中 1 个即解析；2 个及以上报错并全部列出（ADR-0013）。
-/// `cwd` 为错误消息的显示路径锚点（ADR-0002）：项目层 dir == cwd 打相对，
+/// 单级探测：认名集合内命中 1 个即解析；2 个及以上报错并全部列出。
+/// `cwd` 为错误消息的显示路径锚点：项目层 dir == cwd 打相对，
 /// 全局层（home 目录）打绝对 POSIX
 fn probe_config(
   dir: &Path,
@@ -243,7 +243,7 @@ fn probe_config(
 }
 
 /// 文档层合并（全局 ← 项目）：顶层键浅替换，唯一例外 `changelog` 段——
-/// 其 `types` 按键深合并（其余键整体替换），逐层对齐 ADR-0013 的段合并语义
+/// 其 `types` 按键深合并（其余键整体替换），逐层对齐同一套段合并语义
 fn merge_config_documents(
   base: Map<String, Value>,
   over: Map<String, Value>,
@@ -303,7 +303,7 @@ fn strip_nulls(map: Map<String, Value>) -> Map<String, Value> {
 
 /// 支持的配置文件格式（按扩展名分派）
 enum ConfigFormat {
-  /// `.json` / `.jsonc` 同走 JSONC 解析（注释、尾逗号可用；`.jsonc` 为别名，ADR-0013）
+  /// `.json` / `.jsonc` 同走 JSONC 解析（注释、尾逗号可用；`.jsonc` 为别名）
   Jsonc,
   Toml,
 }
@@ -318,7 +318,7 @@ impl ConfigFormat {
   }
 }
 
-/// 单文件读取与校验：`cwd` 为错误消息的显示路径锚点（ADR-0002）
+/// 单文件读取与校验：`cwd` 为错误消息的显示路径锚点
 fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfigError> {
   let content = fs::read_to_string(path).map_err(|e| LoadConfigError::Io {
     message: format!(
@@ -366,7 +366,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
           ),
         });
       }
-      // 顶层键名白名单（COL-60）：未知键全部列出（一次报错清完旧配置里的
+      // 顶层键名白名单：未知键全部列出（一次报错清完旧配置里的
       // 无效键），并附合法键全集；customVersion 已在上文以专属迁移信息拦截
       let mut unknown: Vec<&str> = map
         .keys()
@@ -389,13 +389,13 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
           ),
         });
       }
-      // gitlab 段严格 schema（ADR-0014）：随文件加载即校验，与 provider 无关
+      // gitlab 段严格 schema：随文件加载即校验，与 provider 无关
       if let Some(message) = gitlab_section_error(&map) {
         return Err(LoadConfigError::UnsupportedConfig {
           message: format!("config file {}: {message}", display::path(cwd, path)),
         });
       }
-      // 类型校验（ADR-0037）：键名 pre-pass 之后经形状结构体反序列化——类型不符
+      // 类型校验：键名 pre-pass 之后经形状结构体反序列化——类型不符
       // 从静默回落默认改为报错（键路径 + 期望类型）；未知键各有定制 pre-pass 文案
       shape::shape_of(&map).map_err(|message| LoadConfigError::UnsupportedConfig {
         message: format!("config file {}: {message}", display::path(cwd, path)),
@@ -409,7 +409,7 @@ fn read_config(path: &Path, cwd: &Path) -> Result<Map<String, Value>, LoadConfig
   }
 }
 
-/// 配置文件的 JSONC 选项：仅注释与尾逗号（ADR-0013）——关掉 jsonc-parser 默认
+/// 配置文件的 JSONC 选项：仅注释与尾逗号——关掉 jsonc-parser 默认
 /// 开启的 JSON5 风格宽松项（未引号键、单引号串、缺省逗号、十六进制/一元加号数字）
 const CONFIG_JSONC_OPTIONS: jsonc_parser::ParseOptions = jsonc_parser::ParseOptions {
   allow_comments: true,
@@ -421,7 +421,7 @@ const CONFIG_JSONC_OPTIONS: jsonc_parser::ParseOptions = jsonc_parser::ParseOpti
   allow_unary_plus_numbers: false,
 };
 
-/// `gitlab` 段提取（ADR-0014，严格 schema：仅 `host` 一键）：
+/// `gitlab` 段提取（严格 schema：仅 `host` 一键）：
 /// 段缺失/null 为 None；段或键形态非法时报错。文件层（`read_config`）与
 /// overrides 层（release `resolve_gitlab_host`）共用同一校验
 pub(crate) fn gitlab_host_of(
@@ -465,7 +465,7 @@ fn gitlab_section_error(source: &Map<String, Value>) -> Option<String> {
   gitlab_host_of(source).err().map(|e| e.to_string())
 }
 
-/// TOML datetime 在 JSON 值域无表达（serde 会静默降为 ISO 字符串），出现即报错（ADR-0013）
+/// TOML datetime 在 JSON 值域无表达（serde 会静默降为 ISO 字符串），出现即报错
 fn reject_toml_datetimes(
   value: &toml::Value,
   path: &Path,

@@ -1,5 +1,5 @@
 /**
- * schema-drift.ts 的 CLI 契约测试（COL-104）。
+ * schema-drift.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——用临时 git 仓库搭 fixture（提交两处 schema 产物），
  * SCHEMA_REGEN_CMD stub 掉真实再生（真实再生要 vbumpp 二进制，太重），
  * 分别演「不改文件（一致）/ 改写文件（漂移）/ 直接失败」三种形态。

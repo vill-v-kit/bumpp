@@ -1,4 +1,4 @@
-//! changelog 配置段解析（ADR-0013）：内建默认 / types 深合并 / 严格 schema / 同源同读。
+//! changelog 配置段解析：内建默认 / types 深合并 / 严格 schema / 同源同读。
 
 use serde_json::{json, Map, Value};
 use vbumpp_core::changelog::config::resolve_changelog_config;
@@ -11,10 +11,7 @@ fn map(v: Value) -> Map<String, Value> {
 fn defaults_when_no_document_no_overrides() {
   let config = resolve_changelog_config(None, None).unwrap();
   assert_eq!(config.output, "CHANGELOG.md");
-  assert!(
-    config.hide_author_email,
-    "hideAuthorEmail 默认翻转（ADR-0012）"
-  );
+  assert!(config.hide_author_email, "hideAuthorEmail 默认翻转");
   assert!(!config.no_authors);
   assert!(config.exclude_authors.is_empty());
   assert!(config.scope_map.is_empty());
@@ -22,7 +19,7 @@ fn defaults_when_no_document_no_overrides() {
   assert_eq!(config.commit_message, "chore: update {{output}}");
   assert_eq!(config.repo, None);
   // 内建 types：原 JS getDefaultsChangeLogConfig 的键集 + BreakingChange，声明序；
-  // title 为 changelogen 英文措辞（ADR-0017，中文定制移至项目级配置）
+  // title 为 changelogen 英文措辞（中文定制移至项目级配置）
   let types: Vec<(&str, &str)> = config
     .types
     .iter()
@@ -44,7 +41,7 @@ fn defaults_when_no_document_no_overrides() {
       ("style", "🎨 Styles"),
     ]
   );
-  // 内建 scope 级排除（COL-106）：chore 组排除 deps（原硬编码 chore(deps)
+  // 内建 scope 级排除：chore 组排除 deps（原硬编码 chore(deps)
   // 过滤的迁居形态），其余组为空
   let excludes: Vec<(&str, &[String])> = config
     .types
@@ -327,7 +324,7 @@ fn invalid_scalar_types_error() {
 
 #[test]
 fn bumpp_and_changelog_share_one_document() {
-  // 同源同读（ADR-0013）：load_bump_config 的浅合并结果携带原始 changelog 段，
+  // 同源同读：load_bump_config 的浅合并结果携带原始 changelog 段，
   // 同一份文档直接喂 resolve_changelog_config——单一解析路径，无二次读文件
   let dir = tempfile::TempDir::new().unwrap();
   std::fs::write(

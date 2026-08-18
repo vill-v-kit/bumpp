@@ -1,4 +1,4 @@
-//! token 解析链（ADR-0014）：store → 环境变量 →（仅 github）gh CLI；
+//! token 解析链：store → 环境变量 →（仅 github）gh CLI；
 //! gitlab 在 store 级内先 host 作用域精确键、再 provider 级键回落
 
 use std::collections::BTreeMap;

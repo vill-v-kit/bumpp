@@ -1,7 +1,7 @@
-//! changelog 域（ADR-0012）：changelogen 使用面的 Rust 重写。
+//! changelog 域：changelogen 使用面的 Rust 重写。
 //! 编排与对外 API 收于此根部；能力子目录：配置段解析（`config`）、
 //! markdown 生成（`markdown`）、gitmoji 数据表（`gitmoji`）、版本节提取
-//! （`extract`，ADR-0016 release 重试通路）。
+//! （`extract`， release 重试通路）。
 
 pub mod config;
 pub mod extract;
@@ -55,7 +55,7 @@ pub fn render_changelog(
 }
 
 // ---------------------------------------------------------------------------
-// generateChangelog 编排（替代原 JS changelog.ts 全部职责，ADR-0012 修复清单）
+// generateChangelog 编排（替代原 JS changelog.ts 全部职责， 修复清单）
 // ---------------------------------------------------------------------------
 
 /// `generateChangelog` 入参：`overrides` 为扁平全量配置覆盖（bumpp 键 +
@@ -129,7 +129,7 @@ static FIRST_ENTRY_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^###?
 
 /// `generateChangelog` 编排：统一配置解析（`.vbumpprc.json` + overrides 透传 +
 /// 内建默认，单一解析路径）→ `getGitDiff` → 引擎 → 读既有 CHANGELOG 插入/追加 →
-/// 写盘 → 按 bumpp `commit` 开关提交（C2）；全程无网络（ADR-0012）
+/// 写盘 → 按 bumpp `commit` 开关提交（C2）；全程无网络
 pub fn generate_changelog(
   options: &GenerateChangelogOptions,
   cwd: &Path,
@@ -145,7 +145,7 @@ pub fn generate_changelog_with(
   cwd: &Path,
 ) -> Result<GenerateChangelogOutcome, ChangelogError> {
   // 统一配置解析：同一份文档一次读取——bumpp 键（含 commit 开关）经
-  // merge_bump_config，changelog 段经 resolve_changelog_config（ADR-0013）
+  // merge_bump_config，changelog 段经 resolve_changelog_config
   let document = read_document(
     cwd,
     custom_config_path(options.overrides.as_ref()).as_deref(),
@@ -197,7 +197,7 @@ pub fn generate_changelog_with(
 }
 
 /// 读既有文件（缺失则以 `# Changelog\n\n` 起始）→ 首个 `^###?` 条目前插入
-/// （无则追加）→ 写盘；返回最终全文。`cwd` 为错误消息的显示路径锚点（ADR-0002）
+/// （无则追加）→ 写盘；返回最终全文。`cwd` 为错误消息的显示路径锚点
 fn upsert_changelog(
   eff: &dyn Effects,
   output: &Path,

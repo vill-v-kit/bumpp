@@ -1,5 +1,5 @@
 /**
- * publish-guard.ts 的 CLI 契约测试（COL-51）。
+ * publish-guard.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——spawn 真实脚本进程，打本地 stub registry 验证 exit code。
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'

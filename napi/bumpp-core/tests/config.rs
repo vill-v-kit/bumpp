@@ -1,4 +1,4 @@
-//! napi 类型化边界与文件层形状的 round-trip 一致性（ADR-0037，COL-103）：
+//! napi 类型化边界与文件层形状的 round-trip 一致性：
 //! 两视图键集/形状等价、serde 往返无损、`changelog.types` 声明序不被重排。
 
 use bumpp_core_napi::config::BumpConfig;

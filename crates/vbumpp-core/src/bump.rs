@@ -1,6 +1,6 @@
 //! Bump 域：versionBump 全链路编排的公共类型、错误与入口函数。
 //! 主流程在 `flow`（时序对齐上游 bumpp v11 `versionBump` / `normalizeOptions`），
-//! dry-run 计划装配在 `plan`（COL-85，预演与执行同路）。
+//! dry-run 计划装配在 `plan`（预演与执行同路）。
 
 mod flow;
 pub mod plan;
@@ -30,7 +30,7 @@ pub enum TagInput<'a> {
   Name(&'a str),
 }
 
-/// 配置声明的脚本命令（ADR-0011）：三个时序槽位各自的 shell 命令串，
+/// 配置声明的脚本命令：三个时序槽位各自的 shell 命令串，
 /// 经系统 shell 执行；槽位语义与上游 npm scripts 位一致
 #[derive(Debug, Clone, Default)]
 pub struct Scripts {
@@ -59,14 +59,14 @@ pub struct BumpOptions<'a> {
   pub ignore_scripts: bool,
   pub install: bool,
   pub execute: Option<&'a str>,
-  /// 配置声明的脚本命令（ADR-0011）；ignore_scripts 为 true 时全部跳过
+  /// 配置声明的脚本命令；ignore_scripts 为 true 时全部跳过
   pub scripts: Option<Scripts>,
   pub preid: Option<&'a str>,
   pub current_version: Option<&'a str>,
 }
 
 impl<'a> BumpOptions<'a> {
-  /// 自合并配置（`load_bump_config` 产物）构造（ADR-0014 编排用）：
+  /// 自合并配置（`load_bump_config` 产物）构造（编排用）：
   /// release 槽固定为交互选定的新版本。bumpp 键无严格 schema（上游 parity），
   /// 类型不符的键按缺失处理回落默认
   pub fn from_merged(
@@ -135,7 +135,7 @@ impl<'a> BumpOptions<'a> {
     }
   }
 
-  /// 自形状结构体（`config::shape_of` 产物）构造（ADR-0037 编排用）：
+  /// 自形状结构体（`config::shape_of` 产物）构造（编排用）：
   /// release 槽固定为已确定的新版本；逐键语义与 `from_merged` 一致
   /// （execute / preid / currentVersion 与 commit / tag 的空串均按缺失）
   pub fn from_config(config: &'a BumpConfig, new_version: &'a str) -> Self {
@@ -193,7 +193,7 @@ pub struct Progress<'a> {
 }
 
 /// 上游 `operation.results`；`verdicts` 为逐文件三态判定（每个收集文件
-/// 恰一条、处理顺序）——COL-85 dry-run 的预演判定行数据源
+/// 恰一条、处理顺序）——dry-run 的预演判定行数据源
 #[derive(Debug, PartialEq, Eq)]
 pub struct BumpResults {
   pub release: Option<String>,

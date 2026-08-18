@@ -6,7 +6,7 @@ use vbumpp_core::progress::{format_line, ProgressEvent};
 
 #[test]
 fn file_updated_is_green_success_with_last_file_and_version() {
-  // ADR-0002：cwd 内打项目相对 POSIX 路径
+  // cwd 内打项目相对 POSIX 路径
   assert_eq!(
     format_line(
       ProgressEvent::FileUpdated,
@@ -35,7 +35,7 @@ fn file_skipped_is_blue_info_with_last_file() {
 
 #[test]
 fn file_outside_cwd_prints_absolute_posix() {
-  // ADR-0002：cwd 外打绝对路径，分隔符同样统一 POSIX
+  // cwd 外打绝对路径，分隔符同样统一 POSIX
   assert_eq!(
     format_line(
       ProgressEvent::FileUpdated,
@@ -67,7 +67,7 @@ fn git_events_match_js_progress_texts() {
 
 #[test]
 fn script_is_green_success_with_command() {
-  // ADR-0011：scripts 通用化为配置声明的 shell 命令，打印命令本体
+  // scripts 通用化为配置声明的 shell 命令，打印命令本体
   assert_eq!(
     format_line(
       ProgressEvent::Script,

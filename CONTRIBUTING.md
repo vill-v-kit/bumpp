@@ -5,7 +5,7 @@
 仓库使用 [mise](https://mise.jdx.dev/) 统一管理工具链（Node、Rust 钉版、hk 与 zig 交叉链，版本声明见根 `mise.toml`）：
 
 ```shell
-mise install     # node lts + rust 钉版（含 rustfmt/clippy）+ hk（git hook runner）；linux 主机另装 zig / cargo-zigbuild（arm64 交叉链，ADR-0025）
+mise install # node lts + rust 钉版（含 rustfmt/clippy）+ hk（git hook runner）；linux 主机另装 zig / cargo-zigbuild（arm64 交叉链）
 pnpm install     # 安装 workspace 依赖；prepare 脚本自动执行 hk install 装配 git hook
 ```
 
@@ -27,7 +27,7 @@ mise exec zig@0.15.2 github:rust-cross/cargo-zigbuild@0.23.0 -- \
 - `pre-commit`：`cargo fmt --all -- --check` + `pnpm exec tsc --noEmit`（秒级；后者是仓库脚本的类型门——node 直跑 TS 只做 type stripping 不做类型检查）
 - `pre-push`：`cargo clippy --workspace --all-targets`（分钟级）
 
-CI 仅在 `v*` tag 推送时触发（见下文 CI 节），这两个 hook 让 fmt/clippy 问题在提交/推送时刻暴露，而不是攒到发版当场（ADR-0031）。确需绕过：`HK=0 git commit` / `git commit --no-verify`，责任自负。
+CI 仅在 `v*` tag 推送时触发（见下文 CI 节），这两个 hook 让 fmt/clippy 问题在提交/推送时刻暴露，而不是攒到发版当场。确需绕过：`HK=0 git commit` / `git commit --no-verify`，责任自负。
 
 ## 日常开发
 
@@ -41,7 +41,7 @@ cargo fmt --all && cargo clippy --workspace --all-targets
 ## 仓库布局约定
 
 - `crates/` — 纯 Rust 库 crate（不依赖 napi，可独立 `cargo test`）
-- `napi/` — 内部机制包：napi 绑定包及其平台二进制分发包（判别标准是受众而非是否发布，ADR-0005）
+- `napi/` — 内部机制包：napi 绑定包及其平台二进制分发包（判别标准是受众而非是否发布）
 - `npm/` — 面向用户的 npm 包（用户直接安装使用的包）
 
 配套规则（详见 [AGENTS.md](./AGENTS.md)「仓库布局」）：
@@ -62,17 +62,17 @@ cargo fmt --all && cargo clippy --workspace --all-targets
 
 ## CI
 
-GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时触发**；日常直推 main 不触发。tag 由本地 `pnpm release`（vbumpp `-r` 全树版本 bump）刻意产生，tag 推送即授权（ADR-0021）：
+GitHub Actions（`.github/workflows/ci.yml`）**仅在 `v*` 版本 tag 推送时触发**；日常直推 main 不触发。tag 由本地 `pnpm release`（vbumpp `-r` 全树版本 bump）刻意产生，tag 推送即授权：
 
 1. `test`（cargo fmt/clippy/test + vitest + `check:licenses`，先经 `pnpm create:npm-dirs` 生成平台包目录）→ `build`（7 平台 runner 矩阵，含 musl ×2 交叉腿）→ `test-bindings`（macOS / Ubuntu / Windows）全绿；
-2. `publish-npm` 与 `publish-crates` 并行自动**上架**，无人工批准门——npm 侧 `pnpm create:npm-dirs` 生成 7 平台包目录、`napi artifacts` 注入 `.node` 与 `index.d.ts`（ADR-0029）、断言 tag 版本 == 工作区版本、`pnpm -r pack` + publint 前置验证后 `pnpm publish -r`（13 包）；crates 侧对称断言后按 `vbumpp-core` → `vbumpp` 硬序 `cargo publish`（cli 依赖 core，各自 dry-run 先行）；
+2. `publish-npm` 与 `publish-crates` 并行自动**上架**，无人工批准门——npm 侧 `pnpm create:npm-dirs` 生成 7 平台包目录、`napi artifacts` 注入 `.node` 与 `index.d.ts`、断言 tag 版本 == 工作区版本、`pnpm -r pack` + publint 前置验证后 `pnpm publish -r`（13 包）；crates 侧对称断言后按 `vbumpp-core` → `vbumpp` 硬序 `cargo publish`（cli 依赖 core，各自 dry-run 先行）；
 3. 任一 publish job 部分失败时，「Re-run failed jobs」即唯一恢复手段——`scripts/publish-guard.ts` 的 skip-if-published 守卫让已上架版本自动跳过、未上架版本补发，两 job 可任意次重跑收敛。
 
-认证走 repo secrets（`NPM_TOKEN` / `CARGO_REGISTRY_TOKEN` 长效 token）首发，上架后迁 OIDC trusted publishing（ADR-0021 决策④）。设计与决策依据见 [ADR-0021](./docs/adr/0021-ci-registry-publish.md)；「上架」为术语基准（CONTEXT.md，与 Bump、平台 Release 三者分立）。
+认证走 repo secrets（`NPM_TOKEN` / `CARGO_REGISTRY_TOKEN` 长效 token）首发，上架后迁 OIDC trusted publishing；「上架」为术语基准（CONTEXT.md，与 Bump、平台 Release 三者分立）。
 
 `pnpm check:licenses`（test job 同步执行）校验各发版包的 `LICENSE` 与根逐字节一致——MIT 要求软件副本携带版权与许可文本，发版包即"副本"载体。新增发版包时必须从根复制 `LICENSE`；根 `LICENSE` 变更后须同步全部副本。
 
-### tag 推送后 CI 未触发（COL-62 实例）
+### tag 推送后 CI 未触发（实例）
 
 v6.0.0 首发时 GitHub 收到了 tag push（ref 创建成功），但其下游事件被丢失——两个 workflow 零 run、零 check-suite，上架静默不发生；删 tag 重推（同一 object）即恢复。此故障形态的唯一现场特征是 **tag 推送后 Actions 长时间无 CI run**。`pnpm release` 已内建 `scripts/verify-tag-ci.ts` 自检（vbumpp 推送后轮询 Actions runs，无则告警并中断后续 build）；若告警或人工发现未触发，恢复手段：
 
@@ -89,4 +89,4 @@ git push origin <tag>              # 原样重推，强制生成新 push 事件
 
 ### 本阶段不发版
 
-Rust 重写阶段已完成，但按 ADR-0001 决议**不随此发版**：CHANGELOG 迁移说明与 major 版本动作留待后续变更（oxc 加载 TS 配置、changelog Rust 化等）收敛后，随未来实际发版一并处理。
+Rust 重写阶段已完成，但不随此发版：CHANGELOG 迁移说明与 major 版本动作留待后续变更（oxc 加载 TS 配置、changelog Rust 化等）收敛后，随未来实际发版一并处理。

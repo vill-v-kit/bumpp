@@ -1,14 +1,14 @@
-//! markdown 生成（ADR-0012）：结构逐节对齐 changelogen 0.6.2 `generateMarkDown`。
+//! markdown 生成：结构逐节对齐 changelogen 0.6.2 `generateMarkDown`。
 //! 申报偏差两处：无 ungh.cc 网络解析、scope 级排除内建默认（chore 组
 //! `deps`，经 `types.X.excludeScopes` 可配置——changelog.rs 管线）；
-//! 原申报偏差①（中文节标题直生）随 ADR-0017 英文默认移除。
+//! 原申报偏差①（中文节标题直生）随英文默认移除。
 
 use crate::changelog::config::ChangelogConfig;
 use crate::changelog::gitmoji::convert_gitmoji;
 use crate::commits::{CommitReference, DisplayCommit, ReferenceType};
 use crate::git::RepoConfig;
 
-/// 版本区间（运行时入参——`from` / `to` / `newVersion` 不进配置文件，ADR-0013）
+/// 版本区间（运行时入参——`from` / `to` / `newVersion` 不进配置文件）
 #[derive(Debug, Clone, Copy)]
 pub struct ReleaseRange<'a> {
   pub from: &'a str,
@@ -65,7 +65,7 @@ pub fn generate_markdown(
     }
   }
   if !breaking_lines.is_empty() {
-    // 节标题直生（原申报偏差①的正当形态保留，标题语言随 ADR-0017 英文默认）；
+    // 节标题直生（原申报偏差①的正当形态保留，标题语言随英文默认）；
     // 回退链对齐原 hack：BreakingChange 非对象（被 false 禁用）时回落英文默认
     let title = config
       .types
@@ -79,7 +79,7 @@ pub fn generate_markdown(
     markdown.extend(breaking_lines);
   }
   let authors = collect_authors(commits, config);
-  // 贡献者节头英文（原申报偏差①随 ADR-0017 移除）；无 ungh.cc 解析（申报偏差②）
+  // 贡献者节头英文（原申报偏差①已随英文默认移除）；无 ungh.cc 解析（申报偏差②）
   if !authors.is_empty() && !config.no_authors {
     markdown.push(String::new());
     markdown.push("### ❤️ Contributors".to_owned());
@@ -215,7 +215,7 @@ fn collect_authors(
   authors
 }
 
-/// 贡献者行的邮箱段：hideAuthorEmail 时为空（默认，ADR-0012）；否则取首个
+/// 贡献者行的邮箱段：hideAuthorEmail 时为空（默认）；否则取首个
 /// 非 noreply.github.com 邮箱 ` <email>`，无则为空
 fn author_email_part(emails: &[String], config: &ChangelogConfig) -> String {
   if config.hide_author_email {

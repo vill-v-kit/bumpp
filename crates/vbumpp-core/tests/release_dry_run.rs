@@ -1,4 +1,4 @@
-//! release --dry-run（COL-84）：前置校验照走（报错文案与真实执行一致、exit 1，
+//! release --dry-run：前置校验照走（报错文案与真实执行一致、exit 1，
 //! 可当 CI 预检门禁）+ token 来源报告（缺失降级为警告行、exit 0）+ 平台
 //! Release 计划预览（provider / host / owner/repo / tag_name / prerelease /
 //! changelog 版本节全文 / 拦截到的请求行）。全程零网络请求（含 gitlab 的
@@ -82,7 +82,7 @@ fn init_release_repo(dir: &TempDir, version: &str, remote: &str) -> PathBuf {
 }
 
 /// 配置回落用例的共用装配：changelog 改名 HISTORY.md + 写入 `.vbumpprc.json`
-/// changelog.output 声明（COL-101）
+/// changelog.output 声明
 fn init_release_repo_with_output_config(dir: &TempDir, remote: &str) -> PathBuf {
   let path = init_release_repo(dir, "2.0.0", remote);
   fs::rename(path.join("CHANGELOG.md"), path.join("HISTORY.md")).unwrap();
@@ -412,7 +412,7 @@ fn dry_run_combines_with_custom_output() {
 }
 
 // ---------------------------------------------------------------------------
-// changelog 路径回落配置（COL-101）：flag > 配置 changelog.output > 默认
+// changelog 路径回落配置：flag > 配置 changelog.output > 默认
 // ---------------------------------------------------------------------------
 
 #[test]

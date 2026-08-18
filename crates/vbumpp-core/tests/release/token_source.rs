@@ -1,4 +1,4 @@
-//! token 来源签名（COL-83）：`resolve_token_sourced` 返回「token + 来源」，
+//! token 来源签名：`resolve_token_sourced` 返回「token + 来源」，
 //! 供 --dry-run 的来源报告消费；`resolve_token` 保持裸 token 兼容形态不变。
 
 use std::collections::BTreeMap;

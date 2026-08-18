@@ -1,5 +1,5 @@
 //! 插件底座编排矩阵——对齐上游 bumpp v11 updateFiles（事件序列、路径归一、
-//! 附带文件补发）；生态能力矩阵按 src/plugins/ 能力子目录镜像（ADR-0007）。
+//! 附带文件补发）；生态能力矩阵按 src/plugins/ 能力子目录镜像。
 
 use std::fs;
 
@@ -275,7 +275,7 @@ fn cargo_toml_update_emits_lock_file_updated_event() {
     "version = 4\n\n[[package]]\nname = \"demo\"\nversion = \"1.0.0\"\n",
   );
   let outcome = bump(&dir, &["Cargo.toml"]);
-  // Cargo.toml 带动 Cargo.lock 定向同步（ADR-0003）：附带文件紧随主文件补发
+  // Cargo.toml 带动 Cargo.lock 定向同步：附带文件紧随主文件补发
   // FileUpdated，两者都进入 updated_files（git 提交暂存的依据）
   let events: Vec<_> = outcome
     .events()

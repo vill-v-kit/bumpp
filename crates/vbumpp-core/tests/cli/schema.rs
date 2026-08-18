@@ -1,6 +1,6 @@
-//! schema 子命令行为矩阵（ADR-0037 / COL-102，镜像 src/cli/schema.rs）：
+//! schema 子命令行为矩阵（镜像 src/cli/schema.rs）：
 //! stdout 纯 JSON 通路、`--write` 项目级 / 全局落点（home 走 RunEnv 注入，
-//! 不碰真实 `~/.vbumpp`）、落点显示路径规范（ADR-0002）。解析层错误用例
+//! 不碰真实 `~/.vbumpp`）、落点显示路径规范。解析层错误用例
 //! 在 parse 子模块。
 
 use std::fs;
@@ -80,7 +80,7 @@ fn schema_write_project_flag_matches_default() {
 fn schema_write_global_uses_vbumpp_home_and_creates_it() {
   // `--global` 落点 `~/.vbumpp/schema.json`——home 走注入（不碰真实家目录）；
   // 家目录不存在时创建（首次使用场景，取嵌套路径一并钉死 create_dir_all）；
-  // 落点在 cwd 之外，显示路径打绝对 POSIX 形态（ADR-0002）
+  // 落点在 cwd 之外，显示路径打绝对 POSIX 形态
   let cwd = TempDir::new().unwrap();
   let home_parent = TempDir::new().unwrap();
   let home = home_parent.path().join("nested").join(".vbumpp");

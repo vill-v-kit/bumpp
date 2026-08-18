@@ -1,4 +1,4 @@
-//! 显示路径（ADR-0002）单元测试：cwd 锚定与 POSIX 分隔符形态矩阵。
+//! 显示路径单元测试：cwd 锚定与 POSIX 分隔符形态矩阵。
 
 use std::path::Path;
 

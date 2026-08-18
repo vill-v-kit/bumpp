@@ -16,7 +16,7 @@ use crate::version::{next_version, next_versions, ReleaseType};
 pub struct BumpInfoOptions<'a> {
   /// release type 或版本号；None / "prompt" 走交互 prompt
   pub release: Option<&'a str>,
-  /// 扫描当前版本的候选文件（按序先命中先赢；清单外追加链上 basename 探测表，ADR-0007）
+  /// 扫描当前版本的候选文件（按序先命中先赢；清单外追加链上 basename 探测表）
   pub files: &'a [String],
   /// 显式指定当前版本（跳过文件扫描）
   pub current_version: Option<&'a str>,
@@ -139,7 +139,7 @@ fn parse_loose(raw: &str) -> Result<String, InfoError> {
 }
 
 /// 上游 `getCurrentVersion`：options.currentVersion 优先，否则按候选文件顺序
-/// 经插件底座链分发读取（ADR-0007）；候选清单之外追加探测表——链上清单
+/// 经插件底座链分发读取；候选清单之外追加探测表——链上清单
 /// basename 并集（node 8 项在 cargo.toml 前，链序即优先级）
 pub(crate) fn get_current_version(
   files: &[String],

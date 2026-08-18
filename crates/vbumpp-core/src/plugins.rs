@@ -1,12 +1,12 @@
-//! 插件底座（ADR-0007）：生态知识（清单识别、版本更新、install 适配、recursive
-//! 收集）的单一事实源。静态链按 `matches` 首命中分发（ADR-0007）：
-//! JavaScript（JS manifest）→ Cargo（Cargo 清单 + Cargo.lock 定向同步，ADR-0003）→
+//! 插件底座：生态知识（清单识别、版本更新、install 适配、recursive
+//! 收集）的单一事实源。静态链按 `matches` 首命中分发：
+//! JavaScript（JS manifest）→ Cargo（Cargo 清单 + Cargo.lock 定向同步）→
 //! text（文本模板替换，兜底，仅有版本更新能力）。
 //!
 //! 布局（Rust 一致性限制：同 trait 同类型的 impl 块不可拆分，trait 实现只能与
 //! 类型同文件）：根部每文件一个插件类型，方法一行委托到能力子目录的纯函数——
 //! - `version/`   版本解析与版本更新判定（只读）
-//! - `install/`   生态 install 适配（ADR-0007）
+//! - `install/` 生态 install 适配
 //! - `recursive/` 清单 basename 常量（recursive 收集与默认清单的模式来源）
 //!
 //! 编排层职责：文件存在性、事件产出、路径归一、install 链走查、写盘段执行。
@@ -31,7 +31,7 @@ pub(crate) mod recursive;
 mod text;
 pub(crate) mod version;
 
-/// 生态：一套工具链及其版本文件与安装机制的集合（ADR-0007）
+/// 生态：一套工具链及其版本文件与安装机制的集合
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ecosystem {
   JavaScript,
@@ -44,11 +44,11 @@ pub enum UpdateOutcome {
   Updated,
   Skipped,
   /// 主文件已更新，并附带同步更新了其他文件（绝对路径，已归一化）——
-  /// 如 Cargo.toml 带动的 Cargo.lock 定向同步（ADR-0003）
+  /// 如 Cargo.toml 带动的 Cargo.lock 定向同步
   UpdatedWith(Vec<PathBuf>),
 }
 
-/// 逐文件预演判定三态（COL-85 dry-run 消费）：与真实执行的逐文件判定同一
+/// 逐文件预演判定三态（dry-run 消费）：与真实执行的逐文件判定同一
 /// 代码段产出——missing 为收集层存在性检查、up-to-date 为插件判定段
 /// `FilePlan::Skipped`、update 为 `FilePlan::Updated`（含附带同步）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,12 +81,12 @@ pub struct FileWrite {
 }
 
 /// 写失败的错误归口：清单/文本通道为 Io + 相对路径文案；Cargo.lock 定向
-/// 同步为 Lock + 绝对显示路径文案（ADR-0003 失败即报错）
+/// 同步为 Lock + 绝对显示路径文案（失败即报错）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WriteKind {
   /// 清单/文本写盘：错误文案携用户清单中的原始相对路径
   Manifest { rel_path: PathBuf },
-  /// Cargo.lock 写盘：错误文案携 cwd 锚定的绝对显示路径（ADR-0002）
+  /// Cargo.lock 写盘：错误文案携 cwd 锚定的绝对显示路径
   CargoLock,
 }
 
@@ -95,11 +95,11 @@ pub enum FilesError {
   Io {
     message: String,
   },
-  /// 清单不可解析（ADR-0003：失败即报错）
+  /// 清单不可解析（失败即报错）
   Parse {
     message: String,
   },
-  /// Cargo.lock 定向同步失败（ADR-0003：失败即报错）
+  /// Cargo.lock 定向同步失败（失败即报错）
   Lock {
     message: String,
   },
@@ -134,18 +134,18 @@ impl Error for InstallError {}
 pub(crate) trait VersionFilePlugin: Sync {
   /// 按相对路径（实际比较 basename）判断是否走本通道
   fn matches(&self, rel_path: &Path) -> bool;
-  /// 本通道所服务的生态；兜底通道（Text）为 None（不贡献 install 触发，ADR-0007）
+  /// 本通道所服务的生态；兜底通道（Text）为 None（不贡献 install 触发）
   fn ecosystem(&self) -> Option<Ecosystem>;
-  /// 本生态的清单 basename 集合（recursive 整树收集的模式来源，ADR-0003 opt-in；
+  /// 本生态的清单 basename 集合（recursive 整树收集的模式来源，opt-in；
   /// 兜底通道无清单概念，返回空）
   fn manifest_basenames(&self) -> &'static [&'static str];
-  /// 从 `path`（绝对路径）提取版本字面量（ADR-0007）；非本生态形态、缺字段、
+  /// 从 `path`（绝对路径）提取版本字面量；非本生态形态、缺字段、
   /// 读取失败均返回 None——semver 校验由编排层统一承担（上游 semver.valid 门）
   fn read_version(&self, path: &Path) -> Option<String>;
   /// 只读判定段：从 `path`（绝对路径）读取并判定更新计划；`current` / `new`
   /// 为当前与新版本号；`rel_path` 为用户清单中的原始相对路径，仅用于错误
   /// 消息文案；`cwd` 为错误消息中绝对路径（如 Cargo.lock）的显示路径锚点
-  /// （ADR-0002）。零写盘——写盘由编排层 `execute_plan` 消费计划执行
+  ///。零写盘——写盘由编排层 `execute_plan` 消费计划执行
   fn plan(
     &self,
     path: &Path,
@@ -154,7 +154,7 @@ pub(crate) trait VersionFilePlugin: Sync {
     new: &str,
     cwd: &Path,
   ) -> Result<FilePlan, FilesError>;
-  /// 本生态的 install 适配（ADR-0007，spawn 经效应边界）；无适配能力的通道
+  /// 本生态的 install 适配（spawn 经效应边界）；无适配能力的通道
   /// （Text）返回 None
   fn install(&self, eff: &dyn Effects, cwd: &Path) -> Option<Result<(), InstallError>>;
 }
@@ -166,14 +166,14 @@ static PLUGINS: &[&dyn VersionFilePlugin] = &[
   &text::TextPlugin,
 ];
 
-/// 各生态清单的 recursive 收集模式表（`-r` 整树收集，ADR-0003 opt-in 语义）：
+/// 各生态清单的 recursive 收集模式表（`-r` 整树收集， opt-in 语义）：
 /// 链上各插件声明的 manifest basenames 聚合为 `**/` glob 模式——生态清单知识的
 /// 单一事实源，CLI 经 napi 取用，展开与 IGNORED_DIRS 过滤由 normalize_files 承担
 pub fn recursive_manifest_globs() -> Vec<String> {
   default_file_patterns(true)
 }
 
-/// files 为空时的默认文件清单（ADR-0007）：链上 manifest basenames 的根级并集
+/// files 为空时的默认文件清单：链上 manifest basenames 的根级并集
 /// （glob 展开使不存在的文件自然消失，无需运行时生态探测）；recursive 时升级为
 /// `**/` 整树收集模式（与 recursive_manifest_globs 同一张表）
 pub fn default_file_patterns(recursive: bool) -> Vec<String> {
@@ -190,7 +190,7 @@ pub fn default_file_patterns(recursive: bool) -> Vec<String> {
     .collect()
 }
 
-/// 链分发版本读取（ADR-0007）：首个命中插件提取版本字面量，
+/// 链分发版本读取：首个命中插件提取版本字面量，
 /// semver 校验在编排层统一承担（上游 readVersion 的 semver.valid 门）
 pub fn dispatch_read_version(rel_path: &Path, abs_path: &Path) -> Option<String> {
   let raw = PLUGINS
@@ -202,7 +202,7 @@ pub fn dispatch_read_version(rel_path: &Path, abs_path: &Path) -> Option<String>
 }
 
 /// 按 `rel_path` 分发到首个命中的插件，更新 `abs_path` 指向的文件
-/// （`cwd` 为错误消息的显示路径锚点，ADR-0002）
+/// （`cwd` 为错误消息的显示路径锚点）
 pub fn dispatch_file(
   rel_path: &Path,
   abs_path: &Path,
@@ -283,7 +283,7 @@ fn execute_write(eff: &dyn Effects, write: &FileWrite, cwd: &Path) -> Result<(),
 }
 
 /// `run_installs` 的效应注入形态（spawn 经效应边界；触发判定为纯计算）：
-/// 按生态适配触发 install（ADR-0007 的链走查实现）——逐个执行待触发插件的适配
+/// 按生态适配触发 install（的链走查实现）——逐个执行待触发插件的适配
 pub fn run_installs_with(
   eff: &dyn Effects,
   cwd: &Path,
@@ -297,7 +297,7 @@ pub fn run_installs_with(
   Ok(())
 }
 
-/// 更新文件清单 → 待触发生态集合（链序；零生态命中回退 JavaScript，ADR-0007）
+/// 更新文件清单 → 待触发生态集合（链序；零生态命中回退 JavaScript）
 pub fn resolve_ecosystems(updated_files: &[String]) -> Vec<Ecosystem> {
   installs_to_run(updated_files)
     .iter()
@@ -307,7 +307,7 @@ pub fn resolve_ecosystems(updated_files: &[String]) -> Vec<Ecosystem> {
 
 /// 待触发的插件集合：每个更新文件的首个命中插件按链序去重（Text 命中不触发
 /// 任何适配）；零生态命中（仅 Text 通道或无更新文件）回退 JavaScript——与上游
-/// `--install`（无条件 JS PM install）行为一致（ADR-0007）
+/// `--install`（无条件 JS PM install）行为一致
 fn installs_to_run(updated_files: &[String]) -> Vec<&'static dyn VersionFilePlugin> {
   let mut indices: Vec<usize> = updated_files
     .iter()
@@ -335,7 +335,7 @@ pub(crate) fn read_text(path: &Path, rel_path: &Path) -> Result<String, FilesErr
 /// FileUpdated / FileSkipped）；updated / skipped 路径列表为派生视图（对应上游
 /// operation.state 的 updatedFiles / skippedFiles）。verdicts 为逐文件三态判定
 /// （每个输入文件恰一条，处理顺序）——FileSkipped 事件不区分的 up-to-date /
-/// missing 在此分开（COL-85 dry-run 的预演判定行数据源）
+/// missing 在此分开（dry-run 的预演判定行数据源）
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct UpdateFilesOutcome {
   events: Vec<(ProgressEvent, String)>,
@@ -343,7 +343,7 @@ pub struct UpdateFilesOutcome {
 }
 
 impl UpdateFilesOutcome {
-  /// 处理顺序的 (事件, 绝对路径) 序列，供内置打印与观察者闭包消费（ADR-0002）
+  /// 处理顺序的 (事件, 绝对路径) 序列，供内置打印与观察者闭包消费
   pub fn events(&self) -> &[(ProgressEvent, String)] {
     &self.events
   }
@@ -376,7 +376,7 @@ impl UpdateFilesOutcome {
 }
 
 /// 上游 `updateFiles`：逐个文件更新版本号，按处理顺序产出 FileUpdated / FileSkipped 事件。
-/// 插件附带同步的文件（Cargo.toml 带动的 Cargo.lock，ADR-0003）紧随主文件补发
+/// 插件附带同步的文件（Cargo.toml 带动的 Cargo.lock）紧随主文件补发
 /// FileUpdated——updated_files 是 git 提交暂存的依据，附带文件必须入列
 pub fn update_files(
   files: &[String],

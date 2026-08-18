@@ -1,4 +1,4 @@
-//! 通用脚本执行（ADR-0011）：配置声明的 shell 命令真实执行、非零退出报错传播。
+//! 通用脚本执行：配置声明的 shell 命令真实执行、非零退出报错传播。
 
 use std::fs;
 
@@ -27,8 +27,8 @@ fn script_supports_shell_features() {
 
 #[test]
 fn script_failure_propagates() {
-  // ADR-0011：配置声明的钩子非零退出即报错（发版不得静默继续，
-  // 对齐 ADR-0003 失败即报错精神，有意偏离上游 npm scripts 不传播的 parity）
+  // 配置声明的钩子非零退出即报错（发版不得静默继续，
+  // 对齐失败即报错精神，有意偏离上游 npm scripts 不传播的 parity）
   let dir = TempDir::new().unwrap();
   let err = run_script(dir.path(), "exit 1").unwrap_err();
   assert!(err.to_string().contains("exit 1"), "错误应含命令：{err}");

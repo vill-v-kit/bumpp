@@ -1,4 +1,4 @@
-//! GitCode release（ADR-0014 薄文件）：base_url + token 注入形态
+//! GitCode release（薄文件）：base_url + token 注入形态
 //! （query `access_token`，form 编码对齐 JS URLSearchParams 的空格→+）；
 //! 请求体语义共享自 github_like。
 

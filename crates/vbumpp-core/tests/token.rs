@@ -1,4 +1,4 @@
-//! Token 存储（ADR-0014）：Node 生成样本的 golden test + 行为矩阵。
+//! Token 存储：Node 生成样本的 golden test + 行为矩阵。
 //! 格式逐字节兼容 JS 时代 accesstoken.ts（magic | version | iv | authTag | ct）。
 
 use std::collections::BTreeMap;

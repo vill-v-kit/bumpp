@@ -1,4 +1,4 @@
-//! generateChangelog 编排（ADR-0012）：端到端流程与 N1/C1/C2/C3 修复回归。
+//! generateChangelog 编排：端到端流程与 N1/C1/C2/C3 修复回归。
 
 mod common;
 

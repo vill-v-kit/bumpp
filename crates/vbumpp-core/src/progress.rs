@@ -1,5 +1,5 @@
 //! 进度事件与内置打印：事件类型对齐上游 bumpp v11 `ProgressEvent`；
-//! 打印样式仿 consola（ADR-0002：progress 内置 Rust，不再回传 JS）。
+//! 打印样式仿 consola（progress 内置 Rust，不再回传 JS）。
 
 use std::path::Path;
 
@@ -7,8 +7,8 @@ use dialoguer::console::style;
 
 use crate::display;
 
-/// 进度事件（上游 `ProgressEvent` 枚举；`Script` 为 ADR-0011 通用化后的形态，
-/// 替代上游 `NpmScript`——npm scripts 通道已移除，事件不回传 JS，见 ADR-0002）
+/// 进度事件（上游 `ProgressEvent` 枚举；`Script` 为通用化后的形态，
+/// 替代上游 `NpmScript`——npm scripts 通道已移除，事件不回传 JS）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgressEvent {
   FileUpdated,
@@ -36,7 +36,7 @@ impl ProgressEvent {
 /// 事件 → CLI 输出字符串（仿 consola 样式：success ✔ 绿 / info ℹ 蓝；
 /// 非 TTY 时 console 自动降级为无 ANSI 纯文本）。
 /// `file` 为本次事件对应的文件路径（FileUpdated / FileSkipped 的最后一个，
-/// 绝对原生形态的存储值）——打印层按显示路径规则转换（ADR-0002：cwd 内相对、
+/// 绝对原生形态的存储值）——打印层按显示路径规则转换（：cwd 内相对、
 /// cwd 外绝对、一律 POSIX），存储与 API 返回值不受影响
 pub fn format_line(
   event: ProgressEvent,

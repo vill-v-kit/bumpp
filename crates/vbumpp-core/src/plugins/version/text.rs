@@ -1,4 +1,4 @@
-//! 文本兜底通道的版本能力（上游 bumpp v11 `updateTextFile` 纯迁移，ADR-0007）：
+//! 文本兜底通道的版本能力（上游 bumpp v11 `updateTextFile` 纯迁移）：
 //! 按上游正则 `(\b|v){version}\b` 全局替换（`\b` 为 JS 的 ASCII 语义）。
 //! 兜底通道仅有版本更新能力——无清单、无版本解析、无 install 适配。
 

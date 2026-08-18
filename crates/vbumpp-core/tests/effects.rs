@@ -1,4 +1,4 @@
-//! 效应边界（COL-83）：bump / changelog / release 全链的副作用统一经 `Effects`
+//! 效应边界：bump / changelog / release 全链的副作用统一经 `Effects`
 //! 注入执行——记录型实现（spy）骑同一条流水线（预演与执行同路的结构验证）：
 //! 判定、计算产物、事件序列与真实执行一致；副作用被边界拦截
 //! （零写盘 / 零 spawn / 零 HTTP，含 gitlab 的 GET project id）。
@@ -239,7 +239,7 @@ fn bump_pipeline_rides_effect_boundary() {
 fn update_files_planning_is_read_only_and_writes_flow_through_boundary() {
   let dir = TempDir::new().unwrap();
   let path = dir.path().to_path_buf();
-  // Cargo.toml 带动 Cargo.lock 定向同步（附带写盘条目，ADR-0003）
+  // Cargo.toml 带动 Cargo.lock 定向同步（附带写盘条目）
   std::fs::write(
     path.join("Cargo.toml"),
     "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
@@ -281,7 +281,7 @@ fn update_files_planning_is_read_only_and_writes_flow_through_boundary() {
     ]
   );
 
-  // 逐文件三态判定（COL-85 dry-run 数据源）：每个输入文件恰一条、处理顺序——
+  // 逐文件三态判定（dry-run 数据源）：每个输入文件恰一条、处理顺序——
   // FileSkipped 事件不区分的 up-to-date / missing 在此分开
   let verdicts: Vec<_> = outcome
     .verdicts()

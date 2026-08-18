@@ -1,6 +1,6 @@
 # vbumpp 文档网站（website/）
 
-面向用户的产品文档站（ADR-0020）：fumadocs / Next.js 静态导出，纯中文、单版本，
+面向用户的产品文档站：fumadocs / Next.js 静态导出，纯中文、单版本，
 部署 GitHub Pages（项目页子路径 `/bumpp`，deploy 工作流见 `.github/workflows/docs.yml`）。
 
 - 内容：`content/docs/*.mdx`（导航序 `content/docs/meta.json`）

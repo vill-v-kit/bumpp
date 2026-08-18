@@ -1,5 +1,5 @@
 /**
- * 重放式 seek 的终端核心（ADR-0036）：wterm 的 TerminalCore 没有
+ * 重放式 seek 的终端核心：wterm 的 TerminalCore 没有
  * reset/snapshot/seek，本类在 WasmBridge 上扩出 replay——「init 重置 wasm
  * 核心 + 同步写入全部 ≤t 字节」，之后渲染层下一次绘制读取的就是重放后
  * 的屏幕状态。WasmBridge.init 重建网格但脏行标记语义不由我们控制，

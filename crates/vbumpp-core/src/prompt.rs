@@ -4,7 +4,7 @@
 //! 无 "from config"）。
 //! 注意：选项文本一律不内嵌 ANSI 样式——dialoguer FuzzySelect 渲染活动行
 //! （选中样式 + fuzzy 高亮）会撕裂条目内已有的转义序列，ESC 丢失后 `[1m`/`[0m`
-//! 裸显（COL-30）。prompt 标题行的样式不受该路径影响，可正常使用。
+//! 裸显。prompt 标题行的样式不受该路径影响，可正常使用。
 
 use dialoguer::console::style;
 use dialoguer::theme::ColorfulTheme;
@@ -47,7 +47,7 @@ pub fn prompt_new_version(
 ) -> Result<(Option<String>, String), InfoError> {
   // dialoguer 的 Confirm 有非 TTY 守卫，FuzzySelect 没有——非 TTY 下 read_key
   // 立即失败、渲染循环空转（100% CPU 假死）。显式前置拦截并指明出路：
-  // 非交互环境（CI / 脚本）用 release 配置键跳过菜单（COL-60）
+  // 非交互环境（CI / 脚本）用 release 配置键跳过菜单
   if !dialoguer::console::Term::stderr().is_term() {
     return Err(InfoError::Prompt {
       message: "interactive version selection requires a terminal — set the \"release\" config \

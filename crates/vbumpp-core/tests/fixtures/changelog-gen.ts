@@ -1,4 +1,4 @@
-// golden fixture 一次性生成脚本（dev-only，ADR-0012）：
+// golden fixture 一次性生成脚本（dev-only）：
 // 以真 changelogen 0.6.2 在合成 git 仓库产出 markdown，施加三处申报偏差
 // 等效变换后固化。重生成：node crates/vbumpp-core/tests/fixtures/changelog-gen.ts
 // 变换清单：
@@ -20,7 +20,7 @@ const OUT = new URL('./changelog/', import.meta.url).pathname
 
 const git = (cwd: string, args: string) => execSync(`git ${args}`, { cwd, encoding: 'utf8' })
 
-// 内建默认（ADR-0013）：原 JS getDefaultsChangeLogConfig 同形
+// 内建默认：原 JS getDefaultsChangeLogConfig 同形
 const TYPES: Record<string, { title: string }> = {
   feat: { title: '🚀 特性' },
   perf: { title: '🔥 性能优化' },

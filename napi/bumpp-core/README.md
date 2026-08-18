@@ -9,7 +9,7 @@ bump 成功但平台 Release 失败（网络 / 密钥过期等）后的独立补
 
 ## 支持平台
 
-以预编译 Platform package 分发（主包 + optionalDependencies；平台包目录由 `pnpm create:npm-dirs` 从 `napi.targets` 生成，ADR-0029）：
+以预编译 Platform package 分发（主包 + optionalDependencies；平台包目录由 `pnpm create:npm-dirs` 从 `napi.targets` 生成）：
 
 | 平台包 | target |
 | --- | --- |

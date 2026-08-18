@@ -1,7 +1,7 @@
-//! bumpVersion 编排（ADR-0014）：原 JS `bump.ts` 职责的 Rust 收编——
+//! bumpVersion 编排：原 JS `bump.ts` 职责的 Rust 收编——
 //! 统一配置解析 → 最近 tag → 版本确定（配置 `release` 键直选或交互菜单，
-//! COL-60）→ changelog（有 tag 才生成）→ versionBump → 可选平台 Release。
-//! spinner 动画以进度打印替代（ADR-0002）；明文 token 不出 release 模块。
+//! ）→ changelog（有 tag 才生成）→ versionBump → 可选平台 Release。
+//! spinner 动画以进度打印替代；明文 token 不出 release 模块。
 
 use std::error::Error;
 use std::fmt;
@@ -28,10 +28,10 @@ pub struct BumpVersionOptions {
   pub provider: Option<Provider>,
 }
 
-/// 编排产出（对齐 JS `BumpVersion` 收缩后的形状，ADR-0014）；
+/// 编排产出（对齐 JS `BumpVersion` 收缩后的形状）；
 /// `bump` 为 versionBump 的结果（commit message / tag 名 / 逐文件清单——
-/// COL-85 dry-run 的 git 动作与判定行数据源）；`config` 为合并配置的
-/// 形状解析产物（ADR-0037），dry-run 计划复用它做命令分类
+/// dry-run 的 git 动作与判定行数据源）；`config` 为合并配置的
+/// 形状解析产物，dry-run 计划复用它做命令分类
 #[derive(Debug)]
 pub struct BumpVersionOutcome {
   pub state: BumpState,
@@ -140,15 +140,15 @@ pub fn bump_version_at(
   cwd: &Path,
   display: &mut dyn FnMut(&str),
 ) -> Result<BumpVersionOutcome, OrchestrateError> {
-  // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides，ADR-0013）----
+  // ---- 统一配置解析（四层合并：内建默认 ← 全局 ← 项目 ← overrides）----
   let merged = load_bump_config(options.overrides.clone(), cwd)?;
 
-  // ---- 形状解析（ADR-0037）：merged 一次过结构体，编排与 dry-run 计划
+  // ---- 形状解析：merged 一次过结构体，编排与 dry-run 计划
   //（BumpVersionOutcome.config）共用同一份产物；文件层类型校验已拦文件
   // 来源，overrides 层类型不符在此报错 ----
   let mut config = shape_of(&merged).map_err(|message| OrchestrateError::Config { message })?;
 
-  // ---- 版本确定三键（COL-60）：release / preid / currentVersion 自形状产物
+  // ---- 版本确定三键：release / preid / currentVersion 自形状产物
   // 穿入 version_bump_info——release 携带即非交互（release type / 版本号直选），
   // 缺省或 "prompt" 走交互菜单；preid / currentVersion 缺它则 pre* 释放算错
   // 标识、新版本基线仍来自文件探测
@@ -156,7 +156,7 @@ pub fn bump_version_at(
   let preid = config_str(config.preid.as_deref(), "preid")?;
   let current_version = config_str(config.current_version.as_deref(), "currentVersion")?;
 
-  // ---- confirm 门控（COL-60）：交互选定版本即确认，不再二次问（文档语义：
+  // ---- confirm 门控：交互选定版本即确认，不再二次问（文档语义：
   // 「命令行交互选定版本后不会再问」）；非交互路径按 merged confirm 执行——
   // 缺省 true 二次确认（上游语义），CI / 脚本场景配 confirm = false ----
   let interactive = release.as_deref().is_none_or(|r| r == "prompt");
@@ -239,7 +239,7 @@ pub fn bump_version_at(
   })
 }
 
-/// 字符串型配置键提取（COL-60）：缺省 / null 为 None（结构体已归一为
+/// 字符串型配置键提取：缺省 / null 为 None（结构体已归一为
 /// None）；空串报错——配置写错不允许静默回落（release 空串若静默当缺省
 /// 会意外弹交互菜单；空串报错对齐上游 `release: ""` 经 loose 解析抛错的
 /// 行为）；非字符串类型由形状解析在前报错，不到此处

@@ -23,7 +23,7 @@ serde_path_to_error = "0.1"
 shell-words = "1.1.0"
 toml = "0.9"
 toml_edit = "0.23"
-# TLS 使用 rustls（ring 后端，ureq 默认；ADR-0014）；zig 交叉链（ADR-0025）
+# TLS 使用 rustls（ring 后端，ureq 默认）；zig 交叉链
 # 可正确处理 ring 所需的 clang 专有 __ARM_ARCH
 ureq = { version = "3", default-features = false, features = ["json", "gzip", "rustls"] }
 url = "2.5"

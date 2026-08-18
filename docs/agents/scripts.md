@@ -1,17 +1,17 @@
 # Repo Scripts
 
-本仓维护用命令行脚本的统一形态：一律 TypeScript，由 node 原生直跑（type stripping），不经编译或转译步骤。适用于 `scripts/`、`website/scripts/`、napi 冒烟（`napi/bumpp-core/smoke.ts`）、crates fixture 生成器（`crates/vbumpp-core/tests/fixtures/*-gen.ts`）。决策与权衡见 `docs/adr/0038-repo-scripts-node-native-ts.md`。
+本仓维护用命令行脚本的统一形态：一律 TypeScript，由 node 原生直跑（type stripping），不经编译或转译步骤。适用于 `scripts/`、`website/scripts/`、napi 冒烟（`napi/bumpp-core/smoke.ts`）、crates fixture 生成器（`crates/vbumpp-core/tests/fixtures/*-gen.ts`）。决策与权衡见 `docs/adr/0040-v6-rewrite-constraints-archive.md` 第 11 节。
 
 ## Scope boundary
 
 判别标准是「维护者或 CI 以命令行调用的脚本」。两类不适用，保持 `.js`：
 
-- **发布物**：`npm/*/bin/` 薄壳随包上架、在用户不可控的 node 环境执行（ADR-0016 的 argv 透传薄壳）。
-- **生成物**：napi loader 是 napi-rs 官方生成物（ADR-0033），工具产出而非手写维护面。
+- **发布物**：`npm/*/bin/` 薄壳随包上架、在用户不可控的 node 环境执行（的 argv 透传薄壳）。
+- **生成物**：napi loader 是 napi-rs 官方生成物，工具产出而非手写维护面。
 
 工具链消费的配置文件不属于命令行脚本（`website/postcss.config.mjs` 迁移时按共识保留 `.mjs`）；TS 配置入口（`vitest.config.ts`、`website/next.config.ts`）受下述语法与 tsconfig 约束覆盖，但同样不是脚本。
 
-另有一例存量 shell 编排脚本：`website/scripts/capture-home-demo-cast.sh`——ADR-0036 cast 采集的 BSD `script(1)` pty 驱动层，会话录制形态由录制工具决定，保持 `.sh`；其伴生转换脚本（`raw-to-cast.ts` 等）已 TS 化、循本规范。
+另有一例存量 shell 编排脚本：`website/scripts/capture-home-demo-cast.sh`——cast 采集的 BSD `script(1)` pty 驱动层，会话录制形态由录制工具决定，保持 `.sh`；其伴生转换脚本（`raw-to-cast.ts` 等）已 TS 化、循本规范。
 
 ## Runtime
 
@@ -21,7 +21,7 @@
 
 ## Type checking
 
-type stripping 只擦除类型、不做类型检查。补位：根 `tsc --noEmit`（根 tsconfig 即脚本专用检查配置：`nodenext` / `strict` / `noEmit` / `allowImportingTsExtensions` / `erasableSyntaxOnly` / `types: ["node"]`），挂 hk pre-commit 秒级档、与 cargo fmt 并列（ADR-0031）。CI 不重复设类型检查腿——脚本在 CI 里被真实执行，node 直跑即最终形态。
+type stripping 只擦除类型、不做类型检查。补位：根 `tsc --noEmit`（根 tsconfig 即脚本专用检查配置：`nodenext` / `strict` / `noEmit` / `allowImportingTsExtensions` / `erasableSyntaxOnly` / `types: ["node"]`），挂 hk pre-commit 秒级档、与 cargo fmt 并列。CI 不重复设类型检查腿——脚本在 CI 里被真实执行，node 直跑即最终形态。
 
 ## Syntax constraints
 

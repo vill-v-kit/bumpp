@@ -48,8 +48,8 @@ pub fn version_bump_with(
   cwd: &Path,
   progress: &mut dyn FnMut(&Progress),
 ) -> Result<BumpResults, BumpError> {
-  // 内置进度打印（ADR-0002）为显示副作用：回传调用方注入的显示汇
-  // （COL-85 dry-run 以闭包捕获为计划行——预演与真实共用同一份打印格式）
+  // 内置进度打印为显示副作用：回传调用方注入的显示汇
+  // （dry-run 以闭包捕获为计划行——预演与真实共用同一份打印格式）
   version_bump_at(eff, options, cwd, &mut |line| println!("{line}"), progress)
 }
 
@@ -161,7 +161,7 @@ pub fn version_bump_at(
         updated_files: &state.updated_files,
         skipped_files: &state.skipped_files,
       };
-      // 内置打印（ADR-0002）：仿 consola 样式，文件事件取最后一个（本次事件的文件）；
+      // 内置打印：仿 consola 样式，文件事件取最后一个（本次事件的文件）；
       // 行经注入的显示汇（真实 stdout / dry-run 捕获同一份格式）
       let file = match p.event {
         ProgressEvent::FileUpdated => p.updated_files.last().map(String::as_str),
@@ -180,7 +180,7 @@ pub fn version_bump_at(
   }
 
   // ---- preversion → updateFiles → install/execute → version → git → postversion → push ----
-  // ADR-0011：脚本来自配置声明（scripts 槽位），经系统 shell 执行；
+  // 脚本来自配置声明（scripts 槽位），经系统 shell 执行；
   // 非零退出即报错传播；ignore_scripts 全部跳过
   macro_rules! script_step {
     ($slot:ident) => {
@@ -205,7 +205,7 @@ pub fn version_bump_at(
     emit!(*event, None);
   }
 
-  // ---- install（ADR-0007：仅当本次有文件被实际更新时，按生态适配触发） ----
+  // ---- install（仅当本次有文件被实际更新时，按生态适配触发） ----
   if options.install && !state.updated_files.is_empty() {
     plugins::run_installs_with(eff, cwd, &state.updated_files)?;
   }
@@ -224,7 +224,7 @@ pub fn version_bump_at(
   script_step!(version);
 
   if let Some(commit) = &commit {
-    // COL-61 兜底：pathspec 提交枚举 updated_files，未跟踪路径（收集层
+    // 兜底：pathspec 提交枚举 updated_files，未跟踪路径（收集层
     // 漏网的 gitignored 残留、gitignored Cargo.lock 定向同步、显式 files
     // 点名的未跟踪文件）会让 git 报错炸掉发版——滤为已跟踪子集，被滤文件
     // 保留磁盘修改并逐条 ⚠ 警告（不静默丢弃）；--all 无 pathspec 不涉，
@@ -237,7 +237,7 @@ pub fn version_bump_at(
     let updated_files: &[String] = match &tracked_filter {
       Some(t) => {
         for f in state.updated_files.iter().filter(|f| !t.contains(f)) {
-          // 存储值保持绝对原生（pathspec 依据），打印走显示路径（ADR-0002）；
+          // 存储值保持绝对原生（pathspec 依据），打印走显示路径；
           // 行经注入的显示汇（真实 stdout / dry-run 捕获同一份格式）
           display(&format!(
             "{} skipping untracked file in commit (left modified on disk): {}",
@@ -309,7 +309,7 @@ pub fn version_bump_at(
     skipped_files: state.skipped_files,
     // 逐文件三态判定：updateFiles 收集文件的判定 + 未命中显式路径的
     // Missing 补行（收集清单丢弃不存在文件、真实执行事件流零 missing——
-    // 该补行仅喂 COL-85 dry-run 的预演判定渲染）
+    // 该补行仅喂 dry-run 的预演判定渲染）
     verdicts: outcome.verdicts().iter().cloned().chain(missing).collect(),
   })
 }
@@ -325,7 +325,7 @@ struct NormalizedTag<'a> {
 }
 
 /// 上游 normalizeOptions 的文件清单归一：空清单启用默认列表，随后 glob 展开（排序、忽略目录）。
-/// 默认列表 = 插件底座链上 manifest basenames 的根级并集（ADR-0007）；recursive 时
+/// 默认列表 = 插件底座链上 manifest basenames 的根级并集；recursive 时
 /// 升级为 `**/` 整树收集模式（替代上游 `packages/**/package.json` 硬编码）
 fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
   let patterns: Vec<String> = if options.files.is_empty() {
@@ -339,7 +339,7 @@ fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
   for pattern in &patterns {
     // glob 模式命中属「收集」（默认清单 / -r / 配置 recursive 展开 / 用户
     // 显式 glob）——gitignore 过滤只作用于它们；字面路径是用户点名，
-    // 用户意图优先，不过滤（COL-61 spec 边界）
+    // 用户意图优先，不过滤（spec 边界）
     let is_glob = pattern.contains(['*', '?', '[']);
     let full = cwd.join(pattern);
     let Some(full) = full.to_str() else { continue };
@@ -368,7 +368,7 @@ fn normalize_files(options: &BumpOptions, cwd: &Path) -> Vec<String> {
   collected.sort();
   collected.dedup();
 
-  // COL-61：gitignore 过滤（git 仓库内）——glob 裸 walk 会下钻 gitignored
+  // gitignore 过滤（git 仓库内）——glob 裸 walk 会下钻 gitignored
   // 构建残留（target/package 打包暂存、.next 缓存等），残留清单被撞版本号后
   // commit pathspec 撞未跟踪文件炸掉发版（v6.0.0 实例）；git check-ignore
   // 一次进程批量裁决，非 git 仓库 / 检查失败 fail-open 回落裸 walk（现状）

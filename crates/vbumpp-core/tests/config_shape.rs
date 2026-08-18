@@ -1,7 +1,7 @@
-//! 配置形状（ADR-0037）：顶层键白名单 const 与 `BumpConfig` 结构体键集的
+//! 配置形状：顶层键白名单 const 与 `BumpConfig` 结构体键集的
 //! 一致性钉死——两者同为文件层校验载体（白名单报未知键、结构体报类型），
 //! 漂移即配置静默失效或误报。schema 断言一律骑 `config_schema()` 导出物
-//! （COL-102：`vbumpp schema` 子命令与仓库产物再生消费同一份）。
+//! （`vbumpp schema` 子命令与仓库产物再生消费同一份）。
 
 use std::collections::BTreeSet;
 

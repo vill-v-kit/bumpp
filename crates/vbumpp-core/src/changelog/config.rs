@@ -1,4 +1,4 @@
-//! changelog 配置段解析（ADR-0013）：与 bumpp 键同源同读同一份
+//! changelog 配置段解析：与 bumpp 键同源同读同一份
 //! `.vbumpprc.json` 文档，解析结果不向 JS 导出（全项目单一配置解析路径）。
 //!
 //! 合并语义：overrides > 文件 > 内建默认；`types` 按键深合并（值为 `false`
@@ -15,7 +15,7 @@ use serde_json::{Map, Value};
 use crate::git::{get_repo_config, RepoConfig};
 
 /// 单个 type 分组的配置（changelogen 的 `ChangelogConfigType` 收窄：
-/// `title` + `excludeScopes`——后者为 COL-106 新增的 scope 级排除）
+/// `title` + `excludeScopes`——后者为新增的 scope 级排除）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangelogTypeEntry {
   pub title: String,
@@ -25,7 +25,7 @@ pub struct ChangelogTypeEntry {
 }
 
 /// 解析后的 changelog 配置（运行时 `from` / `to` / `newVersion` 不在此——
-/// 它们是 generateChangelog 的入参，ADR-0012）
+/// 它们是 generateChangelog 的入参）
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangelogConfig {
   pub output: String,
@@ -38,7 +38,7 @@ pub struct ChangelogConfig {
   pub exclude_authors: Vec<String>,
   /// `templates.tagBody`（`## ` 头模板，`{{newVersion}}` 占位）
   pub tag_body: String,
-  /// changelog 提交信息模板（`{{output}}` 占位，ADR-0012 C3）
+  /// changelog 提交信息模板（`{{output}}` 占位， C3）
   pub commit_message: String,
 }
 
@@ -57,10 +57,10 @@ impl fmt::Display for ChangelogConfigError {
 
 impl Error for ChangelogConfigError {}
 
-/// 内建默认（ADR-0013）：types 键集/声明序自原 JS `getDefaultsChangeLogConfig` 迁入，
-/// title 为 changelogen 英文措辞（ADR-0017：中文标题定制移出为项目级配置）；
-/// `hideAuthorEmail` 默认翻转 changelogen（ADR-0012）；chore 组内建
-/// `excludeScopes = ["deps"]`（原硬编码 chore(deps) 过滤的迁居形态，COL-106）
+/// 内建默认：types 键集/声明序自原 JS `getDefaultsChangeLogConfig` 迁入，
+/// title 为 changelogen 英文措辞（中文标题定制移出为项目级配置）；
+/// `hideAuthorEmail` 默认翻转 changelogen；chore 组内建
+/// `excludeScopes = ["deps"]`（原硬编码 chore(deps) 过滤的迁居形态）
 fn defaults() -> ChangelogConfig {
   let types = [
     ("feat", "🚀 Enhancements"),

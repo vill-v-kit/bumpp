@@ -1,11 +1,11 @@
-//! napi 类型化边界（ADR-0037 overrides 类型化边界）：`bumpVersion` 入参形状
+//! napi 类型化边界（overrides 类型化边界）：`bumpVersion` 入参形状
 //! 以 `#[napi(object)]` 结构体表达，与文件层形状结构体
 //! `vbumpp_core::config::shape::BumpConfig` 成对——孤儿规则使 napi 边界 trait
 //! 无法落在文件层类型上，联合字段在此以 `Either` 表达；TS 类型由 napi-derive
 //! 机械生成。类型不符在边界即 napi 运行期错误（静默回落通路消除）；未知键
-//! 静默丢弃是 ADR-0037 接受边界（键名把关交给 TS 编译期 excess property check）。
+//! 静默丢弃是接受边界（键名把关交给 TS 编译期 excess property check）。
 //!
-//! 合并载体不变（ADR-0037）：结构体经 serde 转 `serde_json::Map` 进四层合并——
+//! 合并载体不变：结构体经 serde 转 `serde_json::Map` 进四层合并——
 //! 结构体是校验与类型的载体，Map 是合并的载体。与文件层形状的差异仅
 //! `configFilePath`：overrides 专用机制键，文件层白名单不收。
 //! `changelog.types` 经 IndexMap 保 JS 对象声明序——serde_json 开了

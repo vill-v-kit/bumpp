@@ -41,7 +41,7 @@ pub fn git(dir: &Path, args: &[&str]) -> String {
   String::from_utf8(output.stdout).unwrap().trim().to_owned()
 }
 
-/// bump 编排 fixture（COL-60）：package.json 1.0.0 + tag v1.0.0 + 一个 feat
+/// bump 编排 fixture：package.json 1.0.0 + tag v1.0.0 + 一个 feat
 /// commit（供 changelog）；`config` 原文写入 .vbumpprc.toml。remote 仅供
 /// changelog repo 推断（纯本地，无任何网络动作）；push 由各用例配置关闭
 pub fn init_bump_repo(dir: &tempfile::TempDir, config: &str) -> std::path::PathBuf {

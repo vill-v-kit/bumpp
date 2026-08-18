@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // pty 原始字节流 → asciicast v2 兼容的演示时间线（demo-casts.ts）。
 // capture-home-demo-cast.sh 的捕获后处理步骤——只做格式转换，不做屏幕仿真：
-// 屏幕状态与 VT 解析全部归渲染层 wterm（ADR-0036），本脚本保真保留 SGR 原始字节。
+// 屏幕状态与 VT 解析全部归渲染层 wterm，本脚本保真保留 SGR 原始字节。
 //
-// 多段合一（COL-91）：一次调用消费多段原始流，合并产出单个 TS 模块——每段一个
+// 多段合一：一次调用消费多段原始流，合并产出单个 TS 模块——每段一个
 // `<ID>_CAST` 常量，外加带稳定 id 的 DEMO_SEGMENTS 有序清单（前端按步骤取用）。
 //
 // 确定性设计（验收：两次运行产物字节一致）：
@@ -134,7 +134,7 @@ const constName = (id: string) => `${id.replace(/-/g, '_').toUpperCase()}_CAST`;
 
 const linesOut = [
   '// 本文件由 website/scripts/capture-home-demo-cast.sh 生成，勿手改。',
-  '// 内容：首页滚动演示（ADR-0036）四段——`vbumpp --dry-run` 单包计划预览、',
+  '// 内容：首页滚动演示四段——`vbumpp --dry-run` 单包计划预览、',
   '// `vbumpp -r --dry-run` monorepo 整树计划（含 private 包锁步）、',
   '// `vbumpp release 1.1.0 --dry-run --provider github` 平台 Release 补发预览',
   '//（token 来源为预置加密 keyring，假 token）、`vbumpp token list` 加密',

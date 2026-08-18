@@ -1,8 +1,8 @@
-//! Cargo 生态版本能力（ADR-0003）：toml_edit 保格式更新 `[package].version`，绝不触碰
+//! Cargo 生态版本能力：toml_edit 保格式更新 `[package].version`，绝不触碰
 //! `[dependencies]` 等其他表；并按 crate name 定向同步向上发现的 `Cargo.lock` 的
 //! `[[package]]` 条目（同一 toml_edit 机制，不跑 cargo）。
 //!
-//! 版本形态探测（与 ADR-0003 决策一致）：
+//! 版本形态探测（与既定决策一致）：
 //! - `[package].version` 为字面量 → 更新；已是新值 → 跳过
 //! - `version.workspace = true`（成员继承）→ 不强写字面量；若本文件即根（含
 //!   `[workspace.package].version` 字面量）则更新该字段，否则跳过（根清单作为
@@ -35,7 +35,7 @@ pub(crate) fn matches(rel_path: &Path) -> bool {
     .unwrap_or(false)
 }
 
-/// 版本解析（ADR-0007）：`[package].version` 字面量优先，其次
+/// 版本解析：`[package].version` 字面量优先，其次
 /// `[workspace.package].version` 字面量；继承形态（`version.workspace = true`）、
 /// 读取/解析失败均返回 None；semver 校验由编排层统一承担
 pub(crate) fn read_version(path: &Path) -> Option<String> {
@@ -54,7 +54,7 @@ pub(crate) fn read_version(path: &Path) -> Option<String> {
 /// 保格式更新判定段（只读，形态探测见模块头注释）：计算清单新版本全文并
 /// 完成 Cargo.lock 定向同步的全部预检（条目缺失 / 版本漂移 / lock 解析失败
 /// 均立即报错且清单不改写），产出写盘计划；写盘由编排层执行。
-/// `cwd` 为错误消息中绝对路径（lock）的显示路径锚点（ADR-0002）
+/// `cwd` 为错误消息中绝对路径（lock）的显示路径锚点
 pub(crate) fn plan(
   path: &Path,
   rel_path: &Path,
@@ -63,8 +63,8 @@ pub(crate) fn plan(
   cwd: &Path,
 ) -> Result<FilePlan, FilesError> {
   let text = read_text(path, rel_path)?;
-  // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（ADR-0003 失败即报错；
-  // 与 JsManifest 通道的上游容错 parity 的有意不对称，见 ADR-0003 落地补充）
+  // 显式列入发版清单的文件不可解析 = 漂移风险：立即报错（失败即报错；
+  // 与 JsManifest 通道的上游容错 parity 的有意不对称，见落地补充）
   let mut doc = text.parse::<DocumentMut>().map_err(|e| FilesError::Parse {
     message: format!("failed to parse {}: {e}", display::posix(rel_path)),
   })?;
@@ -193,7 +193,7 @@ struct LockSync {
 }
 
 /// 按 crate name 定向更新 `[[package]]` 条目：name 匹配且 version == current 的
-/// 条目改为新版本；条目缺失或版本漂移均报错（ADR-0003：失败即报错）
+/// 条目改为新版本；条目缺失或版本漂移均报错（失败即报错）
 fn sync_lock_by_name(
   lock_path: &Path,
   name: &str,

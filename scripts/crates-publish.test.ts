@@ -1,5 +1,5 @@
 /**
- * crates-publish.ts 的 CLI 契约测试（COL-54）。
+ * crates-publish.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——spawn 真实脚本进程，经 PUBLISH_GUARD_CRATES_URL 把
  * publish-guard 查询导向本地 stub registry，经 CRATES_PUBLISH_CARGO 把 cargo
  * 调用导向 stub 二进制（记 argv 日志、可按注入规则失败），验证

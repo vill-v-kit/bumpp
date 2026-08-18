@@ -20,7 +20,7 @@ export default function DefaultSearchDialog(props: SharedProps) {
   const { search, setSearch, query } = useDocsSearch({
     client: staticClient({
       // fumadocs 的默认 from 读 Vite 的 import.meta.env.BASE_URL，Next.js 下恒为 '/'，
-      // 子路径部署时必须显式带 basePath（ADR-0020 的 basePath 约束）
+      // 子路径部署时必须显式带 basePath（的 basePath 约束）
       from: `${basePath}/api/search`,
       locale,
     }),

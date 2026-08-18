@@ -1,6 +1,6 @@
 //! conventional 提交解析与获取：对齐上游 tiny-conventional-commits-parser 正则与
 //! bumpp v11 的 `getRecentCommits` / `determineSemverChange`；展示层解析
-//! （`parse_display_commit`）对齐 changelogen 0.6.2 `parseGitCommit`（ADR-0012）。
+//! （`parse_display_commit`）对齐 changelogen 0.6.2 `parseGitCommit`。
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -148,7 +148,7 @@ fn parse_raw_commit(chunk: &str) -> CommitInfo {
 }
 
 // ---------------------------------------------------------------------------
-// 展示层（changelogen `parseGitCommit`，ADR-0012）
+// 展示层（changelogen `parseGitCommit`）
 // 「authors / references 属展示层」的遗留口子在此补全；
 // co-authored-by 收集在使用面（generateMarkDown）是死代码，不移植
 // ---------------------------------------------------------------------------

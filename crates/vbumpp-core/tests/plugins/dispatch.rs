@@ -1,4 +1,4 @@
-//! 静态链分发：按 matches 顺序命中通道，TextPlugin 兜底（ADR-0007）。
+//! 静态链分发：按 matches 顺序命中通道，TextPlugin 兜底。
 
 use std::fs;
 use std::path::Path;
@@ -93,7 +93,7 @@ fn io_error_message_uses_rel_path() {
 #[test]
 fn cargo_toml_wins_over_text_fallback() {
   let dir = TempDir::new().unwrap();
-  // version.workspace = true 的成员：走 TOML 通道按 ADR-0003 跳过；
+  // version.workspace = true 的成员：走 TOML 通道跳过；
   // 若误入 Text 通道，注释里的 1.0.0 会被正则替换
   fs::write(
     dir.path().join("Cargo.toml"),

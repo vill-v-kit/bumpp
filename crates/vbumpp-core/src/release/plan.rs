@@ -1,4 +1,4 @@
-//! release 计划预览（COL-84 dry-run 的核心）：以记录型效应（PreviewEffects）
+//! release 计划预览（dry-run 的核心）：以记录型效应（PreviewEffects）
 //! 骑真实创建链（`dispatch`，预演与执行同路）——请求构造、gitlab 的 GET
 //! project id 两跳、错误归口全部与真实执行一致，HTTP 在边界被拦截为计划
 //! 条目（零网络收发）。装配产物 `ReleasePlan` 只携带展示所需字段：
@@ -199,10 +199,10 @@ pub fn plan_release(
   )
 }
 
-/// 宽容 dispatch（token 不出模块的入口，ADR-0014）：宽容解析（缺失不报错，
+/// 宽容 dispatch（token 不出模块的入口）：宽容解析（缺失不报错，
 /// 空串占位续走同一条链——占位值只落在不展示的头部/请求体字段）→ 同一
 /// dispatch 链（效应经 `eff` 注入）。bump dry-run 的 release 段经此骑线
-/// （COL-85）；调用方随后以 `assemble_plan` 消费同一宽容解析的产物
+///；调用方随后以 `assemble_plan` 消费同一宽容解析的产物
 pub(crate) fn plan_release_dispatch(
   eff: &dyn Effects,
   provider: Provider,

@@ -1,6 +1,6 @@
 /**
- * crates.io 上架（COL-54，ADR-0021 决策⑤的消费侧）：对 2 个 crate 按硬约束顺序
- * vbumpp-core → vbumpp（cli 依赖 core）逐一过 publish-guard（COL-51），
+ * crates.io 上架：对 2 个 crate 按硬约束顺序
+ * vbumpp-core → vbumpp（cli 依赖 core）逐一过 publish-guard，
  * 未上架的执行 `cargo publish --dry-run` 前置验证后真实上架，已上架的跳过。
  *
  * 用法（ci.yml publish-crates job）：
@@ -10,7 +10,7 @@
  * 为什么是交错结构（dry-run core → 上架 core → dry-run cli → 上架 cli）而非
  * ticket 字面的「先全部 dry-run 再上架」：首发布蛋——cli 的 dry-run 要把改写后
  * 的 path 依赖（vbumpp-core）向 registry index 解析，core 未真实上架时解析必败
- * （COL-50 已实测）。交错后任一时刻 cli 的 dry-run 都可解析：core 要么刚被本
+ * （已实测）。交错后任一时刻 cli 的 dry-run 都可解析：core 要么刚被本
  * 次运行上架、要么早已在架上（守卫 SKIP 的情形）。
  *
  * 行为契约：
@@ -41,10 +41,10 @@ const CARGO = process.env.CRATES_PUBLISH_CARGO ?? 'cargo'
 const RETRY_MAX = Number.parseInt(process.env.CRATES_PUBLISH_RETRY_MAX ?? '10', 10)
 const RETRY_DELAY_MS = Number.parseInt(process.env.CRATES_PUBLISH_RETRY_DELAY_MS ?? '15000', 10)
 
-// 上架顺序是硬约束：cli 依赖 core（ADR-0021）
+// 上架顺序是硬约束：cli 依赖 core
 const CRATES = ['vbumpp-core', 'vbumpp']
 
-// 版本唯一维护点：根 Cargo.toml [workspace.package].version（ADR-0007 链）
+// 版本唯一维护点：根 Cargo.toml [workspace.package].version（链）
 const toml = readFileSync(new URL('../Cargo.toml', import.meta.url), 'utf8')
 const versionMatch = toml.match(/\[workspace\.package\][^[]*?version\s*=\s*"([^"]+)"/s)
 if (!versionMatch) {

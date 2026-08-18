@@ -1,5 +1,5 @@
 /**
- * docs-smoke.ts 的 CLI 契约测试（COL-77）。
+ * docs-smoke.ts 的 CLI 契约测试。
  * Seam：CLI 契约本身——assert-artifacts 用临时目录搭产物 fixture，
  * check-live 打本地 stub 站点验证轮询与退出码。
  */
@@ -48,7 +48,7 @@ async function makeFixture() {
       '- [发布说明](https://github.com/vill-v-kit/bumpp/releases)', // 异源链接不受约束
     ].join('\n'),
   )
-  // schema 产物随静态导出（ADR-0037 / COL-104）
+  // schema 产物随静态导出
   await writeFile(join(dir, 'vbumpprc.schema.json'), '{"type":"object"}')
   return dir
 }
