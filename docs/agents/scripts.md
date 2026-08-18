@@ -1,6 +1,6 @@
 # Repo Scripts
 
-本仓维护用命令行脚本的统一形态：一律 TypeScript，由 node 原生直跑（type stripping），不经编译或转译步骤。适用于 `scripts/`、`website/scripts/`、napi 冒烟（`napi/bumpp-core/smoke.ts`）、crates fixture 生成器（`crates/vbumpp-core/tests/fixtures/*-gen.ts`）。决策与权衡见 `docs/adr/0040-v6-rewrite-constraints-archive.md` 第 11 节。
+本仓维护用命令行脚本的统一形态：一律 TypeScript，由 node 原生直跑（type stripping），不经编译或转译步骤。适用于 `scripts/`、`website/scripts/`、napi 冒烟（`napi/bumpp-core/smoke.ts`）。决策与权衡见 `docs/adr/0040-v6-rewrite-constraints-archive.md` 第 11 节。
 
 ## Scope boundary
 

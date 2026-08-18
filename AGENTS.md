@@ -22,7 +22,7 @@ Rust 代码按三个顶层目录分层：
 - `[profile.*]` 只在根 workspace 清单生效，成员 crate 内不写
 - 成员 crate 之间的引用一律走根 `[workspace.dependencies]` 声明 + 成员内 `xxx.workspace = true` 继承，成员清单里不写 `path`
 - 版本号唯一维护点是根 `[workspace.package].version`，成员 crate 一律 `version.workspace = true` 继承（成员清单不写版本字面量）；发版**不配置 files**——根 `Cargo.toml` 已在默认清单（链上 manifest basenames 根级并集），显式 files 会顶替默认清单反而漏掉根 `package.json`（浅替换语义）；嵌套 npm/napi 包版本由 `-r` 整树收集覆盖；private 包（website、根 workspace）随整树一并锁步是既定行为，不按 `"private": true` 排除
-- 仓库脚本（`scripts/`、`website/scripts/`、napi 冒烟、fixture 生成器等维护用命令行脚本）一律 TypeScript 由 node 原生直跑、不经编译步骤，语法与 import 约束见 `docs/agents/scripts.md`
+- 仓库脚本（`scripts/`、`website/scripts/`、napi 冒烟等维护用命令行脚本）一律 TypeScript 由 node 原生直跑、不经编译步骤，语法与 import 约束见 `docs/agents/scripts.md`
 
 ## Git 提交信息
 

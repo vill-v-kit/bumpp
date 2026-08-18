@@ -480,9 +480,8 @@ fn render_applies_gitmoji_and_uppercase() {
 }
 
 // ---------------------------------------------------------------------------
-// golden fixtures：真 changelogen 0.6.2 产出经申报偏差变换（见 NOTES.md 与
-// tests/fixtures/changelog-gen.ts 头注释；节标题中文化偏差已随英文默认移除），
-// 逐字节比对
+// golden fixtures：真 changelogen 0.6.2 产出经申报偏差变换（见 NOTES.md；
+// 节标题中文化偏差已随英文默认移除），逐字节比对
 // ---------------------------------------------------------------------------
 
 #[derive(serde::Deserialize)]
