@@ -1,6 +1,6 @@
 [tools]
 node = "lts"
-rust = { version = "1.97.1", components = ["rustfmt", "clippy"] }
+rust = { version = "1.98.0", components = ["rustfmt", "clippy"] }
 hk = "1.55.0"
 zig = { version = "0.15.2", os = ["linux"] }
 "github:rust-cross/cargo-zigbuild" = { version = "0.23.0", os = ["linux"] }

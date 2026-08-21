@@ -32,8 +32,8 @@ vbumpp-core = { path = "crates/vbumpp-core", version = ">=5.1, <7" }
 
 [profile.release]
 lto = true
-# strip 暂不恢复：符号表对未发布期的崩溃诊断有用，且 rustc 内置 strip（llvm-objcopy）
-# 在 Mach-O 上另有串池错位 bug（llvm-project#203678，修复随 rustc 1.98 落地
-# rust-lang/rust#158410）；当前 Xcode 27 链接器错位由 .cargo/config.toml 的
-# SDK 版本声明规避，与 strip 与否正交。rustc ≥ 1.98 后重新评估恢复 strip。
+# strip 停用（可随时恢复）：符号表对崩溃诊断有用。llvm-objcopy 的 Mach-O 串池
+# 错位已随 rustc 1.98 修复（rust-lang/rust#158410），strip=symbols 产物已在
+# macOS 27 + Xcode 27 实测串池对齐、dyld 可载；Xcode 27 链接器侧错位在
+# ld-27037 同步消失，SDK 26 声明规避已随之移除。
 # strip = "symbols"
